@@ -19,6 +19,10 @@ Responses 上游仍不参与此类 Chat 生图请求。
 普通文本模型以及原有 Images / Responses 入口没有修改。
 生图分组权限和生图并发限制继续生效，账号模型映射也按实际上游模型检查。
 
+调度缓存的账号投影保留 `base_url` 和 `openai_capabilities`，确保缓存路径也能
+正确判断原生 Chat 生图兼容性。元数据使用 `sched:meta:v2:` 命名空间，旧版
+投影会自动触发数据库回退和重建，无需清空 Redis 或修改账号配置。
+
 ## 后台配置
 
 1. 上游账号选择 **OpenAI / API Key**，填写真实 ChatGPT2API 地址与它的密钥。
