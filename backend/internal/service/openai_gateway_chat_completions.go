@@ -74,6 +74,17 @@ func (s *OpenAIGatewayService) forwardAsChatCompletions(
 	rememberOpenCodeInboundBody(c, body)
 	beginUpstreamResponseModelObservation(c)
 	ClearActualOpenAIUpstreamEndpoint(c)
+	resolvedModel := resolveMappedUpstreamModel(account, body, defaultMappedModel)
+	if !account.SupportsOpenAIChatCompletionsModel(resolvedModel) {
+		message := "This image model requires a custom API-key upstream with Chat Completions support"
+		writeChatCompletionsError(c, http.StatusBadRequest, "invalid_request_error", message)
+		return nil, errors.New(message)
+	}
+	if IsGPTImageGenerationModel(resolvedModel) && !GroupAllowsImageGeneration(apiKeyGroup(getAPIKeyFromContext(c))) {
+		MarkOpsClientBusinessLimited(c, OpsClientBusinessLimitedReasonLocalFeatureGate)
+		writeChatCompletionsError(c, http.StatusForbidden, "permission_error", ImageGenerationPermissionMessage())
+		return nil, errors.New("image generation disabled for group")
+	}
 	if shouldForwardOpenAIResponsesViaRawChatCompletions(account) {
 		SetActualOpenAIUpstreamEndpoint(c, "/v1/chat/completions")
 	}

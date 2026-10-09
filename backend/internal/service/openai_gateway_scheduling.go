@@ -453,6 +453,10 @@ func openAICompatibleAccountEligibilityFailureReasonBeforeProfit(ctx context.Con
 	if requireCompact && openAICompactSupportTier(account) == 0 {
 		return "compact_unsupported"
 	}
+	if requiredCapability == OpenAIEndpointCapabilityChatCompletions &&
+		!account.SupportsOpenAIChatCompletionsModel(resolveOpenAIAccountUpstreamModelForRequest(account, requestedModel, false)) {
+		return "image_chat_unsupported"
+	}
 	return ""
 }
 

@@ -96,11 +96,6 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", err.Error())
 		return
 	}
-	if service.IsGPTImageGenerationModel(reqModel) {
-		h.errorResponse(c, http.StatusBadRequest, "invalid_request_error", "This model is not supported on the Chat Completions endpoint")
-		return
-	}
-
 	reqLog = reqLog.With(zap.String("model", reqModel), zap.Bool("stream", reqStream))
 
 	setOpsRequestContext(c, reqModel, reqStream)
@@ -117,6 +112,20 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 	// 解析渠道级模型映射
 	channelMapping, _ := h.gatewayService.ResolveChannelMappingAndRestrict(c.Request.Context(), apiKey.GroupID, reqModel)
 	forwardModel := openAIChannelForwardModel(channelMapping, reqModel)
+	imageChat := service.IsGPTImageGenerationModel(reqModel) || service.IsGPTImageGenerationModel(forwardModel)
+	if imageChat {
+		if !service.GroupAllowsImageGeneration(apiKey.Group) {
+			h.errorResponse(c, http.StatusForbidden, "permission_error", service.ImageGenerationPermissionMessage())
+			return
+		}
+		imageReleaseFunc, imageAcquired := h.acquireImageGenerationSlot(c, streamStarted)
+		if !imageAcquired {
+			return
+		}
+		if imageReleaseFunc != nil {
+			defer imageReleaseFunc()
+		}
+	}
 
 	if h.errorPassthroughService != nil {
 		service.BindErrorPassthroughService(c, h.errorPassthroughService)

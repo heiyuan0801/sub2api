@@ -1772,6 +1772,24 @@ func (a *Account) GetOpenAISessionID() string {
 	return strings.TrimSpace(a.GetExtraString("openai_session_id"))
 }
 
+// SupportsOpenAIChatCompletionsModel permits GPT image models only on custom
+// API-key upstreams that route Chat requests to their native Chat endpoint.
+// The caller passes the resolved upstream model so aliases obey the same rule.
+func (a *Account) SupportsOpenAIChatCompletionsModel(model string) bool {
+	if !IsGPTImageGenerationModel(model) {
+		return true
+	}
+	if a == nil || a.Platform != PlatformOpenAI || a.Type != AccountTypeAPIKey {
+		return false
+	}
+	baseURL, err := url.Parse(strings.TrimSpace(a.GetCredential("base_url")))
+	if err != nil || baseURL.Hostname() == "" ||
+		strings.EqualFold(strings.TrimSuffix(baseURL.Hostname(), "."), "api.openai.com") {
+		return false
+	}
+	return resolveUpstreamProtocol(a, APIProtocolChatCompletions, model, nil) == APIProtocolChatCompletions
+}
+
 func (a *Account) SupportsOpenAIEndpointCapability(capability OpenAIEndpointCapability) bool {
 	if a == nil {
 		return false
