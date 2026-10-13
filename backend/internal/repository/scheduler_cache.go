@@ -18,9 +18,9 @@ const (
 	schedulerBucketSetKey       = "sched:buckets"
 	schedulerOutboxWatermarkKey = "sched:outbox:watermark"
 	schedulerAccountPrefix      = "sched:acc:"
-	// v2 includes native Chat image admission fields. Old projections lack the
-	// upstream URL; a namespace change makes them miss and rebuild from the DB.
-	schedulerAccountMetaPrefix     = "sched:meta:v2:"
+	// v3 includes native Chat image and Gemini explicit-cache admission fields.
+	// Previous projections must miss and rebuild from the database.
+	schedulerAccountMetaPrefix     = "sched:meta:v3:"
 	schedulerAccountLastUsedPrefix = "sched:acc:last_used:"
 	schedulerActivePrefix          = "sched:active:"
 	schedulerReadyPrefix           = "sched:ready:"
@@ -958,9 +958,13 @@ func filterSchedulerCredentials(credentials map[string]any) map[string]any {
 	}
 	// Candidate-list admission evaluates the account override before hydrating
 	// the full account. Dropping it silently falls back to the platform threshold.
-	// Chat image admission also needs the custom upstream URL and endpoint
-	// capabilities before hydrating the full account.
-	keys := []string{"model_mapping", "compact_model_mapping", "api_key", "base_url", "openai_capabilities", "project_id", "oauth_type", "plan_type", "account_scheduling_threshold"}
+	// Chat image admission needs endpoint capabilities. Gemini cache admission
+	// also needs upstream URL, auth mode, and explicit-cache declarations.
+	keys := []string{
+		"model_mapping", "compact_model_mapping", "api_key", "project_id", "oauth_type", "plan_type", "account_scheduling_threshold",
+		"base_url", "openai_capabilities", "auth_mode",
+		service.GeminiExplicitCacheUpstreamCredentialKey, service.GeminiExplicitCacheUpstreamMaxTTLCredentialKey,
+	}
 	filtered := make(map[string]any)
 	for _, key := range keys {
 		if value, ok := credentials[key]; ok && value != nil {

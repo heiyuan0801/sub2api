@@ -1,8 +1,8 @@
 # ChatGPT2API 生图 Chat 入口修复包
 
-基于官方 `Wei-Shaw/sub2api` 的 `main`，基线提交为
-`3a6fd1c9db07203ca308aaba69e502bc1f35b307`，原版本 `0.2.15`。
-本地构建版本为 `0.2.15-chat-image-fix.2`，不是官方发布版本。
+已合并官方 `Wei-Shaw/sub2api` 的 `v0.2.16`，上游基线提交为
+`01842576b3d5c1e2545b5a99ad555d36e28ed306`。
+定制构建版本为 `0.2.16-chat-image-fix.1`，保留先前的 Chat 生图兼容修复。
 
 ## 修复行为
 
@@ -20,8 +20,9 @@ Responses 上游仍不参与此类 Chat 生图请求。
 生图分组权限和生图并发限制继续生效，账号模型映射也按实际上游模型检查。
 
 调度缓存的账号投影保留 `base_url` 和 `openai_capabilities`，确保缓存路径也能
-正确判断原生 Chat 生图兼容性。元数据使用 `sched:meta:v2:` 命名空间，旧版
-投影会自动触发数据库回退和重建，无需清空 Redis 或修改账号配置。
+正确判断原生 Chat 生图兼容性。合并版同时保留 v0.2.16 新增的 Gemini 显式缓存
+候选字段，元数据使用 `sched:meta:v3:` 命名空间。旧版投影会自动触发数据库
+回退和重建，无需清空 Redis 或修改账号配置。
 
 ## 后台配置
 
@@ -53,9 +54,8 @@ curl "$SUB2API_URL/v1/chat/completions" \
 
 ## 包内容与部署
 
-- `sub2api-chat-image-fix-source.zip`：完整源码、回归测试、修复说明和补丁。
-- `sub2api-chat-image-fix-linux-amd64.tar.gz`：Linux x86_64 可执行文件，已内嵌前端。
-- `sub2api-chat-image-fix-linux-arm64.tar.gz`：Linux aarch64 可执行文件，已内嵌前端。
+- `sub2api-0.2.16-chat-image-fix.1-source.zip`：合并后的源码和回归测试。
+- `sub2api-0.2.16-chat-image-fix.1-linux-amd64.tar.gz`：Linux x86_64 可执行文件，已内嵌前端。
 - `chat-image-fix.patch`：针对上述基线的源码补丁。
 - `SHA256SUMS`：下载包的校验值。
 
@@ -63,9 +63,9 @@ curl "$SUB2API_URL/v1/chat/completions" \
 解压二进制包后，`sub2api` 即为程序，并附带该版本的 `resources` 和许可证。
 保留原来的配置、环境变量、data 目录、PostgreSQL 和 Redis，按现有部署方式替换程序。
 
-这份包基于上述官方版本。该项目启动时会执行其原有数据库迁移，
-升级前应备份数据库和现有程序，并先在测试实例验证。
-本次修复本身没有新增数据库字段或迁移。
+项目启动时会执行其原有数据库迁移。v0.2.16 新增迁移 242–245，涉及分组多语言
+字段与 Gemini 缓存表，均为添加字段或表。升级前应备份数据库、现有程序、配置
+和 Redis；保留二进制回滚入口。Chat 生图定制本身没有增加数据库迁移。
 
 源码也可用项目原有 Dockerfile 构建：
 
@@ -73,7 +73,7 @@ curl "$SUB2API_URL/v1/chat/completions" \
 docker build \
   --build-arg GOPROXY=https://proxy.golang.org,direct \
   --build-arg GOSUMDB=sum.golang.org \
-  --build-arg VERSION=0.2.15-chat-image-fix \
+  --build-arg VERSION=0.2.16-chat-image-fix.1 \
   -t sub2api:chat-image-fix .
 ```
 
@@ -87,9 +87,13 @@ docker build \
 SSE、超分参数透传、禁用生图分组和不兼容上游拒绝。
 新增回归使用真实 Redis 缓存投影路径，覆盖旧缓存回退和重建、原生 Chat 放行、
 强制 Chat、Responses 与官方地址拒绝、端点能力限制。
-已完成 Linux amd64 systemd 部署，验证程序校验值、版本、健康检查、首页和模型列表。
-空提示词公网探测已确认上游端点为 `/v1/chat/completions`；实际生图结果与其他
-验证限制见交付包中的 `VALIDATION.md`。
+2026-10-13 的合并验证：130 个针对性测试项通过，后端完整 unit 测试与
+`go vet -tags=unit ./...` 通过，前端 2,869 项测试和生产构建通过。
+缓存回归同时验证上游 Gemini 显式缓存字段和旧版原生 Chat 投影回退。
+
+原 `0.2.15-chat-image-fix.2` 已完成 Linux amd64 systemd 部署及真实 Chat 生图
+验证。v0.2.16 的服务器部署状态应以对应部署记录为准，不沿用旧版验收结果。
+直接使用官方后台自动更新会替换定制二进制，后续升级仍需先合并保留这些修复。
 
 ## 源码构建
 
