@@ -3,10 +3,10 @@
     <!-- Mini Progress Display -->
     <button
       @click="toggleTooltip"
-      class="flex cursor-pointer items-center gap-2 rounded-xl bg-purple-50 px-3 py-1.5 transition-colors hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/30"
+      class="flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 transition-colors hover:bg-gray-100 dark:border-dark-700 dark:bg-dark-800 dark:hover:bg-dark-700"
       :title="t('subscriptionProgress.viewDetails')"
     >
-      <Icon name="creditCard" size="sm" class="text-purple-600 dark:text-purple-400" />
+      <Icon name="creditCard" size="sm" class="text-gray-600 dark:text-gray-300" />
       <div class="flex items-center gap-1.5">
         <!-- Combined progress indicator -->
         <div class="flex items-center gap-0.5">
@@ -17,7 +17,7 @@
             :class="getProgressDotClass(sub)"
           ></div>
         </div>
-        <span class="text-xs font-medium text-purple-700 dark:text-purple-300">
+        <span class="text-xs font-medium text-gray-900 dark:text-gray-100">
           {{ activeSubscriptions.length }}
         </span>
       </div>
@@ -62,10 +62,10 @@
               <!-- Unlimited subscription badge -->
               <div
                 v-if="isUnlimited(subscription)"
-                class="flex items-center gap-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 px-2.5 py-1.5 dark:from-emerald-900/20 dark:to-teal-900/20"
+                class="flex items-center gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5 dark:bg-dark-700"
               >
-                <span class="text-lg text-emerald-600 dark:text-emerald-400">∞</span>
-                <span class="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                <span class="text-lg text-gray-700 dark:text-gray-200">∞</span>
+                <span class="text-xs font-medium text-gray-700 dark:text-gray-200">
                   {{ t('subscriptionProgress.unlimited') }}
                 </span>
               </div>

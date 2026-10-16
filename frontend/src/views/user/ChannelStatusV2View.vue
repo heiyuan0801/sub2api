@@ -1,250 +1,136 @@
 <template>
   <AppLayout>
     <div class="space-y-6 pb-12">
-      <!-- Ops-style elevated shell: title toolbar + filters (mirrors OpsDashboardHeader) -->
-      <section
-        class="card sticky top-0 z-20 !rounded-3xl !border-0 p-0 shadow-sm ring-1 ring-gray-900/5 backdrop-blur-sm dark:!bg-dark-800 dark:ring-dark-700 supports-[backdrop-filter]:bg-white/95 dark:supports-[backdrop-filter]:bg-dark-800/95"
-      >
-        <header class="page-header mb-0 flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
+      <section class="card !rounded-3xl p-0">
+        <header class="page-header mb-0 flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
           <div class="min-w-0">
-            <h1 class="page-title flex items-center gap-2 text-xl font-black text-gray-900 dark:text-white">
-              <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
+            <h1 class="page-title flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+              <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-gray-200">
                 <Icon name="chart" size="sm" />
               </span>
-              {{ t('channelMonitorV2.title') }}
+              {{ t('nav.channelStatus') }}
             </h1>
-            <div class="page-description mt-1.5 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span class="relative flex h-2 w-2 shrink-0">
-                <span
-                  class="relative inline-flex h-2 w-2 rounded-full"
-                  :class="loading || refreshing ? 'bg-gray-400' : 'bg-green-500'"
-                ></span>
-              </span>
-              <span v-if="refreshing" class="inline-flex items-center gap-1 text-primary-600 dark:text-primary-300">
-                <LoadingSpinner size="sm" />
-                {{ t('channelMonitorV2.updating') }}
+            <div class="page-description mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span class="h-2 w-2 shrink-0 rounded-full" :class="loading || refreshing ? 'bg-gray-400' : snapshot ? 'bg-green-500' : 'bg-gray-400'" aria-hidden="true"></span>
+              <span v-if="refreshing" class="inline-flex items-center gap-1">
+                <LoadingSpinner size="sm" />{{ t('channelMonitorV2.updating') }}
               </span>
               <span v-else-if="snapshot?.coverage.data_through">
                 {{ t('channelMonitorV2.updatedTo', { time: formatTime(snapshot.coverage.data_through) }) }}
               </span>
-              <span v-else class="text-gray-400">{{ t('common.loading') }}</span>
-              <span
-                v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive"
-                class="badge badge-warning"
-              >
+              <span v-else>{{ t('common.loading') }}</span>
+              <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive" class="badge badge-warning">
                 {{ t('channelMonitorV2.partialCoverage') }}
               </span>
-              <span
-                v-if="bootstrapActive"
-                class="badge badge-primary inline-flex items-center gap-1"
-              >
-                <LoadingSpinner size="sm" />
+              <span v-if="bootstrapActive" class="badge badge-gray">
                 {{ t('channelMonitorV2.bootstrap.progress', { percent: bootstrapPercent }) }}
               </span>
             </div>
           </div>
-          <button
-            class="btn btn-secondary btn-icon flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600"
-            type="button"
-            :title="t('common.refresh')"
-            :disabled="loading"
-            @click="reload(false)"
-          >
-            <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
+          <button class="btn btn-secondary btn-icon h-8 w-8 shrink-0 !rounded-lg" type="button" :title="t('common.refresh')" :aria-label="t('common.refresh')" :disabled="loading || refreshing" @click="reload(false)">
+            <Icon name="refresh" size="sm" :class="loading || refreshing ? 'animate-spin' : ''" />
           </button>
         </header>
 
-        <!-- First-upgrade silent backfill: show until 30d product window is covered -->
-        <div
-          v-if="bootstrapActive"
-          class="border-b border-blue-100 bg-blue-50/90 px-5 py-3 dark:border-blue-900/40 dark:bg-blue-950/40 sm:px-6"
-          role="status"
-          aria-live="polite"
-        >
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                {{ t('channelMonitorV2.bootstrap.title') }}
-              </p>
-              <p class="mt-0.5 text-xs text-blue-800/80 dark:text-blue-200/80">
-                {{ t('channelMonitorV2.bootstrap.description') }}
-              </p>
-            </div>
-            <span class="shrink-0 text-xs font-medium tabular-nums text-blue-700 dark:text-blue-300">
-              {{ t('channelMonitorV2.bootstrap.progress', { percent: bootstrapPercent }) }}
+        <div v-if="bootstrapActive" class="border-b border-gray-100 bg-gray-50 px-5 py-3 dark:border-dark-700 dark:bg-dark-900 sm:px-6" role="status" aria-live="polite">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('channelMonitorV2.bootstrap.title') }}</p>
+          <p class="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.bootstrap.description') }}</p>
+          <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-dark-700" role="progressbar" :aria-valuenow="bootstrapPercent" aria-valuemin="0" aria-valuemax="100" :aria-label="t('channelMonitorV2.bootstrap.working')">
+            <div class="h-full rounded-full bg-gray-900 transition-[width] duration-500 dark:bg-gray-200" :style="{ width: `${bootstrapPercent}%` }" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-6">
+          <div class="tabs inline-flex shrink-0" role="group" :aria-label="t('channelMonitorV2.timeRange')">
+            <button v-for="option in ranges" :key="option.value" type="button" class="tab !px-3 !py-1.5 text-xs" :class="filter.range === option.value ? 'tab-active' : ''" :aria-pressed="filter.range === option.value" @click="setRange(option.value)">
+              {{ option.label }}
+            </button>
+          </div>
+          <div v-if="snapshot && matrixRows.some(row => row.buckets?.length)" class="flex flex-wrap gap-x-3 gap-y-1 text-xs tabular-nums text-gray-500 dark:text-gray-400">
+            <span>{{ t('channelMonitorV2.cards.availabilityValue', { value: formatPercent(1 - snapshot.metrics.error_rate) }) }}</span>
+            <span>{{ t('channelMonitorV2.metrics.cacheRateValue', { value: formatPercent(snapshot.metrics.cache_rate) }) }}</span>
+          </div>
+        </div>
+
+        <details class="group border-t border-gray-100 dark:border-dark-700">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-b-3xl px-5 py-3 text-xs font-medium text-gray-600 outline-offset-[-4px] hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-300 dark:hover:bg-dark-800 sm:px-6">
+            <span class="flex items-center gap-2">
+              <Icon name="filter" size="sm" />{{ t('channelMonitorV2.cards.viewSettings') }}
+              <span v-if="hasDimensionFilter" class="badge badge-gray">{{ t('channelMonitorV2.filters.selectedCount', { count: filter.platforms.length + filter.groupIds.length + filter.models.length }) }}</span>
             </span>
+            <Icon name="chevronDown" size="sm" class="transition-transform group-open:rotate-180" />
+          </summary>
+          <div class="monitor-toolbar flex flex-wrap items-center gap-2 border-t border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
+            <FilterMultiSelect v-model="filter.platforms" compact :label="t('channelMonitorV2.filters.platform')" :all-label="t('channelMonitorV2.filters.allPlatforms')" :options="platformOptions" />
+            <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.filters.allGroups')" :options="groupOptions" />
+            <FilterMultiSelect v-model="filter.models" compact :label="t('channelMonitorV2.filters.model')" :all-label="t('channelMonitorV2.filters.allModels')" :options="modelOptions" />
+            <button type="button" class="btn btn-ghost btn-sm !px-2 !py-1 text-xs" :disabled="!hasDimensionFilter" @click="clearDimensions">{{ t('channelMonitorV2.clearFilters') }}</button>
+            <Select v-model="matrixGroupBy" :options="matrixGroupOptions" :placeholder="t('channelMonitorV2.groupBy.label')" class="monitor-toolbar-select w-full sm:w-44" />
+            <div class="tabs inline-flex" role="group" :aria-label="t('channelMonitorV2.trendView.label')">
+              <button type="button" class="tab !px-3 !py-1.5 text-xs" :class="trendView === 'pulse' ? 'tab-active' : ''" :aria-pressed="trendView === 'pulse'" @click="trendView = 'pulse'">{{ t('channelMonitorV2.cards.cardView') }}</button>
+              <button type="button" class="tab !px-3 !py-1.5 text-xs" :class="trendView === 'line' ? 'tab-active' : ''" :aria-pressed="trendView === 'line'" @click="trendView = 'line'">{{ t('channelMonitorV2.trendView.line') }}</button>
+            </div>
+            <div v-if="trendView === 'pulse'" class="tabs inline-flex flex-wrap" role="group" :aria-label="t('channelMonitorV2.healthMode.label')">
+              <button v-for="option in healthModeOptions" :key="option.value" type="button" class="tab !px-2.5 !py-1.5 text-xs" :class="healthMode === option.value ? 'tab-active' : ''" :aria-pressed="healthMode === option.value" @click="healthMode = option.value">{{ option.label }}</button>
+            </div>
           </div>
-          <div
-            class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-blue-200/80 dark:bg-blue-900/60"
-            role="progressbar"
-            :aria-valuenow="bootstrapPercent"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            :aria-label="t('channelMonitorV2.bootstrap.working')"
-          >
-            <div
-              class="h-full rounded-full bg-blue-500 transition-[width] duration-500 ease-out dark:bg-blue-400"
-              :style="{ width: `${bootstrapPercent}%` }"
-            />
-          </div>
-        </div>
-
-        <!-- Single compact toolbar row: range · filters · view controls -->
-        <div class="monitor-toolbar flex flex-nowrap items-center gap-1.5 overflow-x-auto px-4 py-3 sm:gap-2 sm:px-5">
-          <div
-            class="tabs inline-flex shrink-0"
-            role="group"
-            :aria-label="t('channelMonitorV2.timeRange')"
-          >
-            <button
-              v-for="option in ranges"
-              :key="option.value"
-              type="button"
-              class="tab !px-2 !py-1 text-xs sm:!px-2.5"
-              :class="filter.range === option.value ? 'tab-active' : ''"
-              @click="setRange(option.value)"
+          <div class="px-5 pb-5 sm:px-6">
+            <!-- Overview KPI: success · TTFT · tokens/s(optional) · cache · (+ RPM when throughput visible) -->
+            <section
+              v-if="snapshot"
+              class="grid grid-cols-2 gap-3 sm:grid-cols-3"
+              :class="showThroughput ? 'xl:grid-cols-5' : 'xl:grid-cols-4'"
+              :aria-label="t('channelMonitorV2.summaryAria')"
             >
-              {{ option.label }}
-            </button>
-          </div>
-
-          <span class="mx-0.5 hidden h-5 w-px shrink-0 bg-gray-200 dark:bg-dark-700 sm:block" aria-hidden="true"></span>
-
-          <FilterMultiSelect
-            v-model="filter.platforms"
-            compact
-            :label="t('channelMonitorV2.filters.platform')"
-            :all-label="t('channelMonitorV2.filters.allPlatforms')"
-            :options="platformOptions"
-          />
-          <FilterMultiSelect
-            v-model="selectedGroupIds"
-            compact
-            :label="t('channelMonitorV2.filters.group')"
-            :all-label="t('channelMonitorV2.filters.allGroups')"
-            :options="groupOptions"
-          />
-          <FilterMultiSelect
-            v-model="filter.models"
-            compact
-            :label="t('channelMonitorV2.filters.model')"
-            :all-label="t('channelMonitorV2.filters.allModels')"
-            :options="modelOptions"
-          />
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm shrink-0 !px-2 !py-1 text-xs"
-            :disabled="!hasDimensionFilter"
-            :class="!hasDimensionFilter ? 'opacity-40' : ''"
-            @click="clearDimensions"
-          >
-            {{ t('channelMonitorV2.clearFilters') }}
-          </button>
-
-          <span class="mx-0.5 hidden h-5 w-px shrink-0 bg-gray-200 dark:bg-dark-700 md:block" aria-hidden="true"></span>
-
-          <Select
-            v-model="matrixGroupBy"
-            :options="matrixGroupOptions"
-            :placeholder="t('channelMonitorV2.groupBy.label')"
-            class="monitor-toolbar-select w-[7.5rem] shrink-0 sm:w-[8.5rem]"
-          />
-
-          <div
-            class="tabs inline-flex shrink-0"
-            role="group"
-            :aria-label="t('channelMonitorV2.trendView.label')"
-          >
-            <button
-              type="button"
-              class="tab !px-2 !py-1 text-xs"
-              :class="trendView === 'pulse' ? 'tab-active' : ''"
-              @click="trendView = 'pulse'"
+              <MetricCell
+                :label="t('channelMonitorV2.metrics.successRate')"
+                :value="formatPercent(1 - snapshot.metrics.error_rate)"
+                :detail="t('channelMonitorV2.metrics.errorRateValue', { value: formatPercent(snapshot.metrics.error_rate) })"
+                :state="snapshot.health.error_rate"
+              />
+              <MetricCell
+                :label="t('channelMonitorV2.metrics.ttftP50')"
+                :value="formatMs(snapshot.metrics.ttft.p50_ms)"
+                :detail="latencyKpiSecondary(snapshot.metrics.ttft)"
+                :title="latencyDetail(snapshot.metrics.ttft)"
+                :state="ttftCellState(snapshot.health.ttft, snapshot.metrics.ttft)"
+              />
+              <MetricCell
+                v-if="showThroughput"
+                :label="t('channelMonitorV2.metrics.tps')"
+                :value="formatTps(snapshot.metrics.tpm)"
+                :detail="t('channelMonitorV2.metrics.tpsDetail')"
+                :title="exactTps(snapshot.metrics.tpm)"
+              />
+              <MetricCell
+                :label="t('channelMonitorV2.metrics.cacheRate')"
+                :value="formatPercent(snapshot.metrics.cache_rate)"
+                :detail="t('channelMonitorV2.metrics.cacheDetail')"
+                :state="snapshot.health.cache || snapshot.health.overall"
+              />
+              <MetricCell
+                v-if="showThroughput"
+                :label="t('channelMonitorV2.metrics.rpm')"
+                :value="formatRate(snapshot.metrics.rpm)"
+                :detail="t('channelMonitorV2.metrics.rpmDetail')"
+                :title="exactRate(snapshot.metrics.rpm)"
+              />
+            </section>
+            <section
+              v-else-if="loading"
+              class="grid grid-cols-2 gap-3 sm:grid-cols-3"
+              :class="showThroughput ? 'xl:grid-cols-5' : 'xl:grid-cols-4'"
+              aria-hidden="true"
             >
-              {{ t('channelMonitorV2.trendView.pulse') }}
-            </button>
-            <button
-              type="button"
-              class="tab !px-2 !py-1 text-xs"
-              :class="trendView === 'line' ? 'tab-active' : ''"
-              @click="trendView = 'line'"
-            >
-              {{ t('channelMonitorV2.trendView.line') }}
-            </button>
-          </div>
+              <div
+                v-for="i in (showThroughput ? 5 : 4)"
+                :key="i"
+                class="h-24 animate-pulse rounded-2xl bg-gray-50 dark:bg-dark-900/30"
+              />
+            </section>
 
-          <div
-            v-if="trendView === 'pulse'"
-            class="tabs inline-flex shrink-0"
-            role="group"
-            :aria-label="t('channelMonitorV2.healthMode.label')"
-          >
-            <button
-              v-for="option in healthModeOptions"
-              :key="option.value"
-              type="button"
-              class="tab !px-2 !py-1 text-xs"
-              :class="healthMode === option.value ? 'tab-active' : ''"
-              @click="healthMode = option.value"
-            >
-              {{ option.label }}
-            </button>
           </div>
-        </div>
-      </section>
-
-      <!-- Overview KPI: success · TTFT · tokens/s(optional) · cache · (+ RPM when throughput visible) -->
-      <section
-        v-if="snapshot"
-        class="grid grid-cols-2 gap-3 sm:grid-cols-3"
-        :class="showThroughput ? 'xl:grid-cols-5' : 'xl:grid-cols-4'"
-        :aria-label="t('channelMonitorV2.summaryAria')"
-      >
-        <MetricCell
-          :label="t('channelMonitorV2.metrics.successRate')"
-          :value="formatPercent(1 - snapshot.metrics.error_rate)"
-          :detail="t('channelMonitorV2.metrics.errorRateValue', { value: formatPercent(snapshot.metrics.error_rate) })"
-          :state="snapshot.health.error_rate"
-        />
-        <MetricCell
-          :label="t('channelMonitorV2.metrics.ttftP50')"
-          :value="formatMs(snapshot.metrics.ttft.p50_ms)"
-          :detail="latencyKpiSecondary(snapshot.metrics.ttft)"
-          :title="latencyDetail(snapshot.metrics.ttft)"
-          :state="ttftCellState(snapshot.health.ttft, snapshot.metrics.ttft)"
-        />
-        <MetricCell
-          v-if="showThroughput"
-          :label="t('channelMonitorV2.metrics.tps')"
-          :value="formatTps(snapshot.metrics.tpm)"
-          :detail="t('channelMonitorV2.metrics.tpsDetail')"
-          :title="exactTps(snapshot.metrics.tpm)"
-        />
-        <MetricCell
-          :label="t('channelMonitorV2.metrics.cacheRate')"
-          :value="formatPercent(snapshot.metrics.cache_rate)"
-          :detail="t('channelMonitorV2.metrics.cacheDetail')"
-          :state="snapshot.health.cache || snapshot.health.overall"
-        />
-        <MetricCell
-          v-if="showThroughput"
-          :label="t('channelMonitorV2.metrics.rpm')"
-          :value="formatRate(snapshot.metrics.rpm)"
-          :detail="t('channelMonitorV2.metrics.rpmDetail')"
-          :title="exactRate(snapshot.metrics.rpm)"
-        />
-      </section>
-      <section
-        v-else-if="loading"
-        class="grid grid-cols-2 gap-3 sm:grid-cols-3"
-        :class="showThroughput ? 'xl:grid-cols-5' : 'xl:grid-cols-4'"
-        aria-hidden="true"
-      >
-        <div
-          v-for="i in (showThroughput ? 5 : 4)"
-          :key="i"
-          class="h-24 animate-pulse rounded-2xl bg-gray-50 dark:bg-dark-900/30"
-        />
+        </details>
       </section>
 
       <div class="relative min-h-[320px]">
@@ -254,12 +140,13 @@
           :coverage="snapshot?.coverage || null"
           :loading="loading && !snapshot"
         />
-        <RelayPulseMatrix
+        <MonitorChannelCards
           v-else-if="matrix"
           :rows="matrixRows"
           :coverage="matrix.coverage"
           :health-mode="healthMode"
           :show-throughput="showThroughput"
+          :loading="loading"
         />
         <div
           v-else-if="loading"
@@ -269,7 +156,11 @@
         </div>
       </div>
 
-      <section class="card flex min-h-0 flex-col overflow-hidden !rounded-3xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:!bg-dark-800 dark:ring-dark-700">
+      <details class="card min-h-0 overflow-hidden !rounded-3xl p-0 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900 outline-offset-[-4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-100 sm:px-6">
+          {{ t('channelMonitorV2.cards.details') }}
+          <Icon name="chevronDown" size="sm" />
+        </summary>
         <div class="border-b border-gray-100 px-5 pt-4 dark:border-dark-700 sm:px-6">
           <nav class="tabs w-full max-w-md sm:w-auto" role="tablist" :aria-label="t('channelMonitorV2.tabs.aria')">
             <button
@@ -452,7 +343,7 @@
             </p>
           </div>
         </div>
-      </section>
+      </details>
     </div>
   </AppLayout>
 </template>
@@ -469,7 +360,7 @@ import FilterMultiSelect from '@/features/channel-monitor-v2/FilterMultiSelect.v
 import MetricCell from '@/features/channel-monitor-v2/MetricCell.vue'
 import MonitorRankBadge from '@/features/channel-monitor-v2/MonitorRankBadge.vue'
 import MonitorTrendChart from '@/features/channel-monitor-v2/MonitorTrendChart.vue'
-import RelayPulseMatrix from '@/features/channel-monitor-v2/RelayPulseMatrix.vue'
+import MonitorChannelCards from '@/features/channel-monitor-v2/MonitorChannelCards.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'

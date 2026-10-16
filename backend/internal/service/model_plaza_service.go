@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 )
 
 // PlazaOfficialPricing 模型广场展示用的官方参考价（USD per token），与计费同源：
@@ -25,6 +26,8 @@ type PlazaModel struct {
 	Platform        string
 	Pricing         *ChannelModelPricing
 	OfficialPricing *PlazaOfficialPricing
+	// FirstListedAt 是首次加入渠道模型目录的时间；历史未知时为零值。
+	FirstListedAt time.Time
 	// LongContextBasis 多档时的计价基准（整单 / 仅超出部分），单档为空。
 	LongContextBasis ContextPricingBasis
 	// TimePricing 计费会生效的分时倍率时段；无分时为 nil。
@@ -180,18 +183,23 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 					continue
 				}
 				key := modelKey{platform: m.Platform, name: m.Name}
+				firstListedAt := ch.ModelFirstListedAt[NormalizeModelListingKey(m.Platform, m.Name)]
 				if at, seen := idx[key]; seen {
 					// 先见者胜；仅当已存条目无定价而新条目有定价时升级。
 					if pg.Models[at].Pricing == nil && m.Pricing != nil {
 						pg.Models[at].Pricing = m.Pricing
 					}
+					if pg.Models[at].FirstListedAt.IsZero() {
+						pg.Models[at].FirstListedAt = firstListedAt
+					}
 					continue
 				}
 				idx[key] = len(pg.Models)
 				pg.Models = append(pg.Models, PlazaModel{
-					Name:     m.Name,
-					Platform: m.Platform,
-					Pricing:  m.Pricing,
+					Name:          m.Name,
+					Platform:      m.Platform,
+					Pricing:       m.Pricing,
+					FirstListedAt: firstListedAt,
 				})
 			}
 		}
@@ -225,6 +233,51 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 		return out[i].Name < out[j].Name
 	})
 	return out, nil
+}
+
+// PlazaModelListing 是首页新模型入口需要的最小投影。
+type PlazaModelListing struct {
+	Name          string
+	Platform      string
+	FirstListedAt time.Time
+}
+
+// LatestPlazaModels 只从已裁剪可见性的分组中选取最近加入的模型。
+// 历史未知时间不参与排名；同一平台/模型在多个分组中只展示一次。
+func LatestPlazaModels(visible []PlazaGroup) []PlazaModelListing {
+	byModel := make(map[ModelListingKey]PlazaModelListing)
+	for _, group := range visible {
+		for _, model := range group.Models {
+			if model.FirstListedAt.IsZero() || strings.TrimSpace(model.Name) == "" {
+				continue
+			}
+			key := NormalizeModelListingKey(model.Platform, model.Name)
+			listing := PlazaModelListing{
+				Name: model.Name, Platform: model.Platform, FirstListedAt: model.FirstListedAt,
+			}
+			if previous, ok := byModel[key]; !ok || listing.Name < previous.Name {
+				byModel[key] = listing
+			}
+		}
+	}
+	latest := make([]PlazaModelListing, 0, len(byModel))
+	for _, model := range byModel {
+		latest = append(latest, model)
+	}
+	sort.Slice(latest, func(i, j int) bool {
+		if !latest[i].FirstListedAt.Equal(latest[j].FirstListedAt) {
+			return latest[i].FirstListedAt.After(latest[j].FirstListedAt)
+		}
+		if latest[i].Name != latest[j].Name {
+			return latest[i].Name < latest[j].Name
+		}
+		return latest[i].Platform < latest[j].Platform
+	})
+	const latestModelLimit = 8
+	if len(latest) > latestModelLimit {
+		latest = latest[:latestModelLimit]
+	}
+	return latest
 }
 
 // fillDisplayPricing 把模型的展示定价换成实收口径：

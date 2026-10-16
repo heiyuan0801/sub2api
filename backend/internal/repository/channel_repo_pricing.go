@@ -43,42 +43,67 @@ func (r *channelRepository) ListModelPricing(ctx context.Context, channelID int6
 }
 
 func (r *channelRepository) CreateModelPricing(ctx context.Context, pricing *service.ChannelModelPricing) error {
-	return createModelPricingExec(ctx, r.db, pricing)
+	return r.runInTx(ctx, func(tx *sql.Tx) error {
+		if err := lockChannelForModelPricingTx(ctx, tx, pricing.ChannelID); err != nil {
+			return err
+		}
+		if err := createModelPricingExec(ctx, tx, pricing); err != nil {
+			return err
+		}
+		return recordChannelModelListingsTx(ctx, tx, pricing.ChannelID)
+	})
 }
 
 func (r *channelRepository) UpdateModelPricing(ctx context.Context, pricing *service.ChannelModelPricing) error {
-	modelsJSON, err := json.Marshal(pricing.Models)
-	if err != nil {
-		return fmt.Errorf("marshal models: %w", err)
-	}
-	reasoningEffortMultipliersJSON, err := marshalReasoningEffortMultipliers(pricing.ReasoningEffortMultipliers)
-	if err != nil {
-		return err
-	}
-	timePricingJSON, err := marshalChannelTimePricing(pricing.TimePricing)
-	if err != nil {
-		return err
-	}
-	billingMode := pricing.BillingMode
-	if billingMode == "" {
-		billingMode = service.BillingModeToken
-	}
-	result, err := r.db.ExecContext(ctx,
-		`UPDATE channel_model_pricing
+	return r.runInTx(ctx, func(tx *sql.Tx) error {
+		// Resolve ownership without locking pricing first: whole-channel updates
+		// acquire the channel lock before replacing its pricing rows.
+		var channelID int64
+		err := tx.QueryRowContext(ctx,
+			`SELECT channel_id FROM channel_model_pricing WHERE id = $1`, pricing.ID,
+		).Scan(&channelID)
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("pricing entry not found: %d", pricing.ID)
+		}
+		if err != nil {
+			return fmt.Errorf("get model pricing channel: %w", err)
+		}
+		if err := lockChannelForModelPricingTx(ctx, tx, channelID); err != nil {
+			return err
+		}
+		modelsJSON, err := json.Marshal(pricing.Models)
+		if err != nil {
+			return fmt.Errorf("marshal models: %w", err)
+		}
+		reasoningEffortMultipliersJSON, err := marshalReasoningEffortMultipliers(pricing.ReasoningEffortMultipliers)
+		if err != nil {
+			return err
+		}
+		timePricingJSON, err := marshalChannelTimePricing(pricing.TimePricing)
+		if err != nil {
+			return err
+		}
+		billingMode := pricing.BillingMode
+		if billingMode == "" {
+			billingMode = service.BillingModeToken
+		}
+		result, err := tx.ExecContext(ctx,
+			`UPDATE channel_model_pricing
 		 SET models = $1, billing_mode = $2, input_price = $3, output_price = $4, cache_write_price = $5, cache_write_1h_price = $6, cache_read_price = $7, fast_multiplier = $8, flex_multiplier = $9, reasoning_effort_multipliers = $10, image_input_price = $11, image_output_price = $12, per_request_price = $13, time_pricing = $14, platform = $15, updated_at = NOW()
 		 WHERE id = $16`,
-		modelsJSON, billingMode, pricing.InputPrice, pricing.OutputPrice, pricing.CacheWritePrice, pricing.CacheWrite1hPrice, pricing.CacheReadPrice,
-		pricing.FastMultiplier, pricing.FlexMultiplier, reasoningEffortMultipliersJSON, pricing.ImageInputPrice, pricing.ImageOutputPrice, pricing.PerRequestPrice,
-		timePricingJSON, pricing.Platform, pricing.ID,
-	)
-	if err != nil {
-		return fmt.Errorf("update model pricing: %w", err)
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return fmt.Errorf("pricing entry not found: %d", pricing.ID)
-	}
-	return nil
+			modelsJSON, billingMode, pricing.InputPrice, pricing.OutputPrice, pricing.CacheWritePrice, pricing.CacheWrite1hPrice, pricing.CacheReadPrice,
+			pricing.FastMultiplier, pricing.FlexMultiplier, reasoningEffortMultipliersJSON, pricing.ImageInputPrice, pricing.ImageOutputPrice, pricing.PerRequestPrice,
+			timePricingJSON, pricing.Platform, pricing.ID,
+		)
+		if err != nil {
+			return fmt.Errorf("update model pricing: %w", err)
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			return fmt.Errorf("pricing entry not found: %d", pricing.ID)
+		}
+		return recordChannelModelListingsTx(ctx, tx, channelID)
+	})
 }
 
 func (r *channelRepository) DeleteModelPricing(ctx context.Context, id int64) error {
@@ -91,7 +116,13 @@ func (r *channelRepository) DeleteModelPricing(ctx context.Context, id int64) er
 
 func (r *channelRepository) ReplaceModelPricing(ctx context.Context, channelID int64, pricingList []service.ChannelModelPricing) error {
 	return r.runInTx(ctx, func(tx *sql.Tx) error {
-		return replaceModelPricingTx(ctx, tx, channelID, pricingList)
+		if err := lockChannelForModelPricingTx(ctx, tx, channelID); err != nil {
+			return err
+		}
+		if err := replaceModelPricingTx(ctx, tx, channelID, pricingList); err != nil {
+			return err
+		}
+		return recordChannelModelListingsTx(ctx, tx, channelID)
 	})
 }
 

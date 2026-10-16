@@ -4,12 +4,13 @@
     <ModelPlazaContent :response="data" :loading="loading" :error="loadFailed" embedded />
   </AppLayout>
 
-  <!-- 独立形态:自带导航条(logo/站名 + 登录/回后台) -->
-  <div v-else class="min-h-screen bg-gray-50 dark:bg-dark-950">
-    <PlazaNavBar />
-    <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+  <!-- 独立形态使用与首页一致的公开站点导航。 -->
+  <div v-else class="public-model-plaza">
+    <PublicSiteHeader />
+    <main>
       <ModelPlazaContent :response="data" :loading="loading" :error="loadFailed" />
     </main>
+    <PublicSiteFooter />
   </div>
 </template>
 
@@ -17,7 +18,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import PlazaNavBar from '@/components/modelPlaza/PlazaNavBar.vue'
+import PublicSiteHeader from '@/components/public/PublicSiteHeader.vue'
+import PublicSiteFooter from '@/components/public/PublicSiteFooter.vue'
 import ModelPlazaContent from '@/components/modelPlaza/ModelPlazaContent.vue'
 import { getModelPlaza, type ModelPlazaResponse } from '@/api/modelPlaza'
 import { useAppStore } from '@/stores/app'
@@ -46,3 +48,16 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.public-model-plaza {
+  min-height: 100vh;
+  background: #fff;
+  color: #18181b;
+}
+
+.dark .public-model-plaza {
+  background: #101011;
+  color: #f4f4f5;
+}
+</style>

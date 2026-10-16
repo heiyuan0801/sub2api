@@ -46,6 +46,17 @@ const (
 	BillingModelSourceResponse = "response_model"
 )
 
+// ModelListingKey identifies a configured model independently of its channels.
+type ModelListingKey struct {
+	Platform string
+	Name     string
+}
+
+// NormalizeModelListingKey follows SupportedModels' case-insensitive identity.
+func NormalizeModelListingKey(platform, name string) ModelListingKey {
+	return ModelListingKey{Platform: platform, Name: strings.ToLower(name)}
+}
+
 // Channel 渠道实体
 type Channel struct {
 	ID                 int64
@@ -65,6 +76,8 @@ type Channel struct {
 	ModelPricing []ChannelModelPricing
 	// 渠道级模型映射（按平台分组：platform → {src→dst}）
 	ModelMapping map[string]map[string]string
+	// Known first configuration dates for supported model identities; absent dates have unknown history.
+	ModelFirstListedAt map[ModelListingKey]time.Time `json:"-"`
 
 	// 账号统计定价
 	ApplyPricingToAccountStats bool                      // 是否应用渠道模型定价到账号统计
@@ -239,6 +252,7 @@ func (c *Channel) Clone() *Channel {
 		return nil
 	}
 	cp := *c
+	cp.ModelFirstListedAt = maps.Clone(c.ModelFirstListedAt)
 	if c.GroupIDs != nil {
 		cp.GroupIDs = make([]int64, len(c.GroupIDs))
 		copy(cp.GroupIDs, c.GroupIDs)

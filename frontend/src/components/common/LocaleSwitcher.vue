@@ -5,10 +5,16 @@
       :disabled="switching"
       class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
       :title="currentLocale?.name"
+      :aria-label="compact ? t('publicSite.nav.switchLanguage', { language: currentLocale?.name || currentLocaleCode }) : undefined"
+      :aria-expanded="isOpen"
     >
-      <span class="text-base">{{ currentLocale?.flag }}</span>
-      <span class="hidden sm:inline">{{ currentLocale?.code.toUpperCase() }}</span>
+      <Icon v-if="compact" name="globe" size="sm" />
+      <template v-else>
+        <span class="text-base">{{ currentLocale?.flag }}</span>
+        <span class="hidden sm:inline">{{ currentLocale?.code.toUpperCase() }}</span>
+      </template>
       <Icon
+        v-if="!compact"
         name="chevronDown"
         size="xs"
         class="text-gray-400 transition-transform duration-200"
@@ -47,7 +53,9 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import { setLocale, availableLocales } from '@/i18n'
 
-const { locale } = useI18n()
+withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
+
+const { locale, t } = useI18n()
 
 const isOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)

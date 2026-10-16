@@ -31,12 +31,25 @@ const routes: RouteRecordRaw[] = [
 
   // ==================== Public Routes ====================
   {
+    path: '/signin',
+    redirect: (to) => ({ path: '/login', query: to.query, hash: to.hash })
+  },
+  {
+    path: '/signup',
+    redirect: (to) => ({ path: '/register', query: to.query, hash: to.hash })
+  },
+  {
+    path: '/models',
+    redirect: (to) => ({ path: '/model-plaza', query: to.query, hash: to.hash })
+  },
+  {
     path: '/home',
     name: 'Home',
     component: () => import('@/views/HomeView.vue'),
     meta: {
       requiresAuth: false,
-      title: 'Home'
+      title: 'Home',
+      titleKey: 'publicHome.documentTitle'
     }
   },
   {
@@ -736,6 +749,9 @@ const router = createRouter({
     // Scroll to saved position when using browser back/forward
     if (savedPosition) {
       return savedPosition
+    }
+    if (_to.name === 'Home' && _to.hash === '#quick-start') {
+      return { el: '#quick-start', top: 80 }
     }
     // Scroll to top for new routes
     return { top: 0 }

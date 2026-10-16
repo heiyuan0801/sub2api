@@ -1,15 +1,55 @@
 <template>
-  <AuthLayout>
+  <AuthLayout variant="login">
     <div class="space-y-6">
       <!-- Title -->
-      <div class="text-center">
+      <div class="auth-heading">
+        <span class="auth-eyebrow">{{ t('publicSite.auth.loginEyebrow') }}</span>
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ t('auth.welcomeBack') }}
+          {{ pageCopy.heading }}
         </h2>
         <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
-          {{ t('auth.signInToAccount') }}
+          {{ pageCopy.subtitle }}
         </p>
       </div>
+      <div v-if="showOAuthLogin">
+        <div class="auth-social-providers">
+          <EmailOAuthButtons
+            :disabled="authActionDisabled"
+            :github-enabled="githubOAuthEnabled"
+            :google-enabled="googleOAuthEnabled"
+            :show-divider="false"
+            @start="handleOAuthStart"
+          />
+
+          <LinuxDoOAuthSection
+            v-if="linuxdoOAuthEnabled"
+            :disabled="authActionDisabled"
+            :show-divider="false"
+            @start="handleOAuthStart"
+          />
+          <DingTalkOAuthSection
+            v-if="dingtalkOAuthEnabled"
+            :disabled="authActionDisabled"
+            :show-divider="false"
+            @start="handleOAuthStart"
+          />
+          <WechatOAuthSection
+            v-if="wechatOAuthEnabled"
+            :disabled="authActionDisabled"
+            :show-divider="false"
+            @start="handleOAuthStart"
+          />
+          <OidcOAuthSection
+            v-if="oidcOAuthEnabled"
+            :disabled="authActionDisabled"
+            :provider-name="oidcOAuthProviderName"
+            :show-divider="false"
+            @start="handleOAuthStart"
+          />
+        </div>
+        <div class="auth-separator">{{ t('publicSite.auth.or') }}</div>
+      </div>
+
       <!-- Login Form -->
       <form @submit.prevent="handleLogin" class="space-y-5">
         <!-- Email Input -->
@@ -18,9 +58,6 @@
             {{ t('auth.emailLabel') }}
           </label>
           <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
             <input
               id="email"
               v-model="formData.email"
@@ -29,7 +66,7 @@
               autofocus
               autocomplete="email"
               :disabled="authActionDisabled"
-              class="input pl-11"
+              class="input"
               :class="{ 'input-error': errors.email }"
               :placeholder="t('auth.emailPlaceholder')"
             />
@@ -42,9 +79,6 @@
             {{ t('auth.passwordLabel') }}
           </label>
           <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
             <input
               id="password"
               v-model="formData.password"
@@ -52,12 +86,14 @@
               required
               autocomplete="current-password"
               :disabled="authActionDisabled"
-              class="input pl-11 pr-11"
+              class="input pr-11"
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.passwordPlaceholder')"
             />
             <button
               type="button"
+              :aria-label="showPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
+              :aria-pressed="showPassword"
               @click="showPassword = !showPassword"
               :disabled="authActionDisabled"
               class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
@@ -65,16 +101,6 @@
               <Icon v-if="showPassword" name="eyeOff" size="md" />
               <Icon v-else name="eye" size="md" />
             </button>
-          </div>
-          <div class="mt-1 flex items-center justify-between">
-            <span></span>
-            <router-link
-              v-if="passwordResetEnabled && !backendModeEnabled"
-              to="/forgot-password"
-              class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-            >
-              {{ t('auth.forgotPassword') }}
-            </router-link>
           </div>
         </div>
 
@@ -124,7 +150,7 @@
             ></path>
           </svg>
           <Icon v-else name="login" size="md" class="mr-2" />
-          {{ isLoading ? t('auth.signingIn') : t('auth.signIn') }}
+          {{ isLoading ? t('auth.signingIn') : pageCopy.submit }}
         </button>
 
         <LoginAgreementPrompt
@@ -139,74 +165,30 @@
           @open="showAgreementModal = true"
         />
 
-        <div v-if="showPasskeyLogin || showOAuthLogin" class="space-y-3 pt-1">
-          <div class="flex items-center gap-3">
-            <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-            <span class="text-xs text-gray-500 dark:text-dark-400">
-              {{ t('auth.oauthOrContinue') }}
-            </span>
-            <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-          </div>
-
-          <button
-            v-if="showPasskeyLogin"
-            type="button"
-            class="btn btn-secondary w-full"
-            :disabled="authActionDisabled"
-            @click="handlePasskeyLogin"
-          >
-            <Icon name="key" size="md" class="mr-2" />
-            {{ passkeyLoading ? t('auth.passkeySigningIn') : t('auth.passkeySignIn') }}
-          </button>
-
-          <EmailOAuthButtons
-            :disabled="authActionDisabled"
-            :github-enabled="githubOAuthEnabled"
-            :google-enabled="googleOAuthEnabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-
-          <LinuxDoOAuthSection
-            v-if="linuxdoOAuthEnabled"
-            :disabled="authActionDisabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <DingTalkOAuthSection
-            v-if="dingtalkOAuthEnabled"
-            :disabled="authActionDisabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <WechatOAuthSection
-            v-if="wechatOAuthEnabled"
-            :disabled="authActionDisabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <OidcOAuthSection
-            v-if="oidcOAuthEnabled"
-            :disabled="authActionDisabled"
-            :provider-name="oidcOAuthProviderName"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-        </div>
+        <button
+          v-if="showPasskeyLogin"
+          type="button"
+          class="auth-passkey btn btn-secondary w-full"
+          :disabled="authActionDisabled"
+          @click="handlePasskeyLogin"
+        >
+          <Icon name="key" size="md" />
+          {{ passkeyLoading ? t('auth.passkeySigningIn') : t('auth.passkeySignIn') }}
+        </button>
       </form>
     </div>
 
     <!-- Footer -->
-    <template v-if="!backendModeEnabled && publicSettingsLoaded && registrationEnabled" #footer>
-      <p class="text-gray-500 dark:text-dark-400">
-        {{ t('auth.dontHaveAccount') }}
-        <router-link
-          to="/register"
-          class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-        >
-          {{ t('auth.signUp') }}
+    <template v-if="!backendModeEnabled && publicSettingsLoaded && (registrationEnabled || passwordResetEnabled)" #footer>
+      <div class="auth-footer-row">
+        <p v-if="registrationEnabled">
+          {{ t('auth.dontHaveAccount') }}
+          <router-link to="/register">{{ t('auth.signUp') }}</router-link>
+        </p>
+        <router-link v-if="passwordResetEnabled" to="/forgot-password">
+          {{ t('auth.forgotPassword') }}
         </router-link>
-      </p>
+      </div>
     </template>
   </AuthLayout>
 
@@ -362,6 +344,12 @@ const showOAuthLogin = computed(
       githubOAuthEnabled.value ||
       googleOAuthEnabled.value)
 )
+
+const pageCopy = computed(() => ({
+  heading: t('publicSite.auth.loginHeading'),
+  subtitle: t(showOAuthLogin.value ? 'publicSite.auth.loginSocialSubtitle' : 'publicSite.auth.loginEmailSubtitle'),
+  submit: t('publicSite.auth.loginSubmit')
+}))
 
 watch(validationToastMessage, (value, previousValue) => {
   if (value && value !== previousValue) {

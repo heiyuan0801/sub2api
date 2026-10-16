@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -78,7 +79,7 @@ func (r *channelRepository) Create(ctx context.Context, channel *service.Channel
 			}
 		}
 
-		return nil
+		return recordChannelModelListingsTx(ctx, tx, channel.ID)
 	})
 }
 
@@ -166,7 +167,7 @@ func (r *channelRepository) Update(ctx context.Context, channel *service.Channel
 			}
 		}
 
-		return nil
+		return recordChannelModelListingsTx(ctx, tx, channel.ID)
 	})
 }
 
@@ -353,11 +354,24 @@ func (r *channelRepository) ListAll(ctx context.Context) ([]service.Channel, err
 	if err != nil {
 		return nil, err
 	}
+	firstListedAt, err := r.loadModelFirstListedAt(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := range channels {
 		channels[i].GroupIDs = groupMap[channels[i].ID]
 		channels[i].ModelPricing = pricingMap[channels[i].ID]
 		channels[i].AccountStatsPricingRules = statsRulesMap[channels[i].ID]
+		for _, model := range channels[i].SupportedModels() {
+			key := service.NormalizeModelListingKey(model.Platform, model.Name)
+			if date, ok := firstListedAt[key]; ok {
+				if channels[i].ModelFirstListedAt == nil {
+					channels[i].ModelFirstListedAt = make(map[service.ModelListingKey]time.Time)
+				}
+				channels[i].ModelFirstListedAt[key] = date
+			}
+		}
 	}
 
 	return channels, nil

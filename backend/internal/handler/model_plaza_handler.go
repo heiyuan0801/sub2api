@@ -2,6 +2,7 @@ package handler
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -101,8 +102,15 @@ type modelPlazaGroup struct {
 
 // modelPlazaResponse 广场页响应。
 type modelPlazaResponse struct {
-	Description string            `json:"description"`
-	Groups      []modelPlazaGroup `json:"groups"`
+	Description  string                  `json:"description"`
+	Groups       []modelPlazaGroup       `json:"groups"`
+	LatestModels []modelPlazaLatestModel `json:"latest_models"`
+}
+
+type modelPlazaLatestModel struct {
+	Name          string    `json:"name"`
+	Platform      string    `json:"platform"`
+	FirstListedAt time.Time `json:"first_listed_at"`
 }
 
 // Get 返回模型广场数据。
@@ -155,9 +163,17 @@ func (h *ModelPlazaHandler) Get(c *gin.Context) {
 	// 追加而非覆盖：CORS 中间件已为具体来源写入 Vary: Origin。
 	c.Writer.Header().Add("Vary", "Accept-Language")
 	out := toLocalizedModelPlazaGroups(visible, userRates, c.GetHeader("Accept-Language"))
+	latest := service.LatestPlazaModels(visible)
+	latestModels := make([]modelPlazaLatestModel, 0, len(latest))
+	for _, model := range latest {
+		latestModels = append(latestModels, modelPlazaLatestModel{
+			Name: model.Name, Platform: model.Platform, FirstListedAt: model.FirstListedAt,
+		})
+	}
 	response.Success(c, modelPlazaResponse{
-		Description: rt.Description,
-		Groups:      out,
+		Description:  rt.Description,
+		Groups:       out,
+		LatestModels: latestModels,
 	})
 }
 

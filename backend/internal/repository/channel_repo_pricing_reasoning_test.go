@@ -56,14 +56,18 @@ func TestChannelReasoningEffortMultipliersRoundTrip(t *testing.T) {
 				}
 				stored := &capturedReasoningMultipliersJSON{}
 				if operation == "update" {
+					expectChannelModelPricingUpdateTx(mock, 11, 7)
 					mock.ExpectExec(`(?s)UPDATE channel_model_pricing.*reasoning_effort_multipliers = \$10.*WHERE id = \$16`).
 						WithArgs([]byte(`["custom-model"]`), service.BillingModeToken,
 							nil, nil, nil, nil, nil, nil, nil, stored, nil, nil, nil, nil, "openai", int64(11)).
 						WillReturnResult(sqlmock.NewResult(0, 1))
+					expectChannelModelPricingListing(mock, 7, "openai", `["custom-model"]`, "custom-model").
+						WillReturnResult(sqlmock.NewResult(0, 0))
+					mock.ExpectCommit()
 					require.NoError(t, repo.UpdateModelPricing(ctx, pricing))
 				} else {
+					expectChannelModelPricingWriteTx(mock, 7)
 					if operation == "replace" {
-						mock.ExpectBegin()
 						mock.ExpectExec(`DELETE FROM channel_model_pricing WHERE channel_id = \$1`).
 							WithArgs(int64(7)).WillReturnResult(sqlmock.NewResult(0, 1))
 					}
@@ -71,8 +75,10 @@ func TestChannelReasoningEffortMultipliersRoundTrip(t *testing.T) {
 						WithArgs(int64(7), "openai", []byte(`["custom-model"]`), service.BillingModeToken,
 							nil, nil, nil, nil, nil, nil, nil, stored, nil, nil, nil, nil).
 						WillReturnRows(sqlmock.NewRows([]string{"id", "created_at", "updated_at"}).AddRow(int64(11), time.Time{}, time.Time{}))
+					expectChannelModelPricingListing(mock, 7, "openai", `["custom-model"]`, "custom-model").
+						WillReturnResult(sqlmock.NewResult(0, 1))
+					mock.ExpectCommit()
 					if operation == "replace" {
-						mock.ExpectCommit()
 						require.NoError(t, repo.ReplaceModelPricing(ctx, 7, []service.ChannelModelPricing{*pricing}))
 					} else {
 						require.NoError(t, repo.CreateModelPricing(ctx, pricing))
@@ -122,7 +128,16 @@ func TestChannelReasoningEffortMultipliersInvalidJSON(t *testing.T) {
 	for _, operation := range []string{"create", "update"} {
 		t.Run(operation+" invalid number", func(t *testing.T) {
 			repo, mock := newChannelModelPricingTimePricingRepo(t)
-			pricing := &service.ChannelModelPricing{ReasoningEffortMultipliers: map[string]float64{"max": math.NaN()}}
+			pricing := &service.ChannelModelPricing{
+				ID: 11, ChannelID: 7, Platform: "openai", Models: []string{"custom-model"},
+				ReasoningEffortMultipliers: map[string]float64{"max": math.NaN()},
+			}
+			if operation == "create" {
+				expectChannelModelPricingWriteTx(mock, 7)
+			} else {
+				expectChannelModelPricingUpdateTx(mock, 11, 7)
+			}
+			mock.ExpectRollback()
 			var err error
 			if operation == "create" {
 				err = repo.CreateModelPricing(context.Background(), pricing)

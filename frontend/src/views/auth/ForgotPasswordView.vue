@@ -1,13 +1,14 @@
 <template>
-  <AuthLayout>
+  <AuthLayout variant="recovery">
     <div class="space-y-6">
       <!-- Title -->
-      <div class="text-center">
+      <div class="auth-heading">
+        <span class="auth-eyebrow">{{ t('publicSite.auth.recoveryEyebrow') }}</span>
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ t('auth.forgotPasswordTitle') }}
+          {{ pageCopy.heading }}
         </h2>
         <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
-          {{ t('auth.forgotPasswordHint') }}
+          {{ pageCopy.subtitle }}
         </p>
       </div>
 
@@ -48,9 +49,6 @@
             {{ t('auth.emailLabel') }}
           </label>
           <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
             <input
               id="email"
               v-model="formData.email"
@@ -59,7 +57,7 @@
               autofocus
               autocomplete="email"
               :disabled="isLoading"
-              class="input pl-11"
+              class="input"
               :class="{ 'input-error': errors.email }"
               :placeholder="t('auth.emailPlaceholder')"
             />
@@ -112,22 +110,20 @@
             ></path>
           </svg>
           <Icon v-else name="mail" size="md" class="mr-2" />
-          {{ isLoading ? t('auth.sendingResetLink') : t('auth.sendResetLink') }}
+          {{ isLoading ? t('auth.sendingResetLink') : pageCopy.submit }}
         </button>
       </form>
     </div>
 
     <!-- Footer -->
     <template #footer>
-      <p class="text-gray-500 dark:text-dark-400">
-        {{ t('auth.rememberedPassword') }}
-        <router-link
-          to="/login"
-          class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-        >
-          {{ t('auth.signIn') }}
-        </router-link>
-      </p>
+      <div class="auth-footer-row">
+        <p v-if="registrationEnabled">
+          {{ t('auth.dontHaveAccount') }}
+          <router-link to="/register">{{ t('auth.signUp') }}</router-link>
+        </p>
+        <router-link to="/login">{{ t('auth.backToLogin') }}</router-link>
+      </div>
     </template>
   </AuthLayout>
 </template>
@@ -150,6 +146,10 @@ const appStore = useAppStore()
 // ==================== State ====================
 
 const isLoading = ref<boolean>(false)
+const registrationEnabled = computed(() =>
+  appStore.cachedPublicSettings?.registration_enabled === true &&
+  appStore.cachedPublicSettings?.backend_mode_enabled !== true
+)
 const isSubmitted = ref<boolean>(false)
 const errorMessage = ref<string>('')
 
@@ -193,6 +193,12 @@ const errors = reactive({
   email: '',
   turnstile: ''
 })
+
+const pageCopy = computed(() => ({
+  heading: t('publicSite.auth.forgotHeading'),
+  subtitle: t('publicSite.auth.forgotSubtitle'),
+  submit: t('publicSite.auth.forgotSubmit')
+}))
 
 const validationToastMessage = computed(() => errors.email || errors.turnstile || '')
 

@@ -1,8 +1,9 @@
 <template>
-  <AuthLayout>
+  <AuthLayout variant="recovery">
     <div class="space-y-6">
       <!-- Title -->
-      <div class="text-center">
+      <div class="auth-heading">
+        <span class="auth-eyebrow">{{ t('publicSite.auth.recoveryEyebrow') }}</span>
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
           {{ t('auth.resetPasswordTitle') }}
         </h2>
@@ -76,16 +77,13 @@
             {{ t('auth.emailLabel') }}
           </label>
           <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
             <input
               id="email"
               :value="email"
               type="email"
               readonly
               disabled
-              class="input pl-11 bg-gray-50 dark:bg-dark-700"
+              class="input bg-gray-50 dark:bg-dark-700"
             />
           </div>
         </div>
@@ -96,9 +94,6 @@
             {{ t('auth.newPassword') }}
           </label>
           <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
             <input
               id="password"
               v-model="formData.password"
@@ -106,12 +101,14 @@
               required
               autocomplete="new-password"
               :disabled="isLoading"
-              class="input pl-11 pr-11"
+              class="input pr-11"
               :class="{ 'input-error': errors.password }"
               :placeholder="t('auth.newPasswordPlaceholder')"
             />
             <button
               type="button"
+              :aria-label="showPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
+              :aria-pressed="showPassword"
               @click="showPassword = !showPassword"
               class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
             >
@@ -127,9 +124,6 @@
             {{ t('auth.confirmPassword') }}
           </label>
           <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
-            </div>
             <input
               id="confirmPassword"
               v-model="formData.confirmPassword"
@@ -137,12 +131,14 @@
               required
               autocomplete="new-password"
               :disabled="isLoading"
-              class="input pl-11 pr-11"
+              class="input pr-11"
               :class="{ 'input-error': errors.confirmPassword }"
               :placeholder="t('auth.confirmPasswordPlaceholder')"
             />
             <button
               type="button"
+              :aria-label="showConfirmPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
+              :aria-pressed="showConfirmPassword"
               @click="showConfirmPassword = !showConfirmPassword"
               class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
             >
@@ -186,7 +182,7 @@
 
     <!-- Footer -->
     <template #footer>
-      <p class="text-gray-500 dark:text-dark-400">
+      <p class="auth-footer-centered">
         {{ t('auth.rememberedPassword') }}
         <router-link
           to="/login"

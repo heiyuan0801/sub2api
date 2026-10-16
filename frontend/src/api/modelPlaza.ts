@@ -81,10 +81,19 @@ export interface ModelPlazaGroup {
   models: PlazaModel[]
 }
 
+/** 当前访问者可见的新上架模型，按首次上架时间倒序排列。 */
+export interface PlazaLatestModel {
+  name: string
+  platform: string
+  first_listed_at: string
+}
+
 export interface ModelPlazaResponse {
   /** 管理员配置的全局价格说明（Markdown）。 */
   description: string
   groups: ModelPlazaGroup[]
+  /** 最多 8 项；旧版本后端可能不返回此字段。 */
+  latest_models?: PlazaLatestModel[]
 }
 
 /** 获取模型广场数据。开关未启用时后端返回 404。 */
