@@ -34,7 +34,7 @@ WITH configured_models AS (
     ) AS model(key, target)
 )
 INSERT INTO channel_model_listings (platform, model_name, first_listed_at)
-SELECT DISTINCT platform, lower(name), NULL
+SELECT DISTINCT platform, lower(name), NULL::TIMESTAMPTZ
 FROM configured_models
 WHERE name <> '' AND right(name, 1) <> '*'
 ON CONFLICT (platform, model_name) DO NOTHING;
