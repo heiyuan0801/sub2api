@@ -347,6 +347,7 @@ function closeBackdrop(event: MouseEvent, target: 'filter' | 'detail') {
 function exportCsv() {
   const cell = (value: unknown) => {
     let text = value == null ? '' : String(value)
+    // eslint-disable-next-line no-control-regex -- CSV formula detection also skips leading ASCII control characters.
     if (/^[\s\u0000-\u001f]*[=+@-]/.test(text)) text = `'${text}`
     return `"${text.replace(/"/g, '""')}"`
   }
