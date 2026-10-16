@@ -1,8 +1,8 @@
 # ChatGPT2API 生图 Chat 入口修复包
 
-已合并官方 `Wei-Shaw/sub2api` 的 `v0.2.16`，上游基线提交为
-`01842576b3d5c1e2545b5a99ad555d36e28ed306`。
-定制构建版本为 `0.2.16-chat-image-fix.1`，保留先前的 Chat 生图兼容修复。
+已合并官方 `Wei-Shaw/sub2api` 的 `v0.2.17`，上游基线提交为
+`060d0160417782cd962a0c7f460f6cd4565d4916`。
+定制构建版本为 `0.2.17-chat-image-fix.1`，保留先前的 Chat 生图兼容修复。
 
 ## 修复行为
 
@@ -54,8 +54,8 @@ curl "$SUB2API_URL/v1/chat/completions" \
 
 ## 包内容与部署
 
-- `sub2api-0.2.16-chat-image-fix.1-source.zip`：合并后的源码和回归测试。
-- `sub2api-0.2.16-chat-image-fix.1-linux-amd64.tar.gz`：Linux x86_64 可执行文件，已内嵌前端。
+- `sub2api-0.2.17-chat-image-fix.1-source.zip`：合并后的源码和回归测试。
+- `sub2api-0.2.17-chat-image-fix.1-linux-amd64.tar.gz`：Linux x86_64 可执行文件，已内嵌前端。
 - `chat-image-fix.patch`：针对上述基线的源码补丁。
 - `SHA256SUMS`：下载包的校验值。
 
@@ -63,9 +63,13 @@ curl "$SUB2API_URL/v1/chat/completions" \
 解压二进制包后，`sub2api` 即为程序，并附带该版本的 `resources` 和许可证。
 保留原来的配置、环境变量、data 目录、PostgreSQL 和 Redis，按现有部署方式替换程序。
 
-项目启动时会执行其原有数据库迁移。v0.2.16 新增迁移 242–245，涉及分组多语言
-字段与 Gemini 缓存表，均为添加字段或表。升级前应备份数据库、现有程序、配置
-和 Redis；保留二进制回滚入口。Chat 生图定制本身没有增加数据库迁移。
+项目启动时会执行其原有数据库迁移。v0.2.17 相对 v0.2.16 没有新增或修改数据库
+迁移。升级前应备份数据库、现有程序、配置和 Redis；保留二进制回滚入口。
+Chat 生图定制本身没有增加数据库迁移。
+
+v0.2.17 保留官方 GPT-5.5 退役策略：ChatGPT OAuth / SetupToken 账号不再调度
+或展示 `gpt-5.5`；API Key 账号不受影响。需要继续使用旧模型名时，应由管理员
+显式映射到可用模型，或改用 API Key 账号承接。
 
 源码也可用项目原有 Dockerfile 构建：
 
@@ -73,7 +77,7 @@ curl "$SUB2API_URL/v1/chat/completions" \
 docker build \
   --build-arg GOPROXY=https://proxy.golang.org,direct \
   --build-arg GOSUMDB=sum.golang.org \
-  --build-arg VERSION=0.2.16-chat-image-fix.1 \
+  --build-arg VERSION=0.2.17-chat-image-fix.1 \
   -t sub2api:chat-image-fix .
 ```
 
@@ -91,8 +95,13 @@ SSE、超分参数透传、禁用生图分组和不兼容上游拒绝。
 `go vet -tags=unit ./...` 通过，前端 2,869 项测试和生产构建通过。
 缓存回归同时验证上游 Gemini 显式缓存字段和旧版原生 Chat 投影回退。
 
+2026-10-16 的 v0.2.17 合并验证：89 个 Chat 生图专项测试项、前端 2,868 项
+测试、前端生产构建与 `go vet -tags=unit ./...` 通过。六个定制业务文件相对
+官方版的补丁内容与合并前逐项一致，包含调度缓存、权限和超分参数透传。
+完整后端测试和打包记录随交付目录中的 `VALIDATION.md` 提供。
+
 原 `0.2.15-chat-image-fix.2` 已完成 Linux amd64 systemd 部署及真实 Chat 生图
-验证。v0.2.16 的服务器部署状态应以对应部署记录为准，不沿用旧版验收结果。
+验证。本次 v0.2.17 仅在本地合并和验证，未部署服务器，不沿用旧版线上验收结果。
 直接使用官方后台自动更新会替换定制二进制，后续升级仍需先合并保留这些修复。
 
 ## 源码构建
