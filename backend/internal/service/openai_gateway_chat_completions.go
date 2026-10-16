@@ -78,7 +78,7 @@ func (s *OpenAIGatewayService) forwardAsChatCompletions(
 	ClearActualOpenAIUpstreamEndpoint(c)
 	resolvedModel := resolveMappedUpstreamModel(account, body, defaultMappedModel)
 	if !account.SupportsOpenAIChatCompletionsModel(resolvedModel) {
-		message := "This image model requires a custom API-key upstream with Chat Completions support"
+		message := "this image model requires a custom API-key upstream with Chat Completions support"
 		writeChatCompletionsError(c, http.StatusBadRequest, "invalid_request_error", message)
 		return nil, errors.New(message)
 	}

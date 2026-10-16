@@ -103,7 +103,8 @@ func TestOpenAIChatCompletionsImageModelDisabledGroup(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", bytes.NewBufferString(`{"model":"gpt-image-2","messages":[{"role":"user","content":"draw"}]}`))
 	setImageChatTestAuth(c)
 	value, _ := c.Get(string(middleware.ContextKeyAPIKey))
-	apiKey := value.(*service.APIKey)
+	apiKey, ok := value.(*service.APIKey)
+	require.True(t, ok)
 	apiKey.Group = &service.Group{AllowImageGeneration: false}
 	h.ChatCompletions(c)
 	require.Equal(t, http.StatusForbidden, recorder.Code)
