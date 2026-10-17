@@ -496,9 +496,10 @@ func bepusdtIdentifier(value string) bool {
 		return false
 	}
 	for _, ch := range value {
-		if !((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' || ch == '.') {
-			return false
+		if (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-' || ch == '.' {
+			continue
 		}
+		return false
 	}
 	return true
 }
