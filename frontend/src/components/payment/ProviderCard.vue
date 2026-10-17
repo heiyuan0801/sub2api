@@ -45,8 +45,8 @@
       <!-- Right: toggles + actions -->
       <div class="flex items-center gap-4">
         <ToggleSwitch :label="t('common.enabled')" :checked="provider.enabled" @toggle="emit('toggleField', 'enabled')" />
-        <ToggleSwitch :label="t('admin.settings.payment.refundEnabled')" :checked="provider.refund_enabled" @toggle="emit('toggleField', 'refund_enabled')" />
-        <ToggleSwitch v-if="provider.refund_enabled" :label="t('admin.settings.payment.allowUserRefund')" :checked="provider.allow_user_refund" @toggle="emit('toggleField', 'allow_user_refund')" />
+        <ToggleSwitch :label="t('admin.settings.payment.refundEnabled')" :checked="supportsRefund && provider.refund_enabled" :disabled="!supportsRefund" @toggle="emit('toggleField', 'refund_enabled')" />
+        <ToggleSwitch v-if="supportsRefund && provider.refund_enabled" :label="t('admin.settings.payment.allowUserRefund')" :checked="provider.allow_user_refund" @toggle="emit('toggleField', 'allow_user_refund')" />
         <div class="flex items-center gap-2 border-l border-gray-200 pl-3 dark:border-dark-600">
           <button type="button" @click="emit('edit')" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400">
             <Icon name="edit" size="sm" />
@@ -77,6 +77,7 @@ const PROVIDER_KEY_LABELS: Record<string, string> = {
   wxpay: 'admin.settings.payment.providerWxpay',
   stripe: 'admin.settings.payment.providerStripe',
   airwallex: 'admin.settings.payment.providerAirwallex',
+  bepusdt: 'admin.settings.payment.providerBepusdt',
 }
 
 const props = defineProps<{
@@ -95,8 +96,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const keyLabel = computed(() => t(PROVIDER_KEY_LABELS[props.provider.provider_key] || props.provider.provider_key))
+const supportsRefund = computed(() => props.provider.provider_key !== 'bepusdt')
 
 const modeLabel = computed(() => {
+  if (props.provider.provider_key === 'bepusdt') return t('admin.settings.payment.modeHostedCashier')
   if (props.provider.payment_mode === PAYMENT_MODE_QRCODE) return t('admin.settings.payment.modeQRCode')
   if (props.provider.payment_mode === PAYMENT_MODE_POPUP) return t('admin.settings.payment.modePopup')
   if (props.provider.payment_mode === PAYMENT_MODE_REDIRECT) return t('admin.settings.payment.modeRedirect')

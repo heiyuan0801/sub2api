@@ -85,6 +85,9 @@ func (s *PaymentService) CreateOrder(ctx context.Context, req CreateOrderRequest
 	if err := s.validateSelectedCreateOrderInstance(ctx, req, sel); err != nil {
 		return nil, err
 	}
+	if sel != nil && sel.ProviderKey == payment.TypeBEpusdt && cfg.OrderTimeoutMin > 0 && (cfg.OrderTimeoutMin < 3 || cfg.OrderTimeoutMin > 60) {
+		return nil, infraerrors.BadRequest("VALIDATION_ERROR", "BEpusdt requires an order timeout between 3 and 60 minutes")
+	}
 	selectedCurrency := payment.DefaultPaymentCurrency
 	if sel != nil {
 		selectedCurrency = paymentProviderConfigCurrency(sel.ProviderKey, sel.Config)
@@ -307,7 +310,10 @@ func buildPaymentOrderProviderSnapshot(sel *payment.InstanceSelection, req Creat
 			snapshot["merchant_id"] = merchantID
 		}
 	}
-	if providerKey == payment.TypeStripe {
+	if providerKey == payment.TypeBEpusdt {
+		snapshot["merchant_id"] = "1000"
+	}
+	if providerKey == payment.TypeStripe || providerKey == payment.TypeBEpusdt {
 		snapshot["currency"] = paymentProviderConfigCurrency(providerKey, sel.Config)
 	}
 	if providerKey == payment.TypeAirwallex {
@@ -458,6 +464,13 @@ func (s *PaymentService) invokeProvider(ctx context.Context, order *dbent.Paymen
 		ReturnURL:   providerReturnURL,
 	}, sel, outTradeNo, payAmountStr, subject)
 	providerReq.AlipayMobilePrecreate = shouldUseAlipayMobilePrecreate(req, cfg, sel)
+	if sel.ProviderKey == payment.TypeBEpusdt {
+		timeoutMinutes := cfg.OrderTimeoutMin
+		if timeoutMinutes <= 0 {
+			timeoutMinutes = defaultOrderTimeoutMin
+		}
+		providerReq.TimeoutSeconds = timeoutMinutes * 60
+	}
 	finishProviderCall := servertiming.ObserveDependency(ctx, "payment")
 	pr, err := prov.CreatePayment(ctx, providerReq)
 	finishProviderCall()

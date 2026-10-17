@@ -11,6 +11,8 @@ export interface ConfigFieldDef {
   optional?: boolean
   clearable?: boolean
   defaultValue?: string
+  placeholder?: string
+  readonly?: boolean
   hintKey?: string
   options?: TypeOption[]
 }
@@ -42,13 +44,14 @@ export const PROVIDER_SUPPORTED_TYPES: Record<string, string[]> = {
   wxpay: ['wxpay'],
   stripe: ['card', 'alipay', 'wxpay', 'link'],
   airwallex: ['airwallex'],
+  bepusdt: ['bepusdt'],
 }
 
 /** Available payment modes for EasyPay providers. */
 export const EASYPAY_PAYMENT_MODES = ['qrcode', 'popup'] as const
 
 /** Fixed display order for user-facing payment methods */
-export const METHOD_ORDER = ['alipay', 'alipay_direct', 'wxpay', 'wxpay_direct', 'stripe', 'airwallex'] as const
+export const METHOD_ORDER = ['alipay', 'alipay_direct', 'wxpay', 'wxpay_direct', 'stripe', 'airwallex', 'bepusdt'] as const
 
 export function isBuiltInAlipayMethod(type: string): boolean {
   return type === 'alipay' || type === 'alipay_direct'
@@ -110,6 +113,7 @@ export const WEBHOOK_PATHS: Record<string, string> = {
   wxpay: '/api/v1/payment/webhook/wxpay',
   stripe: '/api/v1/payment/webhook/stripe',
   airwallex: '/api/v1/payment/webhook/airwallex',
+  bepusdt: '/api/v1/payment/webhook/bepusdt',
 }
 
 export const RETURN_PATH = '/payment/result'
@@ -119,6 +123,7 @@ export const PROVIDER_CALLBACK_PATHS: Record<string, CallbackPaths> = {
   easypay: { notifyUrl: WEBHOOK_PATHS.easypay, returnUrl: RETURN_PATH },
   alipay: { notifyUrl: WEBHOOK_PATHS.alipay, returnUrl: RETURN_PATH },
   wxpay: { notifyUrl: WEBHOOK_PATHS.wxpay },
+  bepusdt: { notifyUrl: WEBHOOK_PATHS.bepusdt, returnUrl: RETURN_PATH },
   // stripe: 不需要回调 URL 配置，Webhook 单独配置。
   // airwallex: 不需要回调 URL 配置，Webhook 在空中云汇后台配置。
 }
@@ -131,6 +136,14 @@ export const PROVIDER_CONFIG_FIELDS: Record<string, ConfigFieldDef[]> = {
     { key: 'apiBase', label: '', sensitive: false },
     { key: 'cidAlipay', label: '', sensitive: false, optional: true },
     { key: 'cidWxpay', label: '', sensitive: false, optional: true },
+  ],
+  bepusdt: [
+    { key: 'apiBase', label: '', sensitive: false, placeholder: 'https://pay.weilai.chat', hintKey: 'admin.settings.payment.field_bepusdtApiBaseHint' },
+    { key: 'apiToken', label: '', sensitive: true },
+    { key: 'pid', label: 'PID', sensitive: false, readonly: true, defaultValue: '1000', hintKey: 'admin.settings.payment.field_bepusdtPidHint' },
+    { key: 'currency', label: '', sensitive: false, defaultValue: 'CNY', hintKey: 'admin.settings.payment.field_bepusdtCurrencyHint', options: PAYMENT_CURRENCY_OPTIONS.filter(option => ['CNY', 'USD', 'EUR', 'GBP', 'JPY'].includes(option.value)) },
+    { key: 'currencies', label: '', sensitive: false, optional: true, clearable: true, hintKey: 'admin.settings.payment.field_bepusdtCurrenciesHint' },
+    { key: 'tradeType', label: '', sensitive: false, optional: true, clearable: true, placeholder: 'usdt.trc20', hintKey: 'admin.settings.payment.field_bepusdtTradeTypeHint' },
   ],
   alipay: [
     { key: 'appId', label: 'App ID', sensitive: false },

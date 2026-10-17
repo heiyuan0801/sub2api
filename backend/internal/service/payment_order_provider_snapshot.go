@@ -127,7 +127,7 @@ func expectedNotificationProviderKeyForOrder(registry *payment.Registry, order *
 }
 
 func validateProviderSnapshotMetadata(order *dbent.PaymentOrder, providerKey string, metadata map[string]string) error {
-	if order == nil || len(metadata) == 0 {
+	if order == nil || (len(metadata) == 0 && providerKey != payment.TypeBEpusdt) {
 		return nil
 	}
 
@@ -137,6 +137,16 @@ func validateProviderSnapshotMetadata(order *dbent.PaymentOrder, providerKey str
 	}
 
 	switch strings.TrimSpace(providerKey) {
+	case payment.TypeBEpusdt:
+		if actual := strings.TrimSpace(metadata["pid"]); actual != "1000" {
+			return fmt.Errorf("bepusdt merchant ID mismatch")
+		}
+		if expected := strings.TrimSpace(snapshot.Currency); expected != "" && !strings.EqualFold(expected, strings.TrimSpace(metadata["currency"])) {
+			return fmt.Errorf("bepusdt currency mismatch")
+		}
+		if actual := strings.TrimSpace(metadata["order_id"]); actual == "" || actual != order.OutTradeNo {
+			return fmt.Errorf("bepusdt merchant order ID mismatch")
+		}
 	case payment.TypeWxpay:
 		if expected := strings.TrimSpace(snapshot.MerchantAppID); expected != "" {
 			actual := strings.TrimSpace(metadata["appid"])

@@ -163,6 +163,18 @@ func (s *PaymentService) checkPaidWithOptions(ctx context.Context, o *dbent.Paym
 	finishProviderCall()
 	if err != nil {
 		slog.Warn("query upstream failed", "orderID", o.ID, "error", err)
+		// The BEpusdt cashier can bind public queries to the payer's browser.
+		// Signed cancellation still works without that fingerprint; attempting
+		// it does not establish that the order has not already been paid.
+		if opts.cancelIfUnpaid && prov.ProviderKey() == payment.TypeBEpusdt {
+			if cp, ok := prov.(payment.CancelableProvider); ok {
+				finishCancel := servertiming.ObserveDependency(ctx, "payment")
+				if cancelErr := cp.CancelPayment(ctx, queryRef); cancelErr != nil {
+					slog.Warn("cancel upstream failed", "orderID", o.ID, "error", cancelErr)
+				}
+				finishCancel()
+			}
+		}
 		return ""
 	}
 	if resp.Status == payment.ProviderStatusPaid {

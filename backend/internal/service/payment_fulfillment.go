@@ -129,6 +129,18 @@ func (s *PaymentService) confirmPayment(ctx context.Context, oid int64, tradeNo 
 		})
 		return err
 	}
+	if strings.TrimSpace(pk) == payment.TypeBEpusdt {
+		// Native BEpusdt callbacks are sufficient proof only for the transaction
+		// returned when this order was created, never another signed payment.
+		expectedTradeNo := strings.TrimSpace(o.PaymentTradeNo)
+		if expectedTradeNo == "" || expectedTradeNo != strings.TrimSpace(tradeNo) {
+			s.writeAuditLog(ctx, o.ID, "PAYMENT_TRADE_NO_MISMATCH", pk, map[string]any{
+				"expected": expectedTradeNo,
+				"tradeNo":  tradeNo,
+			})
+			return fmt.Errorf("bepusdt transaction ID mismatch")
+		}
+	}
 	if !isValidProviderAmount(paid) {
 		s.writeAuditLog(ctx, o.ID, "PAYMENT_INVALID_AMOUNT", pk, map[string]any{
 			"expected": o.PayAmount,

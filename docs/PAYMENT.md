@@ -22,6 +22,7 @@ Sub2API has a built-in payment system that enables user self-service top-up with
 | Provider | Payment Methods | Description |
 |----------|----------------|-------------|
 | **EasyPay** | Alipay, WeChat Pay | Third-party aggregation via EasyPay protocol |
+| **BEpusdt** | USDT, USDC, and other cryptocurrencies | Native API hosted cashier with optional currency and network selection |
 | **Alipay (Direct)** | Desktop QR code, mobile Alipay redirect | Direct integration with Alipay Open Platform, returning desktop QR codes and mobile WAP/app launch links |
 | **WeChat Pay (Direct)** | Native QR, H5, MP/JSAPI Pay | Direct integration with WeChat Pay APIv3 with environment-aware routing |
 | **Stripe** | Card, Alipay, WeChat Pay, Link, etc. | International payments, multi-currency support |
@@ -120,6 +121,20 @@ Compatible with any payment service that implements the EasyPay protocol.
 | **Alipay Channel ID** | Specify Alipay channel (optional) | No |
 | **WeChat Channel ID** | Specify WeChat channel (optional) | No |
 
+### BEpusdt
+
+Enable the `BEpusdt` payment method in **Settings → Payment**, then select `BEpusdt` when adding a provider instance. Configure the gateway's HTTPS base URL, API Token, and fiat currency (`CNY`, `USD`, `EUR`, `GBP`, or `JPY`; default `CNY`). The PID is fixed to `1000` for display; native requests authenticate with the API Token and do not send an EasyPay PID. Leave the token blank while editing to preserve its existing value.
+
+An optional currency filter such as `USDT,USDC` (or a blacklist such as `-ETH,-BNB`) limits the hosted cashier. Leave **Fixed payment network** empty to use `/api/v1/order/create-order`; set it to a trade type such as `usdt.trc20` to use `/api/v1/order/create-transaction` instead. In fixed-network mode, the currency filter is ignored. Orders always use a positive, fixed fiat amount rather than unrestricted address-exclusive payments.
+
+Callback URLs are generated from your public site URL. The native JSON webhook is `/api/v1/payment/webhook/bepusdt`, and the browser return page is `/payment/result`. Signed success callbacks must match the stored merchant order, original gateway transaction, and fiat amount before existing idempotent balance/subscription fulfillment runs. The hosted cashier may bind an order to its payment browser, preventing server-side `/api/v1/pay/info` queries; query errors never imply payment success, so a working public webhook is required. Automatic refunds are unsupported and disabled.
+
+Set the payment order timeout to **3–60 minutes** for BEpusdt. This interval is passed to the gateway; values outside that range are rejected instead of silently falling back to a different upstream expiration policy.
+
+Known limitations: payment configuration still uses the existing plaintext JSON storage. The list API masks secrets, but create and update responses still contain the full configuration. Successful callbacks received beyond the local expiration grace period may also remain uncredited. These issues are unresolved; this integration has not passed production payment security acceptance.
+
+See the [official BEpusdt API documentation](https://github.com/v03413/BEpusdt/blob/main/docs/api/api.md). This integration uses the native protocol and does not require an intermediate EasyPay deployment.
+
 ### Alipay (Direct)
 
 Direct integration with Alipay Open Platform. Mobile flows return an Alipay WAP/app redirect URL. Desktop flows prefer Face-to-Face Precreate QR payloads; if the merchant has not enabled that product, the provider falls back to Computer Website Pay and also returns the cashier URL so the frontend can render a QR code or open the hosted checkout page directly.
@@ -192,6 +207,7 @@ When adding a provider, the system auto-generates callback URLs from your site d
 | Provider | Callback Path |
 |----------|-------------|
 | **EasyPay** | `https://your-domain.com/api/v1/payment/webhook/easypay` |
+| **BEpusdt** | `https://your-domain.com/api/v1/payment/webhook/bepusdt` |
 | **Alipay (Direct)** | `https://your-domain.com/api/v1/payment/webhook/alipay` |
 | **WeChat Pay (Direct)** | `https://your-domain.com/api/v1/payment/webhook/wxpay` |
 | **Stripe** | `https://your-domain.com/api/v1/payment/webhook/stripe` |
