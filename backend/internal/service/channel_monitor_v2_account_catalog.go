@@ -64,7 +64,11 @@ func (s *ChannelMonitorV2AccountCatalog) ListModelCatalog(ctx context.Context) (
 		if loaded.Err != nil {
 			return nil, loaded.Err
 		}
-		return cloneChannelMonitorV2AccountCatalog(loaded.Val.([]PlazaGroup)), nil
+		groups, ok := loaded.Val.([]PlazaGroup)
+		if !ok {
+			return nil, fmt.Errorf("unexpected monitor account catalog result type %T", loaded.Val)
+		}
+		return cloneChannelMonitorV2AccountCatalog(groups), nil
 	}
 }
 

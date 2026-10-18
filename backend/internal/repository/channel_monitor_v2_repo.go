@@ -1510,20 +1510,6 @@ func containsString(values []string, target string) bool {
 	return false
 }
 
-func intersectInt64(a, b []int64) []int64 {
-	set := map[int64]struct{}{}
-	for _, v := range b {
-		set[v] = struct{}{}
-	}
-	out := []int64{}
-	for _, v := range a {
-		if _, ok := set[v]; ok {
-			out = append(out, v)
-		}
-	}
-	return out
-}
-
 // shiftSQLPlaceholders shifts existing positional placeholders by offset.
 func shiftSQLPlaceholders(query string, offset int) string {
 	for i := 64; i >= 1; i-- {
