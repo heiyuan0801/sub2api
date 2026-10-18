@@ -30,6 +30,9 @@ func (s *OpsService) CreateAlertRule(ctx context.Context, rule *OpsAlertRule) (*
 	if rule == nil {
 		return nil, infraerrors.BadRequest("INVALID_RULE", "invalid rule")
 	}
+	if err := ValidateOpsChannelMonitorRule(rule); err != nil {
+		return nil, infraerrors.BadRequest("INVALID_RULE", err.Error())
+	}
 
 	created, err := s.opsRepo.CreateAlertRule(ctx, rule)
 	if err != nil {
@@ -47,6 +50,9 @@ func (s *OpsService) UpdateAlertRule(ctx context.Context, rule *OpsAlertRule) (*
 	}
 	if rule == nil || rule.ID <= 0 {
 		return nil, infraerrors.BadRequest("INVALID_RULE", "invalid rule")
+	}
+	if err := ValidateOpsChannelMonitorRule(rule); err != nil {
+		return nil, infraerrors.BadRequest("INVALID_RULE", err.Error())
 	}
 
 	updated, err := s.opsRepo.UpdateAlertRule(ctx, rule)

@@ -112,6 +112,12 @@ describe('monitorFormat accuracy', () => {
     expect(healthStateClass(undefined)).toBe('health-unknown')
   })
 
+  it('honors true success states and the critical-signal health floor', () => {
+    const health: MonitorHealth = { overall: 'warning', success_rate: 'critical', error_rate: 'healthy', ttft: 'critical', minimum_sample: 20, score: 85, error_rate_score: 100 }
+    expect(healthScoreClass(health, 'success', 0)).toBe('health-critical')
+    expect(healthScoreClass(health, 'overall', 0)).toBe('health-warning')
+  })
+
   it('keeps missing first-token samples neutral instead of critical', () => {
     const health: MonitorHealth = {
       overall: 'healthy',

@@ -23,6 +23,9 @@ export interface MonitorFilter {
   platforms: string[]
   groupIds: number[]
   models: string[]
+  /** Optional exact, rollup-aligned interval for an incident drill-down. */
+  start?: string
+  end?: string
 }
 
 export interface LatencyMetric {
@@ -34,6 +37,11 @@ export interface LatencyMetric {
 }
 
 export interface MonitorMetric {
+  /** Presence flags survive public-response count redaction. Optional for older servers. */
+  has_data?: boolean
+  cache_rate_available?: boolean
+  /** Actual successful calls / all calls, independently of ignored health errors. */
+  success_rate?: number
   success_requests: number
   error_requests: number
   request_count: number
@@ -53,6 +61,12 @@ export interface MonitorMetric {
 export interface MonitorHealth {
   overall: HealthState
   error_rate: HealthState
+  success_rate?: HealthState
+  generation?: HealthState
+  generation_latency_ms?: number | null
+  generation_percentile?: 'p95' | 'p90' | 'p50'
+  generation_score?: number | null
+  reasons?: string[]
   ttft: HealthState
   cache?: HealthState
   /** 0–100 blended score when samples are sufficient. */
@@ -61,19 +75,32 @@ export interface MonitorHealth {
   ttft_score?: number | null
   cache_score?: number | null
   minimum_sample: number
-  thresholds?: {
-    minimum_sample?: number
-    warning_error_rate: number
-    critical_error_rate: number
-    target_ttft_ms: number
-    warning_ttft_ms: number
-    critical_ttft_ms: number
-    warning_cache_rate?: number
-    critical_cache_rate?: number
-    error_weight: number
-    ttft_weight: number
-    cache_weight?: number
-  }
+  thresholds?: Partial<MonitorHealthThresholds>
+}
+
+export interface MonitorGenerationOverride {
+  platform?: string
+  model?: string
+  group_id?: number
+  warning_generation_ms: number
+  critical_generation_ms: number
+}
+
+export interface MonitorHealthThresholds {
+  minimum_sample: number
+  warning_error_rate: number
+  critical_error_rate: number
+  target_ttft_ms: number
+  warning_ttft_ms: number
+  critical_ttft_ms: number
+  warning_cache_rate: number
+  critical_cache_rate: number
+  warning_generation_ms?: number
+  critical_generation_ms?: number
+  generation_overrides?: MonitorGenerationOverride[]
+  error_weight: number
+  ttft_weight: number
+  cache_weight: number
 }
 
 /** First-upgrade historical fill for 90m/24h/7d/30d; omitted when complete. */
@@ -104,19 +131,7 @@ export interface MonitorConfig {
   refresh_interval_seconds: 60 | 300
   platforms: Array<{ platform: string; enabled: boolean; models: string[] }>
   group_ids: number[]
-  health_thresholds: {
-    minimum_sample: number
-    warning_error_rate: number
-    critical_error_rate: number
-    target_ttft_ms: number
-    warning_ttft_ms: number
-    critical_ttft_ms: number
-    warning_cache_rate: number
-    critical_cache_rate: number
-    error_weight: number
-    ttft_weight: number
-    cache_weight: number
-  }
+  health_thresholds: MonitorHealthThresholds
   /** Categories excluded from error_rate / health; still listed in error breakdown. */
   ignored_error_categories?: string[]
 }
@@ -160,6 +175,8 @@ export interface MonitorMatrixBucket {
 
 export interface MonitorMatrixRow {
   platform: string
+  /** Backend classification for dedicated image-generation model families. */
+  is_image_model?: boolean
   group_id?: number
   group_name?: string
   model?: string
@@ -180,7 +197,7 @@ export interface MonitorDimensions {
   models: Array<{ value: string; label: string; platform?: string; request_count: number }>
 }
 
-export interface MonitorModelRow { platform: string; model: string; metrics: MonitorMetric; health: MonitorHealth }
+export interface MonitorModelRow { platform: string; model: string; is_image_model?: boolean; metrics: MonitorMetric; health: MonitorHealth }
 export interface MonitorErrorRow {
   category: string
   count: number
@@ -214,6 +231,8 @@ function params(filter: MonitorFilter) {
     platform: filter.platforms.length ? filter.platforms : undefined,
     group_id: filter.groupIds.length ? filter.groupIds : undefined,
     model: filter.models.length ? filter.models : undefined,
+    start: filter.start,
+    end: filter.end,
   }
 }
 

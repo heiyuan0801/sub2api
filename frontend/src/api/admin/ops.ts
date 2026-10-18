@@ -683,6 +683,10 @@ export type OpsPhase = string
 export type AlertSeverity = 'critical' | 'warning' | 'info'
 export type ThresholdMode = 'count' | 'percentage' | 'both'
 export type MetricType =
+  | 'channel_monitor_success_rate'
+  | 'channel_monitor_cache_rate'
+  | 'channel_monitor_ttft_ms'
+  | 'channel_monitor_duration_ms'
   | 'success_rate'
   | 'error_rate'
   | 'upstream_error_rate'

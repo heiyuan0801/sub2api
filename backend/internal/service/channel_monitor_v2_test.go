@@ -147,6 +147,29 @@ func TestParseChannelMonitorV2GroupBy(t *testing.T) {
 	require.ErrorIs(t, err, ErrChannelMonitorV2InvalidGroupBy)
 }
 
+func TestChannelMonitorV2IsImageModelUsesSupportedGenerationFamilies(t *testing.T) {
+	for _, model := range []string{"gpt-image-2.5", "GPT-IMAGE-2", "grok-imagine", "grok-imagine-edit", "grok-imagine-image-pro", "gemini-3-pro-image-preview", "models/gemini-2.5-flash-image"} {
+		require.True(t, ChannelMonitorV2IsImageModel(model), model)
+	}
+	for _, model := range []string{"gpt-5", "gpt-4o", "gemini-2.5-pro", "custom-image-model", "grok-imagine-video", "__other__", ""} {
+		require.False(t, ChannelMonitorV2IsImageModel(model), model)
+	}
+}
+
+func TestChannelMonitorV2ImageWithoutTextSamplesKeepsHealthSignalsUnknown(t *testing.T) {
+	avgDuration := float64(180000)
+	metric := ChannelMonitorV2Metric{
+		RequestCount: 100, SuccessRequests: 100, SuccessRate: 1, HasData: true,
+		Duration: ChannelMonitorV2Latency{SampleCount: 100, AvgMs: &avgDuration},
+	}
+	health := ChannelMonitorV2HealthFor(metric)
+	require.Equal(t, "healthy", health.Overall)
+	require.Equal(t, "unknown", health.TTFT)
+	require.Equal(t, "unknown", health.Cache)
+	require.Nil(t, metric.TTFT.AvgMs)
+	require.False(t, metric.CacheRateAvailable)
+}
+
 func TestChannelMonitorV2MatrixForwardsGroupingAndAdminScope(t *testing.T) {
 	want := &ChannelMonitorV2Matrix{GroupBy: ChannelMonitorV2GroupByPlatformModel}
 	repo := &channelMonitorV2RepoStub{config: ChannelMonitorV2Config{Enabled: true}, matrix: want}
@@ -264,7 +287,7 @@ func TestChannelMonitorV2HealthRequiresRequestSamples(t *testing.T) {
 			}
 			health := ChannelMonitorV2HealthForWithThresholds(metrics, thresholds)
 			require.Equal(t, ChannelMonitorV2Health{
-				Overall: "unknown", ErrorRate: "unknown", TTFT: "unknown", Cache: "unknown",
+				Overall: "unknown", SuccessRate: "unknown", ErrorRate: "unknown", TTFT: "unknown", Cache: "unknown", Generation: "unknown",
 				MinimumSample: 50, Thresholds: NormalizeChannelMonitorV2HealthThresholds(thresholds),
 			}, health)
 		})
@@ -296,7 +319,7 @@ func TestChannelMonitorV2HealthMinimumSampleBoundaries(t *testing.T) {
 			}
 			health := ChannelMonitorV2HealthForWithThresholds(metrics, thresholds)
 			require.Equal(t, ChannelMonitorV2Health{
-				Overall: "unknown", ErrorRate: "unknown", TTFT: "unknown", Cache: "unknown",
+				Overall: "unknown", SuccessRate: "unknown", ErrorRate: "unknown", TTFT: "unknown", Cache: "unknown", Generation: "unknown",
 				MinimumSample: test.wantMinimum, Thresholds: NormalizeChannelMonitorV2HealthThresholds(thresholds),
 			}, health)
 
@@ -312,7 +335,8 @@ func TestChannelMonitorV2HealthMinimumSampleBoundaries(t *testing.T) {
 			require.NotNil(t, health.CacheScore)
 			require.NotNil(t, health.Score)
 			require.InDelta(t, 80.0, *health.Score, 0.01)
-			require.Equal(t, "healthy", health.Overall)
+			require.Equal(t, "warning", health.Overall)
+			require.Contains(t, health.Reasons, "critical_signal_floor")
 		})
 	}
 }
@@ -561,6 +585,8 @@ func TestRedactChannelMonitorV2MetricKeepsRates(t *testing.T) {
 	require.Zero(t, m.TokenCount)
 	require.Zero(t, m.CacheRateNumerator)
 	require.Zero(t, m.TTFT.SampleCount)
+	require.True(t, m.HasData)
+	require.True(t, m.CacheRateAvailable)
 	require.Nil(t, m.UpstreamAffectedRequests)
 	require.InDelta(t, 0.1, m.ErrorRate, 0.0001)
 	require.InDelta(t, 12.0, m.RPM, 0.0001)
@@ -572,6 +598,50 @@ func TestRedactChannelMonitorV2MetricKeepsRates(t *testing.T) {
 	require.Zero(t, m.RPM)
 	require.Zero(t, m.TPM)
 	require.InDelta(t, 0.1, m.ErrorRate, 0.0001)
+	require.True(t, m.HasData)
+	require.True(t, m.CacheRateAvailable)
+}
+
+func TestChannelMonitorV2PublicMatrixPreservesSamplePresenceWithoutVolume(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		requests  int64
+		cache     int64
+		wantData  bool
+		wantCache bool
+	}{
+		{name: "no samples"},
+		{name: "zero success rate from failed requests", requests: 2, wantData: true},
+		{name: "zero cache hit rate with token samples", requests: 2, cache: 100, wantData: true, wantCache: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metric := ChannelMonitorV2Metric{RequestCount: test.requests, ErrorRequests: test.requests, CacheRateDenominator: test.cache}
+			health := ChannelMonitorV2HealthFor(metric)
+			repo := &channelMonitorV2RepoStub{
+				config: ChannelMonitorV2Config{Enabled: true},
+				matrix: &ChannelMonitorV2Matrix{Items: []ChannelMonitorV2MatrixRow{{
+					Metrics: metric,
+					Health:  health,
+					Buckets: []ChannelMonitorV2TrendPoint{{Metrics: metric, Health: health}},
+				}}},
+			}
+			result, err := NewChannelMonitorV2Service(repo).Matrix(context.Background(), ChannelMonitorV2Filter{}, ChannelMonitorV2GroupByPlatformGroupModel, false)
+			require.NoError(t, err)
+			require.Len(t, result.Items, 1)
+			row := result.Items[0]
+			require.Equal(t, "unknown", row.Health.Overall)
+			for _, metric := range []ChannelMonitorV2Metric{row.Metrics, row.Buckets[0].Metrics} {
+				require.Equal(t, test.wantData, metric.HasData)
+				require.Equal(t, test.wantCache, metric.CacheRateAvailable)
+				require.Zero(t, metric.RequestCount)
+				require.Zero(t, metric.ErrorRequests)
+				require.Zero(t, metric.CacheRateDenominator)
+				require.Zero(t, metric.SuccessRate)
+				require.Zero(t, metric.CacheRate)
+				require.Nil(t, metric.TTFT.AvgMs)
+			}
+		})
+	}
 }
 
 func TestChannelMonitorV2HealthTTFTAtTargetIsHealthy(t *testing.T) {

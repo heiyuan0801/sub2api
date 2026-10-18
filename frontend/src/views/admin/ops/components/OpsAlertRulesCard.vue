@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
@@ -48,7 +49,7 @@ const saving = ref(false)
 const editingId = ref<number | null>(null)
 const draft = ref<AlertRule | null>(null)
 
-type MetricGroup = 'system' | 'group' | 'account'
+type MetricGroup = 'system' | 'group' | 'account' | 'monitor'
 
 interface MetricDefinition {
   type: MetricType
@@ -58,6 +59,19 @@ interface MetricDefinition {
   recommendedOperator: Operator
   recommendedThreshold: number
   unit?: string
+}
+
+const monitorMetricTypes = new Set<MetricType>(['channel_monitor_success_rate', 'channel_monitor_cache_rate', 'channel_monitor_ttft_ms', 'channel_monitor_duration_ms'])
+const isMonitorMetricSelected = computed(() => Boolean(draft.value && monitorMetricTypes.has(draft.value.metric_type)))
+const monitorDefaults = () => ({ platform: '', model: '', minimum_sample: 20, consecutive_windows: 3, recovery_windows: 2, notify_recovery: false })
+function onMetricChange(value: unknown) {
+  if (!draft.value || !monitorMetricTypes.has(value as MetricType)) return
+  const metric = metricDefinitions.value.find(item => item.type === value)
+  draft.value.filters = { ...monitorDefaults(), ...draft.value.filters }
+  draft.value.enabled = false
+  draft.value.notify_email = false
+  draft.value.window_minutes = 5
+  if (metric) { draft.value.operator = metric.recommendedOperator; draft.value.threshold = metric.recommendedThreshold }
 }
 
 const groupMetricTypes = new Set<MetricType>([
@@ -110,12 +124,23 @@ const draftGroupId = computed<number | null>({
 })
 
 const groupOptions = computed<SelectOption[]>(() => {
-  if (isGroupMetricSelected.value) return groupOptionsBase.value
+  if (isGroupMetricSelected.value || isMonitorMetricSelected.value) return groupOptionsBase.value
   return [{ value: null, label: t('admin.ops.alertRules.form.allGroups') }, ...groupOptionsBase.value]
 })
 
 const metricDefinitions = computed(() => {
   return [
+    ...([
+      ['channel_monitor_success_rate', 'successRate', '<', 99, '%'],
+      ['channel_monitor_cache_rate', 'cacheRate', '<', 50, '%'],
+      ['channel_monitor_ttft_ms', 'ttft', '>', 10000, 'ms'],
+      ['channel_monitor_duration_ms', 'generation', '>', 180000, 'ms'],
+    ] as const).map(([type, key, recommendedOperator, recommendedThreshold, unit]) => ({
+      type, group: 'monitor' as const,
+      label: t(`channelMonitorV2.alerts.metrics.${key}`),
+      description: t(`channelMonitorV2.alerts.descriptions.${key}`),
+      recommendedOperator, recommendedThreshold, unit,
+    })),
     // System-level metrics
     {
       type: 'success_rate',
@@ -258,7 +283,7 @@ const metricOptions = computed(() => {
     return [
       {
         value: headerValue,
-        label: t(`admin.ops.alertRules.metricGroups.${group}`),
+        label: group === 'monitor' ? t('channelMonitorV2.alerts.group') : t(`admin.ops.alertRules.metricGroups.${group}`),
         disabled: true,
         kind: 'group'
       },
@@ -266,7 +291,7 @@ const metricOptions = computed(() => {
     ]
   }
 
-  return [...buildGroup('system'), ...buildGroup('group'), ...buildGroup('account')]
+  return [...buildGroup('monitor'), ...buildGroup('system'), ...buildGroup('group'), ...buildGroup('account')]
 })
 
 const operatorOptions = computed(() => {
@@ -309,6 +334,7 @@ function openCreate() {
 function openEdit(rule: AlertRule) {
   editingId.value = rule.id ?? null
   draft.value = JSON.parse(JSON.stringify(rule))
+  if (draft.value && monitorMetricTypes.has(draft.value.metric_type)) draft.value.filters = { ...monitorDefaults(), ...draft.value.filters }
   showEditor.value = true
 }
 
@@ -318,8 +344,14 @@ const editorValidation = computed(() => {
   if (!r) return { valid: true, errors }
   if (!r.name || !r.name.trim()) errors.push(t('admin.ops.alertRules.validation.nameRequired'))
   if (!r.metric_type) errors.push(t('admin.ops.alertRules.validation.metricRequired'))
-  if (groupMetricTypes.has(r.metric_type) && !parsePositiveInt(r.filters?.group_id)) {
+  if ((groupMetricTypes.has(r.metric_type) || monitorMetricTypes.has(r.metric_type)) && !parsePositiveInt(r.filters?.group_id)) {
     errors.push(t('admin.ops.alertRules.validation.groupIdRequired'))
+  }
+  if (monitorMetricTypes.has(r.metric_type)) {
+    const f = r.filters || {}
+    if (typeof f.platform !== 'string' || !f.platform.trim() || f.platform.length > 64 || typeof f.model !== 'string' || !f.model.trim() || f.model.length > 256) errors.push(t('channelMonitorV2.alerts.scopeRequired'))
+    if (!Number.isInteger(f.minimum_sample) || f.minimum_sample < 1 || f.minimum_sample > 1000000 || !Number.isInteger(f.consecutive_windows) || f.consecutive_windows < 1 || f.consecutive_windows > 60 || !Number.isInteger(f.recovery_windows) || f.recovery_windows < 1 || f.recovery_windows > 60) errors.push(t('channelMonitorV2.alerts.invalidCounts'))
+    if (r.threshold < 0 || ((r.metric_type === 'channel_monitor_success_rate' || r.metric_type === 'channel_monitor_cache_rate') && r.threshold > 100)) errors.push(t('channelMonitorV2.alerts.invalidThreshold'))
   }
   if (!r.operator) errors.push(t('admin.ops.alertRules.validation.operatorRequired'))
   if (!(typeof r.threshold === 'number' && Number.isFinite(r.threshold)))
@@ -534,7 +566,7 @@ function cancelDelete() {
 
           <div>
             <label class="input-label">{{ t('admin.ops.alertRules.form.metric') }}</label>
-            <Select v-model="draft!.metric_type" :options="metricOptions" />
+            <Select v-model="draft!.metric_type" :options="metricOptions" @update:model-value="onMetricChange" />
             <div v-if="selectedMetricDefinition" class="mt-1 space-y-0.5 text-xs text-gray-500 dark:text-gray-400">
               <p>{{ selectedMetricDefinition.description }}</p>
               <p>
@@ -557,20 +589,29 @@ function cancelDelete() {
           <div class="md:col-span-2">
             <label class="input-label">
               {{ t('admin.ops.alertRules.form.groupId') }}
-              <span v-if="isGroupMetricSelected" class="ml-1 text-red-500">*</span>
+              <span v-if="isGroupMetricSelected || isMonitorMetricSelected" class="ml-1 text-red-500">*</span>
             </label>
             <Select
               v-model="draftGroupId"
               :options="groupOptions"
               searchable
               :placeholder="t('admin.ops.alertRules.form.groupPlaceholder')"
-              :error="isGroupMetricSelected && !draftGroupId"
+              :error="(isGroupMetricSelected || isMonitorMetricSelected) && !draftGroupId"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {{ isGroupMetricSelected ? t('admin.ops.alertRules.hints.groupRequired') : t('admin.ops.alertRules.hints.groupOptional') }}
+              {{ isGroupMetricSelected || isMonitorMetricSelected ? t('admin.ops.alertRules.hints.groupRequired') : t('admin.ops.alertRules.hints.groupOptional') }}
             </p>
           </div>
 
+          <template v-if="isMonitorMetricSelected && draft?.filters">
+            <div><label class="input-label">{{ t('channelMonitorV2.filters.platform') }}</label><Select v-model="draft.filters.platform" :options="CONCRETE_PLATFORM_OPTIONS" :placeholder="t('channelMonitorV2.alerts.selectPlatform')" /></div>
+            <div><label class="input-label">{{ t('channelMonitorV2.filters.model') }}</label><input v-model.trim="draft.filters.model" class="input" maxlength="256" :placeholder="t('channelMonitorV2.settings.exactModel')" /></div>
+            <div><label class="input-label">{{ t('channelMonitorV2.alerts.minimumSample') }}</label><input v-model.number="draft.filters.minimum_sample" class="input" type="number" min="1" max="1000000" /></div>
+            <div><label class="input-label">{{ t('channelMonitorV2.alerts.consecutive') }}</label><input v-model.number="draft.filters.consecutive_windows" class="input" type="number" min="1" max="60" /></div>
+            <div><label class="input-label">{{ t('channelMonitorV2.alerts.recovery') }}</label><input v-model.number="draft.filters.recovery_windows" class="input" type="number" min="1" max="60" /></div>
+            <label class="flex items-center gap-2 text-sm"><input v-model="draft.filters.notify_recovery" type="checkbox" class="h-4 w-4 rounded border-gray-300" />{{ t('channelMonitorV2.alerts.notifyRecovery') }}</label>
+            <p class="text-xs leading-6 text-gray-500 md:col-span-2">{{ t('channelMonitorV2.alerts.hint') }}</p>
+          </template>
           <div>
             <label class="input-label">{{ t('admin.ops.alertRules.form.threshold') }}</label>
             <input v-model.number="draft!.threshold" class="input" type="number" />

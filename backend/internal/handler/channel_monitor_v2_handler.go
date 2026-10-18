@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
@@ -226,6 +227,22 @@ func (h *ChannelMonitorV2Handler) parseFilter(c *gin.Context) (service.ChannelMo
 	if err != nil {
 		response.BadRequest(c, err.Error())
 		return service.ChannelMonitorV2Filter{}, false
+	}
+	if startValue, endValue := c.Query("start"), c.Query("end"); startValue != "" || endValue != "" {
+		start, startErr := time.Parse(time.RFC3339Nano, startValue)
+		end, endErr := time.Parse(time.RFC3339Nano, endValue)
+		// Incident windows must align with this range's retained rollups (5m,
+		// 1h, 12h, or 1d). Minute-aligned partial rollups cannot provide exact
+		// counts, especially after fine-grained facts expire.
+		maxWindow := filter.End.Sub(filter.Start)
+		earliest := filter.End.Add(-30 * 24 * time.Hour)
+		if startErr != nil || endErr != nil || !start.Before(end) ||
+			!start.Equal(start.Truncate(filter.Bucket)) || !end.Equal(end.Truncate(filter.Bucket)) ||
+			!start.Before(time.Now().UTC()) || start.Before(earliest) || end.After(filter.End) || end.Sub(start) > maxWindow {
+			response.BadRequest(c, "start/end must be RFC3339 timestamps aligned to the selected range's rollup buckets, within the last 30 days and selected range duration; start must be in the past")
+			return service.ChannelMonitorV2Filter{}, false
+		}
+		filter.Start, filter.End = start.UTC(), end.UTC()
 	}
 	return filter, true
 }

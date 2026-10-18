@@ -1,9 +1,11 @@
-import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Select from '@/components/common/Select.vue'
 import MonitorSettingsPanel from '../MonitorSettingsPanel.vue'
 import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
 import type { MonitorConfig } from '@/api/channelMonitorV2'
+
+enableAutoUnmount(afterEach)
 
 const mocks = vi.hoisted(() => ({
   getConfig: vi.fn(),
@@ -45,6 +47,7 @@ function config(): MonitorConfig {
     health_thresholds: {
       minimum_sample: 70, warning_error_rate: 0.1, critical_error_rate: 0.3,
       target_ttft_ms: 1500, warning_ttft_ms: 2000, critical_ttft_ms: 5000,
+      warning_generation_ms: 60000, critical_generation_ms: 180000,
       warning_cache_rate: 0.7, critical_cache_rate: 0.4,
       error_weight: 0.5, ttft_weight: 0.3, cache_weight: 0.2,
     },
@@ -66,6 +69,10 @@ async function add(wrapper: Awaited<ReturnType<typeof panel>>, platform: string)
   wrapper.findComponent(Select).vm.$emit('update:modelValue', platform)
   await flushPromises()
   await button(wrapper, 'addPlatform').trigger('click')
+}
+
+function overrideRows(wrapper: Awaited<ReturnType<typeof panel>>) {
+  return wrapper.findAll('div.grid.rounded-xl').filter(item => item.find('input[maxlength="256"]').exists())
 }
 
 beforeEach(() => {
@@ -149,5 +156,65 @@ describe('MonitorSettingsPanel platform configuration', () => {
     expect(wrapper.findComponent(Select).exists()).toBe(false)
     expect(button(wrapper, 'addPlatform')).toBeUndefined()
     wrapper.unmount()
+  })
+
+  it('saves an exact generation budget override without mutating the loaded config', async () => {
+    mocks.groups.mockResolvedValue([{ id: 42, name: 'Image group', platform: 'openai' }])
+    const original = config()
+    const wrapper = await panel(original)
+    await button(wrapper, 'addOverride').trigger('click')
+    const override = overrideRows(wrapper)[0]
+    await override.findAll('select')[0].setValue('openai')
+    await override.get('input[maxlength="256"]').setValue('gpt-image-2.5')
+    await override.findAll('select')[1].setValue('42')
+    await override.findAll('input[type="number"]')[0].setValue('120000')
+    await override.findAll('input[type="number"]')[1].setValue('300000')
+    await button(wrapper, 'save').trigger('click')
+    await flushPromises()
+
+    expect(mocks.updateConfig).toHaveBeenCalledWith(expect.objectContaining({
+      health_thresholds: expect.objectContaining({
+        warning_generation_ms: 60000,
+        critical_generation_ms: 180000,
+        generation_overrides: [{ platform: 'openai', model: 'gpt-image-2.5', group_id: 42, warning_generation_ms: 120000, critical_generation_ms: 300000 }],
+      }),
+    }))
+    expect(original.health_thresholds.generation_overrides).toBeUndefined()
+    expect(mocks.showError).not.toHaveBeenCalled()
+    expect(button(wrapper, 'save').attributes('disabled')).toBeDefined()
+  })
+
+  it.each(['empty scope', 'zero warning', 'reversed thresholds'])('rejects an invalid generation override: %s', async reason => {
+    const wrapper = await panel()
+    await button(wrapper, 'addOverride').trigger('click')
+    const override = overrideRows(wrapper)[0]
+    if (reason !== 'empty scope') await override.get('input[maxlength="256"]').setValue('gpt-image-2.5')
+    if (reason === 'zero warning') await override.findAll('input[type="number"]')[0].setValue('0')
+    if (reason === 'reversed thresholds') await override.findAll('input[type="number"]')[1].setValue('1000')
+    await button(wrapper, 'save').trigger('click')
+    expect(mocks.updateConfig).not.toHaveBeenCalled()
+    expect(mocks.showError).toHaveBeenCalledWith('channelMonitorV2.settings.invalidGeneration')
+  })
+
+  it('rejects duplicate generation selectors even if their budgets differ', async () => {
+    const wrapper = await panel()
+    for (let index = 0; index < 2; index++) {
+      await button(wrapper, 'addOverride').trigger('click')
+      const override = overrideRows(wrapper)[index]
+      await override.get('input[maxlength="256"]').setValue(index ? ' gpt-image-2.5 ' : 'gpt-image-2.5')
+      await override.findAll('input[type="number"]')[0].setValue(index ? '90000' : '60000')
+    }
+    await button(wrapper, 'save').trigger('click')
+    expect(mocks.updateConfig).not.toHaveBeenCalled()
+    expect(mocks.showError).toHaveBeenCalledWith('channelMonitorV2.settings.invalidGeneration')
+  })
+
+  it('validates the global generation budget before saving other settings', async () => {
+    const wrapper = await panel()
+    const label = wrapper.findAll('label').find(item => item.text() === 'channelMonitorV2.settings.fields.criticalGeneration')!
+    await label.get('input').setValue('30000')
+    await button(wrapper, 'save').trigger('click')
+    expect(mocks.updateConfig).not.toHaveBeenCalled()
+    expect(mocks.showError).toHaveBeenCalledWith('channelMonitorV2.settings.invalidGeneration')
   })
 })

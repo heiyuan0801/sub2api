@@ -252,6 +252,25 @@
             <span class="input-label">{{ t('channelMonitorV2.settings.fields.criticalCache') }}</span>
             <input v-model.number="criticalCachePercent" class="input" type="number" min="0" max="100" step="0.1" />
           </label>
+          <label class="block">
+            <span class="input-label">{{ t('channelMonitorV2.settings.fields.warningGeneration') }}</span>
+            <input v-model.number="draft.health_thresholds.warning_generation_ms" class="input" type="number" min="1" step="1000" />
+          </label>
+          <label class="block">
+            <span class="input-label">{{ t('channelMonitorV2.settings.fields.criticalGeneration') }}</span>
+            <input v-model.number="draft.health_thresholds.critical_generation_ms" class="input" type="number" min="1" step="1000" />
+          </label>
+        </div>
+        <div class="space-y-4 border-t border-gray-100 px-5 py-4 dark:border-dark-700">
+          <div class="flex flex-wrap items-start justify-between gap-3"><div><h4 class="text-sm font-semibold">{{ t('channelMonitorV2.settings.generationOverrides') }}</h4><p class="mt-1 text-xs leading-6 text-gray-500">{{ t('channelMonitorV2.settings.generationHint') }}</p></div><button type="button" class="btn btn-secondary btn-sm" :disabled="(draft.health_thresholds.generation_overrides?.length || 0) >= 200" @click="addGenerationOverride">{{ t('channelMonitorV2.settings.addOverride') }}</button></div>
+          <div v-for="(rule, index) in draft.health_thresholds.generation_overrides || []" :key="index" class="grid gap-3 rounded-xl border border-gray-200 p-4 dark:border-dark-600 sm:grid-cols-2 lg:grid-cols-3">
+            <label><span class="input-label">{{ t('channelMonitorV2.filters.platform') }}</span><select v-model="rule.platform" class="input"><option value="">{{ t('channelMonitorV2.settings.anyPlatform') }}</option><option v-for="option in CONCRETE_PLATFORM_OPTIONS" :key="option.value" :value="option.value">{{ platformLabel(option.value) }}</option></select></label>
+            <label><span class="input-label">{{ t('channelMonitorV2.filters.model') }}</span><input v-model.trim="rule.model" class="input" :placeholder="t('channelMonitorV2.settings.exactModel')" maxlength="256" /></label>
+            <label><span class="input-label">{{ t('channelMonitorV2.filters.group') }}</span><select v-model.number="rule.group_id" class="input"><option :value="undefined">{{ t('channelMonitorV2.availability.allGroups') }}</option><option v-for="group in groups" :key="group.id" :value="group.id">{{ group.name }}</option></select></label>
+            <label><span class="input-label">{{ t('channelMonitorV2.settings.fields.warningGeneration') }}</span><input v-model.number="rule.warning_generation_ms" class="input" type="number" min="1" step="1000" /></label>
+            <label><span class="input-label">{{ t('channelMonitorV2.settings.fields.criticalGeneration') }}</span><input v-model.number="rule.critical_generation_ms" class="input" type="number" min="1" step="1000" /></label>
+            <button type="button" class="btn btn-ghost self-end" @click="draft.health_thresholds.generation_overrides?.splice(index, 1)">{{ t('channelMonitorV2.settings.removeOverride') }}</button>
+          </div>
         </div>
       </div>
 
@@ -342,9 +361,10 @@ const defaultThresholds = {
   target_ttft_ms: 3000,
   warning_ttft_ms: 3000,
   critical_ttft_ms: 10000,
-  // Higher is better: below 85% watch, below 60% critical.
-  warning_cache_rate: 0.85,
-  critical_cache_rate: 0.60,
+  warning_cache_rate: 0,
+  critical_cache_rate: 0,
+  warning_generation_ms: 60000,
+  critical_generation_ms: 180000,
   error_weight: 0.60,
   ttft_weight: 0.20,
   cache_weight: 0.20,
@@ -361,6 +381,27 @@ const defaultIgnoredErrorCategories = [
   'not_found',
   'quota_or_balance',
 ] as const
+function addGenerationOverride() {
+  if (!draft.value) return
+  const thresholds = draft.value.health_thresholds
+  if (!thresholds.generation_overrides) thresholds.generation_overrides = []
+  thresholds.generation_overrides.push({ platform: '', model: '', warning_generation_ms: thresholds.warning_generation_ms || 60000, critical_generation_ms: thresholds.critical_generation_ms || 180000 })
+}
+function validGenerationThresholds(config: MonitorConfig) {
+  const thresholds = config.health_thresholds
+  const validPair = (warning: unknown, critical: unknown) => typeof warning === 'number' && Number.isSafeInteger(warning) && warning > 0 && typeof critical === 'number' && Number.isSafeInteger(critical) && critical > warning
+  if (!validPair(thresholds.warning_generation_ms, thresholds.critical_generation_ms)) return false
+  const seen = new Set<string>()
+  for (const rule of thresholds.generation_overrides || []) {
+    const platform = rule.platform?.trim() || ''
+    const model = rule.model?.trim() || ''
+    if ((!platform && !model && !rule.group_id) || !validPair(rule.warning_generation_ms, rule.critical_generation_ms)) return false
+    const selector = JSON.stringify([platform, model, rule.group_id || 0])
+    if (seen.has(selector)) return false
+    seen.add(selector)
+  }
+  return true
+}
 function percentModel(key: 'warning_error_rate' | 'critical_error_rate' | 'warning_cache_rate' | 'critical_cache_rate') {
   return computed({
     get: () => ((draft.value?.health_thresholds?.[key] ?? defaultThresholds[key]) * 100),
@@ -457,6 +498,10 @@ async function load() {
 
 async function save() {
   if (!draft.value) return
+  if (!validGenerationThresholds(draft.value)) {
+    appStore.showError(t('channelMonitorV2.settings.invalidGeneration'))
+    return
+  }
   saving.value = true
   try {
     const payload = normalizeConfig(draft.value)

@@ -32,10 +32,14 @@ return 0
 `)
 
 type OpsAlertEvaluatorService struct {
-	opsService   *OpsService
-	opsRepo      OpsRepository
-	emailService *EmailService
-	proxyRepo    ProxyRepository
+	opsService             *OpsService
+	opsRepo                OpsRepository
+	emailService           *EmailService
+	proxyRepo              ProxyRepository
+	channelMonitorRepo     ChannelMonitorV2Repository
+	channelMonitorSettings channelMonitorRuntimeReader
+	// Test seam; production delivery remains owned by maybeSendAlertEmail.
+	sendChannelMonitorEmail func(context.Context, *OpsAlertRuntimeSettings, *OpsAlertRule, *OpsAlertEvent) bool
 
 	redisClient *redis.Client
 	cfg         *config.Config
@@ -216,6 +220,12 @@ func (s *OpsAlertEvaluatorService) evaluateOnce(interval time.Duration) {
 			continue
 		}
 		rulesEnabled++
+		if IsOpsChannelMonitorMetric(rule.MetricType) {
+			if err := s.evaluateChannelMonitorRule(ctx, runtimeCfg, rule, now); err != nil {
+				logger.LegacyPrintf("service.ops_alert_evaluator", "[OpsAlertEvaluator] channel monitor rule %d failed: %v", rule.ID, err)
+			}
+			continue
+		}
 
 		scopePlatform, scopeGroupID, scopeRegion := parseOpsAlertRuleScope(rule.Filters)
 
@@ -708,6 +718,9 @@ func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runt
 	s.emailLimiter.SetLimit(emailCfg.Alert.RateLimitPerHour)
 
 	subject := fmt.Sprintf("[Ops Alert][%s] %s", strings.TrimSpace(rule.Severity), strings.TrimSpace(rule.Name))
+	if event.Status == OpsAlertStatusResolved {
+		subject = fmt.Sprintf("[Ops Recovery][%s] %s", strings.TrimSpace(rule.Severity), strings.TrimSpace(rule.Name))
+	}
 	body := buildOpsAlertEmailBody(rule, event)
 
 	anySent := false
@@ -725,7 +738,7 @@ func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runt
 				RecipientEmail: addr,
 				RecipientName:  emailRecipientName(addr),
 				SourceType:     "ops_alert",
-				SourceID:       fmt.Sprintf("%d", event.ID),
+				SourceID:       opsAlertEmailSourceID(event),
 				Variables:      opsAlertEmailVariables(rule, event),
 			}); err == nil {
 				anySent = true
@@ -745,6 +758,13 @@ func (s *OpsAlertEvaluatorService) maybeSendAlertEmail(ctx context.Context, runt
 		_ = s.opsRepo.UpdateAlertEventEmailSent(context.Background(), event.ID, true)
 	}
 	return anySent
+}
+
+func opsAlertEmailSourceID(event *OpsAlertEvent) string {
+	if event.Status == OpsAlertStatusResolved {
+		return fmt.Sprintf("%d:resolved", event.ID)
+	}
+	return fmt.Sprintf("%d", event.ID)
 }
 
 func opsAlertEmailVariables(rule *OpsAlertRule, event *OpsAlertEvent) map[string]string {

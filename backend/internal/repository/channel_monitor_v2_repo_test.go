@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +42,106 @@ func TestChannelMonitorV2DisplayModelIsPlatformScoped(t *testing.T) {
 	// Unconfigured platform still surfaces the real model name.
 	require.Equal(t, "gemini-2.5-pro", channelMonitorV2DisplayModel(cfg, "gemini", "gemini-2.5-pro"))
 	require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{service.ChannelMonitorV2OtherModel}}, cfg, "grok", "shared"))
+}
+
+func TestChannelMonitorV2ImageNamesRemainIndependentWithoutBypassingFilters(t *testing.T) {
+	cfg := service.ChannelMonitorV2Config{Platforms: []service.ChannelMonitorV2PlatformConfig{{Platform: "openai", Enabled: true, Models: []string{"gpt-5"}}}}
+	for _, model := range []string{"gpt-image-2.5", "grok-imagine-image", "gemini-3-pro-image-preview"} {
+		require.Equal(t, model, channelMonitorV2DisplayModel(cfg, "openai", model))
+		require.Equal(t, channelMonitorV2MatrixKey{platform: "openai", groupID: 7, model: model}, channelMonitorV2MatrixDimensionKey(service.ChannelMonitorV2GroupByPlatformGroupModel, cfg, "openai", 7, model))
+		require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{model}}, cfg, "openai", model))
+		require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{"gpt-5"}}, cfg, "openai", model))
+		require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{service.ChannelMonitorV2OtherModel}}, cfg, "openai", model))
+	}
+	require.Equal(t, service.ChannelMonitorV2OtherModel, channelMonitorV2DisplayModel(cfg, "openai", "unlisted-text"))
+	where, args := channelMonitorV2Where(service.ChannelMonitorV2Filter{
+		RestrictGroups: true, AllowedGroupIDs: []int64{7}, GroupIDs: []int64{7},
+	}, cfg, "m")
+	require.Contains(t, where, "m.platform = ANY($3)")
+	require.Contains(t, where, "m.group_id = ANY($4)")
+	require.Equal(t, pq.Array([]int64{7}), args[3])
+}
+
+func TestChannelMonitorV2ImageRowsKeepSuccessFailureAndGenerationDuration(t *testing.T) {
+	for _, matrix := range []bool{false, true} {
+		t.Run(fmt.Sprintf("matrix=%t", matrix), func(t *testing.T) {
+			db, mock, err := sqlmock.New()
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = db.Close() })
+			repo := &channelMonitorV2Repository{db: db}
+			start := time.Now().UTC().Truncate(time.Hour)
+			end := start.Add(time.Hour)
+			filter := service.ChannelMonitorV2Filter{Start: start, End: end, Bucket: time.Minute}
+			cfg := service.ChannelMonitorV2Config{
+				Platforms: []service.ChannelMonitorV2PlatformConfig{{Platform: "openai", Enabled: true, Models: []string{"gpt-5"}}},
+				GroupIDs:  []int64{7},
+				HealthThresholds: service.ChannelMonitorV2HealthThresholds{GenerationOverrides: []service.ChannelMonitorV2GenerationOverride{{
+					GroupID: 7, Model: "gpt-image-2.5", WarningGenerationMs: 600000, CriticalGenerationMs: 900000,
+				}}},
+			}
+			mock.ExpectQuery("SELECT usage_coverage_start, error_coverage_start, data_through, last_successful_at, backfill_cursor").
+				WillReturnRows(sqlmock.NewRows([]string{"usage_start", "error_start", "through", "successful", "backfill"}).AddRow(start, start, end, end, start))
+			mock.ExpectQuery(`SUM\(m.success_requests\)`).WillReturnRows(sqlmock.NewRows([]string{
+				"bucket", "platform", "group_id", "group_name", "model", "success", "errors", "upstream_affected", "upstream_attempts",
+				"input", "output", "cache_creation", "cache_read", "ttft_sum", "ttft_count", "duration_sum", "duration_count",
+			}).AddRow(start, "openai", 7, "default", "gpt-image-2.5", 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18000000, 100).
+				AddRow(start, "openai", 7, "default", "gpt-image-2.5-pro", 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+			mock.ExpectQuery(`SUM\(h.sample_count\)`).WillReturnRows(sqlmock.NewRows([]string{"bucket", "platform", "group_id", "model", "user_id", "metric", "upper", "count"}).
+				AddRow(start, "openai", 7, "gpt-image-2.5", 0, "duration", 300000, 100))
+			if matrix {
+				mock.ExpectQuery("FROM groups WHERE id").WillReturnRows(sqlmock.NewRows([]string{"id", "name", "platform"}).AddRow(7, "default", "openai"))
+			}
+			type imageRow struct {
+				image  bool
+				metric service.ChannelMonitorV2Metric
+				health service.ChannelMonitorV2Health
+			}
+			rows := map[string]imageRow{}
+			if matrix {
+				result, err := repo.GetMatrix(context.Background(), filter, cfg, service.ChannelMonitorV2GroupByPlatformGroupModel, false)
+				require.NoError(t, err)
+				for _, row := range result.Items {
+					rows[row.Model] = imageRow{row.IsImageModel, row.Metrics, row.Health}
+					if row.Model == "gpt-image-2.5" {
+						require.Len(t, row.Buckets, 1)
+						require.Equal(t, "healthy", row.Buckets[0].Health.Generation)
+						require.Equal(t, int64(600000), row.Buckets[0].Health.Thresholds.WarningGenerationMs)
+					}
+				}
+			} else {
+				result, err := repo.GetModels(context.Background(), filter, cfg, false)
+				require.NoError(t, err)
+				for _, row := range result.Items {
+					rows[row.Model] = imageRow{row.IsImageModel, row.Metrics, row.Health}
+				}
+			}
+			require.Len(t, rows, 3)
+			require.False(t, rows["gpt-5"].image)
+			success := rows["gpt-image-2.5"]
+			require.True(t, success.image)
+			require.True(t, success.metric.HasData)
+			require.Equal(t, 1.0, success.metric.SuccessRate)
+			require.False(t, success.metric.CacheRateAvailable)
+			require.Nil(t, success.metric.TTFT.AvgMs)
+			require.Equal(t, 180000.0, *success.metric.Duration.AvgMs)
+			require.Equal(t, "healthy", success.health.Overall)
+			require.Equal(t, "healthy", success.health.SuccessRate)
+			require.Equal(t, "healthy", success.health.Generation)
+			require.Equal(t, "p95", success.health.GenerationPercentile)
+			require.Equal(t, int64(300000), *success.health.GenerationLatencyMs)
+			require.Equal(t, int64(600000), success.health.Thresholds.WarningGenerationMs)
+			require.Nil(t, success.health.Thresholds.GenerationOverrides)
+			require.Equal(t, "unknown", success.health.TTFT)
+			require.Equal(t, "unknown", success.health.Cache)
+			failed := rows["gpt-image-2.5-pro"]
+			require.True(t, failed.image)
+			require.True(t, failed.metric.HasData)
+			require.Equal(t, int64(3), failed.metric.ErrorRequests)
+			require.Zero(t, failed.metric.SuccessRate)
+			require.Nil(t, failed.metric.Duration.AvgMs)
+			require.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
 }
 
 func TestChannelMonitorV2MatrixDimensionKey(t *testing.T) {
@@ -84,6 +185,37 @@ func TestChannelMonitorV2MetricIncludesSuccessRate(t *testing.T) {
 
 	adminMetric := acc.metric(1, true)
 	require.NotNil(t, adminMetric.UpstreamAffectedRequests)
+}
+
+func TestChannelMonitorV2MetricPresenceDistinguishesZeroRatesFromNoSamples(t *testing.T) {
+	for _, test := range []struct {
+		name      string
+		errors    int64
+		input     int64
+		wantData  bool
+		wantCache bool
+	}{
+		{name: "no requests or tokens"},
+		{name: "failed requests without token samples", errors: 3, wantData: true},
+		{name: "zero cache hits with input samples", errors: 3, input: 100, wantData: true, wantCache: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			acc := newMetricAccumulator()
+			acc.errors, acc.input = test.errors, test.input
+			metric := acc.metric(1, false)
+			require.Equal(t, test.wantData, metric.HasData)
+			require.Equal(t, test.wantCache, metric.CacheRateAvailable)
+			require.Zero(t, metric.SuccessRate)
+			require.Zero(t, metric.CacheRate)
+			require.Nil(t, metric.TTFT.AvgMs)
+			require.Nil(t, metric.TTFT.P50Ms)
+			// Excluding an error category from health must never turn these
+			// failed calls into successes or erase that requests were observed.
+			applyIgnoredErrors(&metric, test.errors)
+			require.Equal(t, test.wantData, metric.HasData)
+			require.Zero(t, metric.SuccessRate)
+		})
+	}
 }
 
 func TestChannelMonitorV2WhereUsesConfiguredScopeAndEmptyFilterMeansAllConfigured(t *testing.T) {
@@ -201,6 +333,45 @@ func TestChannelMonitorV2EmptyRestrictedScopeReturnsEmptyInventory(t *testing.T)
 	require.Empty(t, models.Items)
 	require.NotNil(t, models.Items)
 	require.Equal(t, service.ChannelMonitorV2Coverage{}, models.Coverage)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestChannelMonitorV2DimensionsExposeSelectableModelNames(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = db.Close() })
+	repo := &channelMonitorV2Repository{db: db}
+	start := time.Now().UTC().Truncate(time.Hour)
+	end := start.Add(time.Hour)
+	filter := service.ChannelMonitorV2Filter{Start: start, End: end, Bucket: time.Hour}
+	cfg := service.ChannelMonitorV2Config{Platforms: []service.ChannelMonitorV2PlatformConfig{
+		{Platform: "openai", Enabled: true, Models: []string{"gpt-image-2.5", "gpt-5"}},
+		{Platform: "grok", Enabled: true},
+	}}
+	mock.ExpectQuery("SELECT usage_coverage_start, error_coverage_start, data_through, last_successful_at, backfill_cursor").
+		WillReturnRows(sqlmock.NewRows([]string{"usage_start", "error_start", "through", "successful", "backfill"}).
+			AddRow(start, start, end, end, start))
+	mock.ExpectQuery("SELECT m.platform").WillReturnRows(sqlmock.NewRows([]string{"platform", "group_name", "group_platform", "group_id", "model", "count"}).
+		AddRow("openai", "default", "openai", 1, "gpt-image-2.5", 2).
+		AddRow("openai", "default", "openai", 1, "unlisted-image-alias", 3).
+		AddRow("grok", "default", "grok", 2, "gpt-image-2.5", 7))
+
+	dimensions, err := repo.GetDimensions(context.Background(), filter, cfg)
+	require.NoError(t, err)
+	require.Len(t, dimensions.Models, 4)
+	counts := map[string]int64{}
+	for _, model := range dimensions.Models {
+		require.NotContains(t, model.Value, "\x00")
+		require.NotContains(t, model.Label, "\x00")
+		require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{model.Value}}, cfg, model.Platform, model.Value))
+		counts[model.Platform+"/"+model.Value] = model.RequestCount
+		if model.Value == service.ChannelMonitorV2OtherModel {
+			require.Equal(t, "Other models", model.Label)
+		}
+	}
+	require.Equal(t, int64(2), counts["openai/gpt-image-2.5"])
+	require.Equal(t, int64(7), counts["grok/gpt-image-2.5"])
+	require.Equal(t, int64(3), counts["openai/"+service.ChannelMonitorV2OtherModel])
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 

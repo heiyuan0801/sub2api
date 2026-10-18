@@ -30,6 +30,13 @@ FRONTEND_CRITICAL_VITEST := \
 	src/features/channel-monitor-v2/__tests__/designSystem.structure.spec.ts \
 	src/features/channel-monitor-v2/__tests__/monitorFormat.spec.ts \
 	src/features/channel-monitor-v2/__tests__/monitorZoom.spec.ts \
+	src/features/channel-monitor-v2/__tests__/MonitorChannelCards.spec.ts \
+	src/features/channel-monitor-v2/__tests__/MonitorIncidentDialog.spec.ts \
+	src/features/channel-monitor-v2/__tests__/MonitorSettingsPanel.spec.ts \
+	src/features/channel-monitor-v2/__tests__/monitorPreferences.spec.ts \
+	src/views/user/__tests__/ChannelStatusV2View.availability.spec.ts \
+	src/views/admin/ops/components/__tests__/OpsAlertRulesCard.channelMonitor.spec.ts \
+	src/views/admin/ops/components/__tests__/OpsAlertRulesCard.duration.spec.ts \
 	src/components/admin/channel/__tests__/PricingEntryCard.modelDefaultPrice.spec.ts
 
 # 一键编译前后端

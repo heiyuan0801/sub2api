@@ -13,16 +13,17 @@ function read(rel: string) {
 }
 
 describe('channel-monitor-v2 design system structure', () => {
-  it('user ChannelStatus V2 shell uses page-header, card, btn, tabs utilities', () => {
+  it('user ChannelStatus V2 keeps model availability, filtering, and accessible summaries together', () => {
     // Route wrapper may switch V1/V2; design chrome lives on the V2 implementation.
     const src = read('views/user/ChannelStatusV2View.vue')
-    expect(src).toContain('page-header')
-    expect(src).toContain('page-title')
-    expect(src).toContain('class="card')
-    expect(src).toContain('btn btn-secondary')
+    expect(src).toContain('availability-header')
+    expect(src).toContain('availability-summary')
+    expect(src).toContain('availability-workspace')
+    expect(src).toContain('role="search"')
+    expect(src).toContain('filterStatus')
+    expect(src).toContain('aria-live="polite"')
     expect(src).toContain('class="tab')
     expect(src).toContain('tab-active')
-    expect(src).toContain('badge badge-warning')
     // Compact single-row toolbar
     expect(src).toContain('monitor-toolbar')
     expect(src).toContain('clearFilters')
@@ -39,9 +40,9 @@ describe('channel-monitor-v2 design system structure', () => {
     // Dense tables scroll internally
     expect(src).toMatch(/max-h-\[min\(52vh/)
     expect(src).toContain('overflow-auto')
-    // Trend view toggle (pulse matrix / line chart) + default platform/group dimension
+    // Retain alternative trends while defaulting to independent model/group rows.
     expect(src).toContain("trendView")
-    expect(src).toContain("'platform_group'")
+    expect(src).toContain(": 'platform_group_model'")
     expect(src).toContain('MonitorTrendChart')
   })
 

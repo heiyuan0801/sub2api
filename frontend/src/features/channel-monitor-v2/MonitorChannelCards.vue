@@ -1,144 +1,133 @@
 <template>
-  <section class="channel-cards" :aria-label="t('channelMonitorV2.cards.aria')">
-    <div v-if="loading && rows.length === 0" class="channel-grid" aria-hidden="true">
-      <div v-for="index in 4" :key="index" class="channel-card animate-pulse">
-        <div class="flex items-start gap-3">
-          <div class="h-10 w-10 shrink-0 rounded-xl bg-gray-100 dark:bg-dark-700"></div>
-          <div class="flex-1 space-y-2 pt-1">
-            <div class="h-4 w-3/4 rounded bg-gray-100 dark:bg-dark-700"></div>
-            <div class="h-3 w-1/3 rounded bg-gray-100 dark:bg-dark-700"></div>
-          </div>
+  <section class="channel-cards" :aria-label="t('channelMonitorV2.cards.aria')" :aria-busy="loading">
+    <div v-if="loading && rows.length === 0" class="model-list" aria-hidden="true">
+      <div v-for="index in 3" :key="index" class="model-card animate-pulse">
+        <div class="model-heading">
+          <div class="h-10 w-10 rounded-xl bg-gray-100 dark:bg-dark-700"></div>
+          <div class="h-4 w-48 max-w-full rounded bg-gray-100 dark:bg-dark-700"></div>
         </div>
-        <div class="mt-6 grid grid-cols-3 gap-2">
-          <div v-for="metric in 3" :key="metric" class="h-[76px] rounded-2xl bg-gray-50 dark:bg-dark-900"></div>
-        </div>
-        <div class="mt-auto h-5 rounded bg-gray-100 dark:bg-dark-700"></div>
+        <div class="skeleton-row"><div class="h-6 w-full rounded bg-gray-100 dark:bg-dark-700"></div></div>
       </div>
     </div>
 
     <EmptyState
       v-else-if="rows.length === 0"
       :title="t('channelMonitorV2.matrix.emptyTitle')"
-      :description="t('channelMonitorV2.empty.description')"
+      :description="emptyDescription || t('channelMonitorV2.empty.description')"
     />
 
-    <div v-else class="space-y-7">
-      <section v-for="group in platformGroups" :key="group.platform" class="space-y-3">
-        <h2 class="flex min-w-0 items-center gap-3 text-lg font-bold text-gray-900 dark:text-gray-100">
-          <span class="provider-icon" :class="providerGradient(group.platform)">
-            <ProviderIcon :provider="group.platform" :size="21" />
-          </span>
-          <span class="truncate">{{ providerLabel(group.platform) }}</span>
-          <span class="platform-count">{{ group.entries.length }}</span>
-        </h2>
+    <div v-else class="model-list">
+      <p v-if="stale" class="stale-note" role="status">{{ t('channelMonitorV2.availability.staleStatus') }} · {{ t('channelMonitorV2.availability.historical') }}</p>
+      <article v-for="model in modelCards" :key="model.key" class="model-card">
+        <header class="model-heading">
+          <span class="provider-icon"><ProviderIcon :provider="model.platform" :size="25" /></span>
+          <div class="min-w-0">
+            <h2 class="model-name">{{ model.name }}<span v-if="model.isImage" class="image-model-badge">{{ t('channelMonitorV2.availability.imageModel') }}</span></h2>
+            <p class="provider-name">{{ providerLabel(model.platform) }}</p>
+          </div>
+          <span class="group-count">{{ model.entries.length }}</span>
+        </header>
 
-        <div class="channel-grid">
-          <article v-for="entry in group.entries" :key="rowKey(entry.row)" class="channel-card">
-            <div class="flex min-w-0 items-start gap-3">
-              <span class="provider-icon shrink-0" :class="providerGradient(entry.row.platform)">
-                <ProviderIcon :provider="entry.row.platform" :size="20" />
-              </span>
-              <div class="min-w-0 flex-1">
-                <h3 class="truncate text-base font-semibold text-gray-900 dark:text-gray-100" :title="cardName(entry.row)">
-                  {{ cardName(entry.row) }}
-                </h3>
-                <div class="mt-1 flex min-w-0 flex-wrap items-center gap-1.5">
-                  <span class="provider-badge" :class="providerBadgeClass(entry.row.platform)">
-                    {{ providerLabel(entry.row.platform) }}
-                  </span>
-                  <span
-                    v-if="cardModel(entry.row)"
-                    class="min-w-0 truncate font-mono text-[10px] text-gray-500 dark:text-gray-400"
-                    :title="cardModel(entry.row)"
-                  >
-                    {{ cardModel(entry.row) }}
-                  </span>
-                </div>
-              </div>
-              <span class="health-badge shrink-0" :class="healthBadgeClass(entry.row.health.overall)">
-                {{ healthLabel(entry.row.health.overall) }}
-              </span>
-            </div>
-
-            <dl class="channel-metrics" :title="t('channelMonitorV2.cards.metricsHint')">
-              <div class="channel-metric">
-                <dt>{{ t('channelMonitorV2.metrics.cacheRate') }}</dt>
-                <dd>{{ hasMetrics(entry.row) ? formatMonitorPercent(entry.row.metrics.cache_rate) : '-' }}</dd>
-              </div>
-              <div class="channel-metric">
-                <dt>{{ t('channelMonitorV2.cards.availability') }}</dt>
-                <dd :class="metricTextClass(entry.row.health.error_rate)">
-                  {{ hasMetrics(entry.row) ? formatMonitorSuccessRateFromError(entry.row.metrics.error_rate) : '-' }}
-                </dd>
-              </div>
-              <div class="channel-metric" :title="latencyDetail(entry.row.metrics.ttft)">
-                <dt>{{ t('channelMonitorV2.metrics.ttftP50') }}</dt>
-                <dd :class="metricTextClass(ttftDisplayState(entry.row.health.ttft, entry.row.metrics.ttft))">
-                  {{ formatMonitorMs(entry.row.metrics.ttft.p50_ms) }}
-                </dd>
-              </div>
-            </dl>
-
-            <div v-if="showThroughput && hasMetrics(entry.row)" class="mt-3 flex flex-wrap justify-between gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-              <span>{{ t('channelMonitorV2.metrics.tpsValue', { value: formatMonitorTokensPerSecond(entry.row.metrics.tpm) }) }}</span>
-              <span>{{ t('channelMonitorV2.metrics.rpmValue', { value: formatMonitorThroughput(entry.row.metrics.rpm) }) }}</span>
-            </div>
-
-            <div class="channel-history">
-              <div class="mb-2 flex flex-wrap items-center justify-between gap-1 text-[10px] font-medium text-gray-400 dark:text-gray-500">
-                <span>{{ t('channelMonitorV2.cards.intervals', { count: bucketStarts.length }) }}</span>
-                <span>{{ bucketLabel }}</span>
-              </div>
-              <div class="timeline-track" :style="{ gridTemplateColumns: `repeat(${Math.max(1, bucketStarts.length)}, minmax(0, 1fr))` }">
-                <span
-                  v-for="slot in entry.slots"
-                  :key="slot.start"
-                  class="timeline-bucket"
-                  :class="slot.bucket ? healthScoreClass(slot.bucket.health, healthMode, slot.bucket.metrics.request_count) : 'health-unknown'"
-                  tabindex="0"
-                  role="img"
-                  :title="slot.tooltip"
-                  :aria-label="slot.tooltip"
-                >
-                  <span class="bucket-tooltip" aria-hidden="true">{{ slot.tooltip }}</span>
-                </span>
-              </div>
-              <div class="mt-1.5 flex justify-between text-[9px] tracking-wider text-gray-400 dark:text-gray-500">
-                <span>{{ t('channelMonitorV2.cards.past') }}</span>
-                <span>{{ t('channelMonitorV2.cards.now') }}</span>
-              </div>
-            </div>
-          </article>
+        <div class="column-headings metric-grid" aria-hidden="true">
+          <span>{{ t('channelMonitorV2.availability.group') }}</span>
+          <span>{{ t('channelMonitorV2.availability.successRate') }}</span>
+          <span>{{ t('channelMonitorV2.availability.trend') }}</span>
+          <span>{{ t('channelMonitorV2.availability.cacheRate') }}</span>
+          <span>{{ t(model.isImage ? 'channelMonitorV2.availability.generationTime' : 'channelMonitorV2.availability.ttft') }}</span>
         </div>
-      </section>
+
+        <section v-for="entry in model.entries" :key="entry.key" class="group-row metric-grid" :aria-label="groupName(entry.row)">
+          <div class="group-cell">
+            <span class="mobile-label">{{ t('channelMonitorV2.availability.group') }}</span>
+            <button
+              type="button"
+              class="group-link"
+              :aria-label="t('channelMonitorV2.availability.inspect', { group: groupName(entry.row) })"
+              @click="emit('inspect', { row: entry.row })"
+            >
+              <span>{{ groupName(entry.row) }}</span>
+              <svg aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" /></svg>
+            </button>
+            <div class="group-actions">
+              <button class="row-action favorite-action" type="button" :class="{ 'is-favorite': isFavorite(entry.row) }" :aria-pressed="isFavorite(entry.row)" :aria-label="t(isFavorite(entry.row) ? 'channelMonitorV2.availability.unfavorite' : 'channelMonitorV2.availability.favorite')" @click="emit('toggle-favorite', entry.row)">{{ isFavorite(entry.row) ? '★' : '☆' }}</button>
+              <button v-if="entry.row.group_id != null && entry.row.group_id > 0" class="row-action filter-action" type="button" :aria-label="t('channelMonitorV2.availability.filterGroup')" @click="emit('select-group', entry.row)"><Icon name="filter" size="xs" /></button>
+            </div>
+          </div>
+
+          <div class="success-cell">
+            <span class="mobile-label">{{ t('channelMonitorV2.availability.successRate') }}</span>
+            <span class="metric-value" :class="healthTextClass(entry.row.health.success_rate ?? entry.row.health.error_rate)">{{ hasMetrics(entry.row) ? successRate(entry.row.metrics) : '—' }}</span>
+            <span class="health-badge" :class="stale ? 'status-stale' : `status-${rowState(entry.row)}`"><span class="status-dot"></span>{{ stale ? t('channelMonitorV2.availability.staleStatus') : healthLabel(rowState(entry.row), hasMetrics(entry.row)) }}</span>
+          </div>
+
+          <div class="history-cell">
+            <span class="mobile-label">{{ t('channelMonitorV2.availability.trend') }}</span>
+            <div
+              :id="`${componentId}-${entry.key}-track`"
+              class="timeline-track"
+              :class="{ 'timeline-active': activeTimeline === entry.key }"
+              :style="{ gridTemplateColumns: `repeat(${Math.max(1, bucketStarts.length)}, minmax(0, 1fr))`, columnGap: `min(2px, calc(20% / ${Math.max(1, bucketStarts.length)}))` }"
+              role="slider"
+              :tabindex="entry.slots.length ? 0 : -1"
+              :aria-label="t('channelMonitorV2.availability.timelineLabel', { model: model.name, group: groupName(entry.row) })"
+              :aria-valuemin="1"
+              :aria-valuemax="Math.max(1, entry.slots.length)"
+              :aria-valuenow="selectedIndex(entry) + 1"
+              :aria-valuetext="entry.slots[selectedIndex(entry)]?.tooltip"
+              :aria-describedby="`${componentId}-timeline-help`"
+              @focus="activateTimeline(entry)"
+              @blur="activeTimeline = null"
+              @mouseleave="leaveTimeline($event)"
+              @keydown="navigateTimeline($event, entry)"
+            >
+              <span
+                v-for="(slot, index) in entry.slots"
+                :key="slot.start"
+                class="timeline-bucket"
+                :class="[`health-${bucketState(slot.bucket, model.isImage)}`, { 'bucket-selected': activeTimeline === entry.key && selectedIndex(entry) === index }]"
+                aria-hidden="true"
+                @mouseenter="activateTimeline(entry, index)"
+                @click="selectBucket($event, entry, index)"
+              ></span>
+              <span v-if="activeTimeline === entry.key" class="bucket-tooltip" role="tooltip">{{ entry.slots[selectedIndex(entry)]?.tooltip }}</span>
+            </div>
+            <div class="timeline-axis"><time>{{ windowStart }}</time><time>{{ windowEnd }}</time></div>
+          </div>
+
+          <div class="cache-cell">
+            <span class="mobile-label">{{ t('channelMonitorV2.availability.cacheRate') }}</span>
+            <span class="metric-value">{{ cacheValue(entry.row.metrics, hasMetrics(entry.row)) }}</span>
+          </div>
+
+          <div class="latency-cell" :title="latencyDetail(model.isImage ? entry.row.metrics.duration : entry.row.metrics.ttft)">
+            <span class="mobile-label">{{ t(model.isImage ? 'channelMonitorV2.availability.generationTime' : 'channelMonitorV2.availability.ttft') }}</span>
+            <template v-if="model.isImage">
+              <div class="generation-primary"><span class="metric-value" :class="healthTextClass(entry.row.health.generation)">{{ hasMetrics(entry.row) && generationValue(entry.row).value != null ? formatMonitorMs(generationValue(entry.row).value) : '—' }}</span><span class="latency-secondary">{{ generationValue(entry.row).percentile }}</span></div>
+              <span class="latency-secondary">{{ t('channelMonitorV2.availability.generationP50', { value: hasMetrics(entry.row) && entry.row.metrics.duration.p50_ms != null ? formatMonitorMs(entry.row.metrics.duration.p50_ms) : '—' }) }}</span>
+              <span class="latency-secondary">{{ t('channelMonitorV2.availability.averageLatency') }} {{ hasMetrics(entry.row) && entry.row.metrics.duration.avg_ms != null ? formatMonitorMs(entry.row.metrics.duration.avg_ms) : '—' }}</span>
+            </template>
+            <template v-else>
+              <span class="metric-value" :class="healthTextClass(ttftDisplayState(entry.row.health.ttft, entry.row.metrics.ttft))">{{ hasMetrics(entry.row) ? formatMonitorMs(entry.row.metrics.ttft.p50_ms) : '—' }}</span>
+              <span class="latency-secondary">{{ t('channelMonitorV2.availability.averageLatency') }} {{ hasMetrics(entry.row) ? formatMonitorMs(entry.row.metrics.duration.avg_ms) : '—' }}</span>
+            </template>
+            <span v-if="showThroughput && hasMetrics(entry.row)" class="latency-secondary"><template v-if="!model.isImage">{{ t('channelMonitorV2.metrics.tpsValue', { value: formatMonitorTokensPerSecond(entry.row.metrics.tpm) }) }} · </template>{{ t('channelMonitorV2.metrics.rpmValue', { value: formatMonitorThroughput(entry.row.metrics.rpm) }) }}</span>
+          </div>
+        </section>
+      </article>
     </div>
+    <p :id="`${componentId}-timeline-help`" class="sr-only">{{ t('channelMonitorV2.availability.timelineHelp') }}</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type {
-  HealthState,
-  LatencyMetric,
-  MonitorCoverage,
-  MonitorMatrixBucket,
-  MonitorMatrixRow,
-} from '@/api/channelMonitorV2'
+import type { HealthState, LatencyMetric, MonitorCoverage, MonitorMatrixBucket, MonitorMatrixRow, MonitorMetric } from '@/api/channelMonitorV2'
+import Icon from '@/components/icons/Icon.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ProviderIcon from '@/components/user/monitor/ProviderIcon.vue'
-import { providerGradient, useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
-import {
-  formatLatencyPrivacy,
-  formatMonitorMs,
-  formatMonitorPercent,
-  formatMonitorSuccessRateFromError,
-  formatMonitorThroughput,
-  formatMonitorTokensPerSecond,
-  healthModeScore,
-  healthScoreClass,
-  ttftDisplayState,
-} from './monitorFormat'
+import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
+import { formatLatencyPrivacy, formatMonitorMs, formatMonitorPercent, formatMonitorSuccessRateFromError, formatMonitorThroughput, formatMonitorTokensPerSecond, ttftDisplayState } from './monitorFormat'
 
 const props = withDefaults(defineProps<{
   rows: MonitorMatrixRow[]
@@ -146,205 +135,246 @@ const props = withDefaults(defineProps<{
   healthMode: 'overall' | 'success' | 'ttft' | 'cache'
   showThroughput?: boolean
   loading?: boolean
-}>(), {
-  showThroughput: true,
-  loading: false,
-})
-
+  emptyDescription?: string
+  favoriteKeys?: string[]
+  stale?: boolean
+}>(), { showThroughput: true, loading: false, emptyDescription: '', favoriteKeys: () => [], stale: false })
+const emit = defineEmits<{
+  'select-group': [row: MonitorMatrixRow]
+  'toggle-favorite': [row: MonitorMatrixRow]
+  inspect: [selection: { row: MonitorMatrixRow; bucketStart?: string; bucketEnd?: string }]
+}>()
 const { t, locale } = useI18n()
-const { providerLabel, providerBadgeClass } = useChannelMonitorFormat()
+const { providerLabel } = useChannelMonitorFormat()
+const componentId = useId()
+const activeTimeline = ref<string | null>(null)
+const timelineIndices = reactive<Record<string, number>>({})
 
-interface TimelineSlot {
-  start: number
-  bucket?: MonitorMatrixBucket
-  tooltip: string
-}
-interface CardEntry {
-  row: MonitorMatrixRow
-  slots: TimelineSlot[]
-}
+interface TimelineSlot { start: number; bucket?: MonitorMatrixBucket; tooltip: string }
+interface CardEntry { key: string; row: MonitorMatrixRow; slots: TimelineSlot[] }
+interface ModelCard { key: string; platform: string; name: string; isImage: boolean; entries: CardEntry[] }
 
 const bucketStep = computed(() => Math.max(60, Number(props.coverage.bucket_seconds) || 60) * 1000)
-const bucketStarts = computed(() => {
+const rangeEnd = computed(() => {
   const start = Date.parse(props.coverage.requested_start)
   const requestedEnd = Date.parse(props.coverage.requested_end || '')
-  const end = Number.isFinite(requestedEnd) && requestedEnd > start
-    ? requestedEnd
-    : Date.parse(props.coverage.data_through)
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return []
+  return Number.isFinite(requestedEnd) && requestedEnd > start ? requestedEnd : Date.parse(props.coverage.data_through)
+})
+const bucketStarts = computed(() => {
+  const start = Date.parse(props.coverage.requested_start)
+  if (!Number.isFinite(start) || !Number.isFinite(rangeEnd.value) || rangeEnd.value <= start) return []
   const starts: number[] = []
-  // Keep the complete selected window, including uncovered intervals, as in V2's matrix.
-  for (let cursor = Math.floor(start / bucketStep.value) * bucketStep.value; cursor < end; cursor += bucketStep.value) {
-    starts.push(cursor)
-  }
+  // Include every interval of the selected window, including gaps and partial coverage.
+  for (let cursor = Math.floor(start / bucketStep.value) * bucketStep.value; cursor < rangeEnd.value; cursor += bucketStep.value) starts.push(cursor)
   return starts
 })
-
-const platformGroups = computed(() => {
-  const groups = new Map<string, { platform: string; entries: CardEntry[] }>()
+const windowStart = computed(() => formatTime(Date.parse(props.coverage.requested_start)))
+const windowEnd = computed(() => formatTime(rangeEnd.value))
+const modelCards = computed(() => {
+  const cards = new Map<string, ModelCard>()
   for (const row of props.rows) {
-    let group = groups.get(row.platform)
-    if (!group) {
-      group = { platform: row.platform, entries: [] }
-      groups.set(row.platform, group)
+    const key = JSON.stringify([row.platform, row.model || ''])
+    let card = cards.get(key)
+    if (!card) {
+      card = { key, platform: row.platform, isImage: Boolean(row.is_image_model), name: row.model === '__other__' ? t('channelMonitorV2.otherModels') : row.model || t('channelMonitorV2.availability.modelFallback'), entries: [] }
+      cards.set(key, card)
     }
+    card.isImage ||= Boolean(row.is_image_model)
     const buckets = new Map((row.buckets || []).map(bucket => [Date.parse(bucket.bucket_start), bucket]))
-    group.entries.push({
+    card.entries.push({
+      key: encodeURIComponent(JSON.stringify([row.platform, row.model || '', row.group_id ?? null])),
       row,
       slots: bucketStarts.value.map(start => {
         const bucket = buckets.get(start)
-        return { start, bucket, tooltip: bucketTooltip(start, bucket) }
+        return { start, bucket, tooltip: bucketTooltip(start, bucket, Boolean(row.is_image_model)) }
       }),
     })
   }
-  return [...groups.values()]
+  return [...cards.values()]
 })
 
-const bucketLabel = computed(() => {
-  const minutes = bucketStep.value / 60000
-  if (minutes < 60) return t('channelMonitorV2.bucket.minutes', { count: minutes })
-  if (minutes < 1440) return t('channelMonitorV2.bucket.hours', { count: minutes / 60 })
-  return t('channelMonitorV2.bucket.days', { count: minutes / 1440 })
-})
-
-function rowKey(row: MonitorMatrixRow) {
-  return [row.platform, row.group_id || 0, row.model || ''].join(':')
-}
 function hasMetrics(row: MonitorMatrixRow) {
-  // Absolute counts are redacted for users; actual buckets remain available.
-  return Boolean(row.buckets?.length)
+  // User payloads redact counts, so presence is authoritative and bucket existence is the legacy fallback.
+  return row.metrics.has_data ?? Boolean(row.buckets?.some(bucket => bucket.metrics.has_data ?? true))
 }
-function modelLabel(model: string) {
-  return model === '__other__' ? t('channelMonitorV2.otherModels') : model
+function bucketHasMetrics(bucket: MonitorMatrixBucket) {
+  return bucket.metrics.has_data ?? true
 }
 function groupName(row: MonitorMatrixRow) {
-  return row.group_name || (row.group_id ? t('channelMonitorV2.cards.nameFallback', { id: row.group_id }) : '')
+  return row.group_name || (row.group_id ? t('channelMonitorV2.availability.groupFallback', { id: row.group_id }) : t('channelMonitorV2.availability.allGroups'))
 }
-function cardName(row: MonitorMatrixRow) {
-  return groupName(row) || (row.model ? modelLabel(row.model) : providerLabel(row.platform))
+function rowState(row: MonitorMatrixRow): HealthState { return hasMetrics(row) ? row.health.overall : 'unknown' }
+function bucketState(bucket?: MonitorMatrixBucket, isImage = false): HealthState {
+  if (!bucket || !bucketHasMetrics(bucket)) return 'unknown'
+  if (props.healthMode === 'success') return bucket.health.success_rate ?? bucket.health.error_rate
+  if (props.healthMode === 'ttft' && isImage) return bucket.health.generation || 'unknown'
+  if (props.healthMode === 'ttft') return ttftDisplayState(bucket.health.ttft, bucket.metrics.ttft) || 'unknown'
+  if (props.healthMode === 'cache') return bucket.metrics.cache_rate_available === false ? 'unknown' : bucket.health.cache || 'unknown'
+  return bucket.health.overall
 }
-function cardModel(row: MonitorMatrixRow) {
-  return groupName(row) && row.model ? modelLabel(row.model) : ''
+function healthLabel(state: HealthState, hasData: boolean) {
+  return t(`channelMonitorV2.availability.${state === 'unknown' ? hasData ? 'insufficient' : 'noData' : state}`)
 }
-function healthLabel(state: HealthState) {
-  return t(`channelMonitorV2.cards.${state === 'healthy' || state === 'warning' || state === 'critical' ? state : 'unknown'}`)
+function healthTextClass(state?: HealthState) { return props.stale ? 'metric-stale' : `metric-${state || 'unknown'}` }
+function isFavorite(row: MonitorMatrixRow) { return props.favoriteKeys.includes(JSON.stringify([row.platform, row.model || '', row.group_id ?? null])) }
+function generationValue(row: MonitorMatrixRow) {
+  if (row.health.generation_latency_ms != null) return { value: row.health.generation_latency_ms, percentile: row.health.generation_percentile?.toUpperCase() || '' }
+  const duration = row.metrics.duration
+  if (duration.p95_ms != null) return { value: duration.p95_ms, percentile: 'P95' }
+  if (duration.p90_ms != null) return { value: duration.p90_ms, percentile: 'P90' }
+  if (duration.p50_ms != null) return { value: duration.p50_ms, percentile: 'P50' }
+  return { value: duration.avg_ms, percentile: duration.avg_ms != null ? 'AVG' : '' }
 }
-function healthBadgeClass(state: HealthState) {
-  if (state === 'healthy') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-  if (state === 'warning') return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-  if (state === 'critical') return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-  return 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-gray-400'
+function successRate(metrics: MonitorMetric) {
+  return metrics.success_rate == null ? formatMonitorSuccessRateFromError(metrics.error_rate) : formatMonitorPercent(metrics.success_rate)
 }
-function metricTextClass(state?: HealthState) {
-  if (state === 'healthy') return 'text-emerald-700 dark:text-emerald-400'
-  if (state === 'warning') return 'text-amber-700 dark:text-amber-400'
-  if (state === 'critical') return 'text-red-600 dark:text-red-400'
-  return 'text-gray-900 dark:text-gray-100'
+function cacheValue(metrics: MonitorMetric, hasData: boolean) {
+  return !hasData || metrics.cache_rate_available === false ? '—' : formatMonitorPercent(metrics.cache_rate)
 }
 function latencyDetail(metric: LatencyMetric) {
-  return formatLatencyPrivacy(metric.p50_ms, metric.p90_ms, metric.avg_ms, metric.p95_ms)
+  const detail = formatLatencyPrivacy(metric.p50_ms, metric.p90_ms, metric.avg_ms, metric.p95_ms)
+  return detail === '-' ? '—' : detail
 }
 function formatTime(timestamp: number) {
-  return new Intl.DateTimeFormat(locale.value || undefined, {
-    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
-  }).format(new Date(timestamp))
+  if (!Number.isFinite(timestamp)) return '—'
+  return new Intl.DateTimeFormat(locale.value || undefined, { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp))
 }
-function bucketTooltip(start: number, bucket?: MonitorMatrixBucket) {
-  const time = `${formatTime(start)} – ${formatTime(start + bucketStep.value)}`
-  if (!bucket) return t('channelMonitorV2.cards.noDataAt', { time })
-  const score = healthModeScore(bucket.health, props.healthMode)
+function bucketTooltip(start: number, bucket?: MonitorMatrixBucket, isImage = false) {
+  const time = `${formatTime(Math.max(start, Date.parse(props.coverage.requested_start)))} – ${formatTime(Math.min(start + bucketStep.value, rangeEnd.value))}`
+  if (!bucket || !bucketHasMetrics(bucket)) return t('channelMonitorV2.cards.noDataAt', { time })
   const lines = [
     time,
-    t('channelMonitorV2.matrix.scoreLine', { score: score == null ? '—' : Math.round(score) }),
-    t('channelMonitorV2.metrics.successRateValue', { value: formatMonitorSuccessRateFromError(bucket.metrics.error_rate) }),
+    healthLabel(bucketState(bucket, isImage), true),
+    t('channelMonitorV2.metrics.successRateValue', { value: successRate(bucket.metrics) }),
+    t('channelMonitorV2.metrics.cacheRateValue', { value: cacheValue(bucket.metrics, true) }),
     t('channelMonitorV2.metrics.ttftValue', { value: latencyDetail(bucket.metrics.ttft) }),
-    t('channelMonitorV2.metrics.cacheRateValue', { value: formatMonitorPercent(bucket.metrics.cache_rate) }),
-    t('channelMonitorV2.metrics.errorRateValue', { value: formatMonitorPercent(bucket.metrics.error_rate) }),
+    t('channelMonitorV2.metrics.durationValue', { value: latencyDetail(bucket.metrics.duration) }),
   ]
   if (props.showThroughput) {
-    lines.push(
-      t('channelMonitorV2.metrics.tpsValue', { value: formatMonitorTokensPerSecond(bucket.metrics.tpm) }),
-      t('channelMonitorV2.metrics.rpmValue', { value: formatMonitorThroughput(bucket.metrics.rpm) }),
-    )
+    if (!isImage) lines.push(t('channelMonitorV2.metrics.tpsValue', { value: formatMonitorTokensPerSecond(bucket.metrics.tpm) }))
+    lines.push(t('channelMonitorV2.metrics.rpmValue', { value: formatMonitorThroughput(bucket.metrics.rpm) }))
   }
-  lines.push(t('channelMonitorV2.metrics.durationValue', { value: latencyDetail(bucket.metrics.duration) }))
+  if (props.stale) lines.unshift(t('channelMonitorV2.availability.staleStatus'), t('channelMonitorV2.availability.historical'))
   return lines.join('\n')
+}
+function selectedIndex(entry: CardEntry) { return Math.min(Math.max(0, timelineIndices[entry.key] ?? entry.slots.length - 1), Math.max(0, entry.slots.length - 1)) }
+function activateTimeline(entry: CardEntry, index = selectedIndex(entry)) {
+  timelineIndices[entry.key] = index
+  activeTimeline.value = entry.key
+}
+function leaveTimeline(event: MouseEvent) { if (document.activeElement !== event.currentTarget) activeTimeline.value = null }
+function selectBucket(event: MouseEvent, entry: CardEntry, index: number) {
+  activateTimeline(entry, index)
+  ;(event.currentTarget as HTMLElement).parentElement?.focus()
+  inspectBucket(entry, index)
+}
+function inspectBucket(entry: CardEntry, index: number) {
+  const slot = entry.slots[index]
+  if (!slot) return
+  emit('inspect', { row: entry.row, bucketStart: new Date(Math.max(slot.start, Date.parse(props.coverage.requested_start))).toISOString(), bucketEnd: new Date(Math.min(slot.start + bucketStep.value, rangeEnd.value)).toISOString() })
+}
+function navigateTimeline(event: KeyboardEvent, entry: CardEntry) {
+  const current = selectedIndex(entry)
+  if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); inspectBucket(entry, current); return }
+  const next = event.key === 'ArrowRight' ? current + 1 : event.key === 'ArrowLeft' ? current - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? entry.slots.length - 1 : null
+  if (event.key === 'Escape') { activeTimeline.value = null; event.preventDefault(); return }
+  if (next == null) return
+  event.preventDefault()
+  activateTimeline(entry, Math.min(Math.max(0, next), Math.max(0, entry.slots.length - 1)))
 }
 </script>
 
 <style scoped>
-.channel-cards { container-type: inline-size; }
-.channel-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
-.channel-card {
-  display: flex;
-  min-width: 0;
-  min-height: 280px;
-  flex-direction: column;
-  border: 1px solid #e5e5e5;
-  border-radius: 24px;
-  background: #fff;
-  padding: 1.25rem;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 3%);
-}
-.provider-icon {
-  display: inline-grid;
-  width: 2.5rem;
-  height: 2.5rem;
-  flex: none;
-  place-items: center;
-  border-radius: 0.875rem;
-  color: #404040;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 4%);
-}
-.platform-count {
-  display: inline-grid;
-  min-width: 1.75rem;
-  height: 1.5rem;
-  flex: none;
-  place-items: center;
-  border: 1px solid #e5e5e5;
-  border-radius: 9999px;
-  background: #fff;
-  padding: 0 0.375rem;
-  color: #737373;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.provider-badge { border-radius: 5px; padding: 2px 6px; font-size: 10px; font-weight: 500; }
-.health-badge { border-radius: 9999px; padding: 4px 9px; font-size: 11px; font-weight: 600; }
-.channel-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; margin-top: 1.5rem; }
-.channel-metric { min-width: 0; border: 1px solid #e5e5e5; border-radius: 16px; background: #fafafa; padding: 0.75rem; }
-.channel-metric dt { overflow: hidden; color: #a3a3a3; font-size: 10px; line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
-.channel-metric dd { margin-top: 0.5rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: clamp(0.875rem, 1.25vw, 1.125rem); font-weight: 700; font-variant-numeric: tabular-nums; }
-.channel-history { margin-top: auto; padding-top: 1.5rem; }
-.timeline-track { position: relative; display: grid; height: 20px; gap: 3px; }
-.timeline-bucket { min-width: 0; border-radius: 3px; outline-offset: 3px; }
-.timeline-bucket:focus-visible { z-index: 10; outline: 2px solid #737373; }
-.bucket-tooltip { display: none; position: absolute; z-index: 30; bottom: calc(100% + 10px); right: 0; left: 0; border-radius: 10px; background: #171717; padding: 10px 12px; color: #fff; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; white-space: pre-line; pointer-events: none; box-shadow: 0 6px 20px rgb(0 0 0 / 15%); }
-.timeline-bucket:focus-visible .bucket-tooltip { display: block; }
-.health-score10 { background: #16a34a; }
-.health-score9 { background: #22c55e; }
-.health-score8 { background: #4ade80; }
-.health-score7 { background: #a3e635; }
-.health-score6 { background: #facc15; }
-.health-score5 { background: #fbbf24; }
-.health-score4 { background: #f59e0b; }
-.health-score3 { background: #f97316; }
-.health-score2 { background: #fb7185; }
-.health-score1 { background: #f87171; }
-.health-score0 { background: rgb(239 67 67); }
-.health-healthy { background: #22c55e; }
-.health-warning { background: #f59e0b; }
-.health-critical { background: #ef4444; }
-.health-unknown { background: #d4d4d4; }
-.dark .channel-card { border-color: #404040; background: #262626; box-shadow: 0 8px 24px rgb(0 0 0 / 10%); }
-.dark .provider-icon { color: #e5e5e5; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%); }
-.dark .platform-count { border-color: #404040; background: #262626; color: #a3a3a3; }
-.dark .channel-metric { border-color: #404040; background: #202020; }
-.dark .channel-metric dt { color: #a3a3a3; }
+.channel-cards { min-width: 0; container-type: inline-size; }
+.model-list { display: grid; min-width: 0; gap: 1rem; }
+.model-card { min-width: 0; border: 1px solid #e9e9e9; border-radius: 14px; background: #fff; box-shadow: 0 4px 14px rgb(0 0 0 / 3%); }
+.model-heading { display: flex; min-width: 0; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; }
+.provider-icon { display: inline-grid; width: 2.5rem; height: 2.5rem; flex: none; place-items: center; border: 1px solid #e5e5e5; border-radius: 12px; color: #171717; }
+.model-name { overflow-wrap: anywhere; color: #171717; font-size: 0.875rem; font-weight: 650; line-height: 1.5; }
+.image-model-badge { display: inline-block; margin-inline-start: 0.5rem; border: 1px solid #e5e5e5; border-radius: 5px; padding: 0.0625rem 0.375rem; color: #737373; font-size: 0.625rem; font-weight: 500; vertical-align: middle; white-space: nowrap; }
+.provider-name { margin-top: 0.125rem; color: #737373; font-size: 0.75rem; }
+.group-count { margin-left: auto; flex: none; border: 1px solid #e5e5e5; border-radius: 999px; padding: 0.125rem 0.5rem; color: #737373; font-size: 0.6875rem; }
+.metric-grid { display: grid; min-width: 0; grid-template-columns: minmax(90px, 1fr) 92px minmax(180px, 4fr) 86px minmax(120px, 1fr); column-gap: 1.25rem; align-items: center; padding-right: 1.25rem; padding-left: 1.25rem; }
+.column-headings { border-top: 1px solid #ececec; padding-top: 0.5rem; padding-bottom: 0.5rem; color: #737373; font-size: 0.75rem; }
+.group-row { border-top: 1px solid #ececec; padding-top: 1rem; padding-bottom: 1rem; }
+.group-row > div { min-width: 0; }
+.group-link { display: inline-flex; max-width: 100%; align-items: center; gap: 0.5rem; border-radius: 4px; color: #0284c7; text-align: left; font-size: 0.8125rem; line-height: 1.5; }
+.group-link > span, .group-actions { display: flex; gap: 0.25rem; margin-top: 0.375rem; }
+.row-action { display: inline-grid; height: 1.625rem; width: 1.625rem; flex: none; place-items: center; border-radius: 5px; color: #737373; font-size: 1.125rem; }
+.row-action:hover { background: #f5f5f5; color: #171717; }
+.row-action:focus-visible { outline: 2px solid #737373; outline-offset: 2px; }
+.row-action.is-favorite { color: #d97706; }
+.stale-note { color: #737373; font-size: 0.75rem; }
+.group-name { overflow-wrap: anywhere; }
+.group-link svg { flex: none; color: #737373; }
+.group-link:hover { color: #0369a1; text-decoration: underline; }
+.group-link:focus-visible { outline: 2px solid #737373; outline-offset: 4px; }
+.group-name { color: #525252; font-size: 0.8125rem; }
+.success-cell, .cache-cell, .latency-cell { display: flex; align-items: flex-start; flex-direction: column; gap: 0.375rem; }
+.metric-value { color: #171717; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.success-cell .metric-value { font-size: 1rem; }
+.metric-stale { color: #737373; }
+.metric-healthy { color: #059669; }
+.metric-warning { color: #d97706; }
+.metric-critical { color: #e11d48; }
+.health-badge { display: inline-flex; max-width: 100%; align-items: center; gap: 0.375rem; border-radius: 999px; padding: 0.1875rem 0.5rem; background: #f5f5f5; color: #737373; font-size: 0.6875rem; line-height: 1.5; }
+.status-dot { width: 0.3125rem; height: 0.3125rem; flex: none; border-radius: 50%; background: currentColor; }
+.status-healthy { background: #ecfdf5; color: #059669; }
+.status-warning { background: #fffbeb; color: #d97706; }
+.status-critical { background: #fff1f2; color: #e11d48; }
+.generation-primary { display: flex; align-items: baseline; gap: 0.375rem; min-width: 0; flex-wrap: wrap; }
+.latency-secondary { color: #737373; font-size: 0.625rem; line-height: 1.6; overflow-wrap: anywhere; }
+.timeline-track { position: relative; display: grid; height: 24px; gap: 2px; outline-offset: 4px; }
+.timeline-track:focus-visible { border-radius: 2px; outline: 2px solid #737373; }
+.timeline-bucket { min-width: 0; border-radius: 1px; }
+.bucket-selected { box-shadow: inset 0 0 0 2px rgb(0 0 0 / 35%); }
+.health-healthy { background: #00bd83; }
+.health-warning { background: #ff9900; }
+.health-critical { background: #fa2d44; }
+.health-unknown { background: #e5e5e5; }
+.timeline-axis { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem; color: #737373; font-size: 0.5625rem; font-variant-numeric: tabular-nums; }
+.timeline-axis time:last-child { text-align: right; }
+.bucket-tooltip { position: absolute; z-index: 40; right: 0; bottom: calc(100% + 10px); width: min(100%, 26rem); min-width: min(16rem, 100%); border: 1px solid #404040; border-radius: 10px; background: #171717; padding: 0.75rem; color: #fff; font-size: 0.6875rem; line-height: 1.75; overflow-wrap: anywhere; white-space: pre-line; pointer-events: none; box-shadow: 0 6px 20px rgb(0 0 0 / 15%); }
+.mobile-label { display: none; }
+.skeleton-row { border-top: 1px solid #ececec; padding: 1.5rem 1.25rem; }
+.dark .model-card { border-color: #404040; background: #262626; }
+.dark .image-model-badge { border-color: #525252; color: #a3a3a3; }
+.dark .provider-icon { border-color: #525252; color: #e5e5e5; }
+.dark .model-name, .dark .metric-value { color: #e5e5e5; }
+.dark .provider-name, .dark .column-headings, .dark .group-name, .dark .latency-secondary, .dark .timeline-axis { color: #a3a3a3; }
+.dark .group-count { border-color: #525252; color: #a3a3a3; }
+.dark .group-row, .dark .column-headings, .dark .skeleton-row { border-color: #404040; }
+.dark .metric-stale { color: #a3a3a3; }
+.dark .row-action:hover { background: #404040; color: #f5f5f5; }
+.dark .stale-note { color: #a3a3a3; }
+.dark .metric-healthy { color: #34d399; }
+.dark .metric-warning { color: #fbbf24; }
+.dark .metric-critical { color: #fb7185; }
+.dark .health-badge { background: #404040; color: #a3a3a3; }
+.dark .status-healthy { background: rgb(16 185 129 / 15%); color: #34d399; }
+.dark .status-warning { background: rgb(245 158 11 / 15%); color: #fbbf24; }
+.dark .status-critical { background: rgb(244 63 94 / 15%); color: #fb7185; }
 .dark .health-unknown { background: #525252; }
-@container (min-width: 640px) { .channel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@container (min-width: 1040px) { .channel-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1600px) { @container (min-width: 1280px) { .channel-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } } }
-@media (max-width: 380px) { .channel-card { padding: 1rem; } .channel-metric { padding: 0.625rem; } }
+.dark .bucket-selected { box-shadow: inset 0 0 0 2px rgb(255 255 255 / 80%); }
+@container (max-width: 959px) {
+  .metric-grid { grid-template-columns: minmax(90px, 1fr) 90px minmax(170px, 3fr) 80px minmax(95px, 1fr); column-gap: 0.75rem; }
+}
+@container (max-width: 759px) {
+  .column-headings { display: none; }
+  .group-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1rem 0.75rem; }
+  .group-cell { grid-column: 1 / -1; }
+  .history-cell { grid-column: 1 / -1; grid-row: 3; }
+  .success-cell { grid-column: 1; grid-row: 2; }
+  .cache-cell { grid-column: 2; grid-row: 2; }
+  .latency-cell { grid-column: 3; grid-row: 2; }
+  .mobile-label { display: block; margin-bottom: 0.125rem; color: #737373; font-size: 0.625rem; line-height: 1.5; }
+  .group-cell > .mobile-label { display: none; }
+  .model-heading, .metric-grid { padding-right: 1rem; padding-left: 1rem; }
+  .dark .mobile-label { color: #a3a3a3; }
+}
+@container (max-width: 359px) {
+  .group-row { gap: 0.875rem 0.5rem; }
+  .success-cell .metric-value { font-size: 0.875rem; }
+  .metric-value { font-size: 0.75rem; }
+}
 </style>

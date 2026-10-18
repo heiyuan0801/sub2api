@@ -145,6 +145,7 @@ func (r *channelMonitorV2Repository) GetDimensions(ctx context.Context, filter s
 	platformCounts := map[string]int64{}
 	type modelValue struct {
 		platform string
+		model    string
 		count    int64
 	}
 	// Model dimensions are platform-scoped; identical names can represent
@@ -163,7 +164,7 @@ func (r *channelMonitorV2Repository) GetDimensions(ctx context.Context, filter s
 				continue
 			}
 			for _, model := range p.Models {
-				modelCounts[platform+"\x00"+model] = modelValue{platform: platform, count: 0}
+				modelCounts[platform+"\x00"+model] = modelValue{platform: platform, model: model, count: 0}
 			}
 		}
 	}
@@ -185,6 +186,7 @@ func (r *channelMonitorV2Repository) GetDimensions(ctx context.Context, filter s
 		modelKey := platform + "\x00" + displayModel
 		currentModel := modelCounts[modelKey]
 		currentModel.count += count
+		currentModel.model = displayModel
 		if currentModel.platform == "" {
 			currentModel.platform = platform
 		}
@@ -205,8 +207,8 @@ func (r *channelMonitorV2Repository) GetDimensions(ctx context.Context, filter s
 	for value, count := range platformCounts {
 		result.Platforms = append(result.Platforms, service.ChannelMonitorV2Dimension{Value: value, Label: value, RequestCount: count})
 	}
-	for value, meta := range modelCounts {
-		result.Models = append(result.Models, service.ChannelMonitorV2Dimension{Value: value, Label: channelMonitorV2ModelLabel(value), Platform: meta.platform, RequestCount: meta.count})
+	for _, meta := range modelCounts {
+		result.Models = append(result.Models, service.ChannelMonitorV2Dimension{Value: meta.model, Label: channelMonitorV2ModelLabel(meta.model), Platform: meta.platform, RequestCount: meta.count})
 	}
 	for id, value := range groupCounts {
 		result.Groups = append(result.Groups, service.ChannelMonitorV2GroupDimension{ID: id, Name: value.name, Platform: value.platform, RequestCount: value.count})
@@ -344,11 +346,18 @@ func (r *channelMonitorV2Repository) GetModels(ctx context.Context, filter servi
 	}
 	items := make([]service.ChannelMonitorV2ModelRow, 0, len(accs))
 	minutes := channelMonitorV2CoveredMinutes(filter, *coverage)
+	// A model view may aggregate several groups; only a single scoped group can
+	// safely apply a group-specific generation budget to that aggregate.
+	var healthGroupID int64
+	if groups := configuredChannelMonitorV2GroupIDs(filter, cfg); len(groups) == 1 {
+		healthGroupID = groups[0]
+	}
 	for key, acc := range accs {
 		parts := strings.SplitN(key, "\x00", 2)
 		metrics := acc.metric(minutes, admin)
 		applyIgnoredErrors(&metrics, ignoredByPM[key])
-		items = append(items, service.ChannelMonitorV2ModelRow{Platform: parts[0], Model: parts[1], Metrics: metrics, Health: service.ChannelMonitorV2HealthForWithThresholds(metrics, cfg.HealthThresholds)})
+		healthContext := service.ChannelMonitorV2HealthContext{Platform: parts[0], Model: parts[1], GroupID: healthGroupID}
+		items = append(items, service.ChannelMonitorV2ModelRow{Platform: parts[0], Model: parts[1], IsImageModel: service.ChannelMonitorV2IsImageModel(parts[1]), Metrics: metrics, Health: service.ChannelMonitorV2HealthForContext(metrics, cfg.HealthThresholds, healthContext)})
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].Metrics.RequestCount > items[j].Metrics.RequestCount })
 	return &service.ChannelMonitorV2List[service.ChannelMonitorV2ModelRow]{Coverage: *coverage, Items: items}, nil
@@ -458,7 +467,8 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 		}
 		metrics := acc.total.metric(minutes, admin)
 		applyIgnoredErrors(&metrics, ignoredByDim[key])
-		row := service.ChannelMonitorV2MatrixRow{Platform: key.platform, GroupName: acc.groupName, Model: key.model, Metrics: metrics, Health: service.ChannelMonitorV2HealthForWithThresholds(metrics, cfg.HealthThresholds), Buckets: []service.ChannelMonitorV2TrendPoint{}}
+		healthContext := service.ChannelMonitorV2HealthContext{Platform: key.platform, Model: key.model, GroupID: key.groupID}
+		row := service.ChannelMonitorV2MatrixRow{Platform: key.platform, GroupName: acc.groupName, Model: key.model, IsImageModel: service.ChannelMonitorV2IsImageModel(key.model), Metrics: metrics, Health: service.ChannelMonitorV2HealthForContext(metrics, cfg.HealthThresholds, healthContext), Buckets: []service.ChannelMonitorV2TrendPoint{}}
 		if key.groupID > 0 {
 			groupID := key.groupID
 			row.GroupID = &groupID
@@ -475,7 +485,7 @@ func (r *channelMonitorV2Repository) GetMatrix(ctx context.Context, filter servi
 			}
 			bucketMetrics := acc.buckets[bucketKey].metric(filter.Bucket.Minutes(), admin)
 			applyIgnoredErrors(&bucketMetrics, ignoredByDimBucket[key][bucketKey])
-			row.Buckets = append(row.Buckets, service.ChannelMonitorV2TrendPoint{BucketStart: bucketStart, Metrics: bucketMetrics, Health: service.ChannelMonitorV2HealthForWithThresholds(bucketMetrics, cfg.HealthThresholds)})
+			row.Buckets = append(row.Buckets, service.ChannelMonitorV2TrendPoint{BucketStart: bucketStart, Metrics: bucketMetrics, Health: service.ChannelMonitorV2HealthForContext(bucketMetrics, cfg.HealthThresholds, healthContext)})
 		}
 		result.Items = append(result.Items, row)
 	}
@@ -1196,11 +1206,18 @@ func channelMonitorV2EnabledPlatforms(cfg service.ChannelMonitorV2Config) []stri
 // Semantics (parallel to empty group_ids = all groups):
 //   - platform not in config / disabled → keep raw model (still collected)
 //   - models list empty → show the real model name (no collapsing)
+//   - dedicated image-generation families → keep identity for per-model health
 //   - models list non-empty → selected keep identity; everything else → __other__
 func channelMonitorV2DisplayModel(cfg service.ChannelMonitorV2Config, platform, model string) string {
 	model = strings.TrimSpace(model)
 	if model == "" {
 		return service.ChannelMonitorV2OtherModel
+	}
+	// The list controls presentation buckets, not access. Preserve dedicated
+	// image-model names while SQL platform/group scope and explicit model filters
+	// continue to apply normally.
+	if service.ChannelMonitorV2IsImageModel(model) {
+		return model
 	}
 	for _, p := range cfg.Platforms {
 		if p.Platform != platform {
@@ -1347,7 +1364,7 @@ func (a *metricAccumulator) metric(minutes float64, admin bool) service.ChannelM
 	if minutes <= 0 {
 		minutes = 1
 	}
-	m := service.ChannelMonitorV2Metric{SuccessRequests: a.success, ErrorRequests: a.errors, RequestCount: requests, InputTokens: a.input, OutputTokens: a.output, CacheCreationTokens: a.cacheCreation, CacheReadTokens: a.cacheRead, TokenCount: tokens, RPM: float64(requests) / minutes, TPM: float64(tokens) / minutes, CacheRateNumerator: a.cacheRead, CacheRateDenominator: denom, TTFT: latencyMetric(a.ttftSum, a.ttftCount, a.hist["ttft"]), Duration: latencyMetric(a.durationSum, a.durationCount, a.hist["duration"])}
+	m := service.ChannelMonitorV2Metric{HasData: requests > 0, CacheRateAvailable: denom > 0, SuccessRequests: a.success, ErrorRequests: a.errors, RequestCount: requests, InputTokens: a.input, OutputTokens: a.output, CacheCreationTokens: a.cacheCreation, CacheReadTokens: a.cacheRead, TokenCount: tokens, RPM: float64(requests) / minutes, TPM: float64(tokens) / minutes, CacheRateNumerator: a.cacheRead, CacheRateDenominator: denom, TTFT: latencyMetric(a.ttftSum, a.ttftCount, a.hist["ttft"]), Duration: latencyMetric(a.durationSum, a.durationCount, a.hist["duration"])}
 	if requests > 0 {
 		m.ErrorRate = float64(a.errors) / float64(requests)
 		m.SuccessRate = float64(a.success) / float64(requests)

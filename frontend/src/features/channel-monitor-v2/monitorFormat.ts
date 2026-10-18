@@ -113,7 +113,14 @@ export function healthScoreClass(
   mode: HealthDisplayMode,
   requestCount: number,
 ): string {
+  // A true success state is independent of the health error score, which may
+  // exclude operator-ignored categories.
+  if (mode === 'success' && health.success_rate) return healthStateClass(health.success_rate)
   const score = healthModeScore(health, mode)
+  // A critical signal can floor overall health at warning even when its
+  // weighted score remains high. Keep the rendered state consistent.
+  if (mode === 'overall' && score != null &&
+    ((health.overall === 'warning' && score >= 80) || (health.overall === 'critical' && score >= 50))) return healthStateClass(health.overall)
   // Sync-only traffic has no first-token samples. Never paint TTFT as red/empty-fail.
   if (mode === 'ttft' && score == null) return 'health-unknown'
   if (score == null) {

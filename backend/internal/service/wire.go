@@ -558,8 +558,12 @@ func ProvideOpsAlertEvaluatorService(
 	redisClient *redis.Client,
 	cfg *config.Config,
 	proxyRepo ProxyRepository,
+	channelMonitorRepo ChannelMonitorV2Repository,
+	settingService *SettingService,
 ) *OpsAlertEvaluatorService {
 	svc := NewOpsAlertEvaluatorService(opsService, opsRepo, emailService, redisClient, cfg, proxyRepo)
+	svc.channelMonitorRepo = channelMonitorRepo
+	svc.channelMonitorSettings = settingService
 	svc.Start()
 	return svc
 }

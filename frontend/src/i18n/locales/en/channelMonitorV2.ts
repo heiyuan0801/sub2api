@@ -22,6 +22,104 @@ export default {
     otherModels: 'Other models',
     ignored: 'Ignored',
     currentUser: 'Current user',
+    availability: {
+      staleStatus: 'Stale data',
+      title: 'Model availability',
+      description: 'Based on actual API calls. Each group is measured independently for the same model.',
+      realCalls: 'Actual calls', passive: 'V2 passive monitoring', disabled: 'Passive monitoring is disabled',
+      disabledHint: 'An administrator can enable V2 aggregation in monitoring settings.', settings: 'Monitoring settings',
+      range24h: 'Last 24 hours', range7d: 'Last 7 days', total: 'Model groups',
+      searchPlaceholder: 'Search models', search: 'Search', allStatuses: 'All statuses', filterStatus: 'Filter by status',
+      pendingSummary: 'No samples: {empty} · Insufficient samples: {insufficient}', unknownLegend: 'No / insufficient samples',
+      emptyDescription: 'No matching model groups. Adjust the search, group, status, or time range.',
+      retry: 'Retry', stale: 'Refresh failed. Showing the last successfully loaded data.',
+      modelFallback: 'All models', groupFallback: 'Group {id}', allGroups: 'All groups', group: 'Group',
+      successRate: 'Success rate', trend: 'Availability trend', cacheRate: 'Cache rate', ttft: 'First token P50',
+      averageLatency: 'Average latency', healthy: 'Normal', warning: 'Fluctuating', critical: 'Abnormal',
+      insufficient: 'Insufficient samples', noData: 'No samples', selectGroup: 'View group {group}',
+      timelineHelp: 'Use arrow keys to move between intervals, Home/End to jump, and Esc to close details',
+      timelineLabel: 'Availability for {model} · {group}',
+      imageModel: 'Image', generationTime: 'Generation time', generationP50: 'Generation P50 {value}',
+      modelType: 'Model type', allModelTypes: 'All models', textModels: 'Text models', imageModels: 'Image models',
+      favorite: "Favorite this group",
+      unfavorite: "Remove favorite",
+      inspect: "Inspect {group}",
+      filterGroup: "Filter this group",
+      historical: "Timeline retains historical states",
+    },
+    freshness: {
+      "title": "Monitoring data is stale",
+      "description": "Aggregation has not advanced for about {minutes} minutes. Numbers and timelines show historical data; current health is undetermined."
+    },
+    preferences: {
+      "sortLabel": "Sort by",
+      "sort": {
+        "health": "Unhealthy first",
+        "success": "Lowest success rate",
+        "latency": "Highest latency",
+        "name": "Model name"
+      },
+      "favoritesOnly": "Favorites only",
+      "alerts": "Alert settings"
+    },
+    incident: {
+      "title": "Monitoring details",
+      "period": "Time window",
+      "failures": "Failure categories",
+      "noFailures": "No failures in this window",
+      "adminSummary": "Admin error summary",
+      "share": "Failure share",
+      "ignored": "Excluded from health",
+      "openLogs": "Open usage logs",
+      "logsHint": "Logs open by date. You can then filter the model and group.",
+      "retry": "Reload",
+      "close": "Close",
+      "p90": "P90",
+      "p95": "P95",
+      "requestCount": "Requests",
+      "errorCount": "Failures",
+      "windowNoData": "No calls in this window",
+      "errorSummaryEmpty": "No detailed error summary",
+      "healthReasons": "Health explanation"
+    },
+    healthReasons: {
+      "success_rate_warning": "Actual success rate is below the warning threshold.",
+      "success_rate_critical": "Actual success rate is below the critical threshold.",
+      "ignored_errors_excluded": "Ignored errors still affect actual success rate but are excluded from upstream health scoring.",
+      "error_rate_warning": "Counted error rate reached the warning threshold.",
+      "error_rate_critical": "Counted error rate reached the critical threshold.",
+      "ttft_warning": "First-token latency reached the warning threshold.",
+      "ttft_critical": "First-token latency reached the critical threshold.",
+      "cache_warning": "Cache rate is below the warning threshold.",
+      "cache_critical": "Cache rate is below the critical threshold.",
+      "generation_warning": "Image generation latency reached the warning threshold.",
+      "generation_critical": "Image generation latency reached the critical threshold.",
+      "critical_signal_floor": "A critical signal keeps overall health at warning or worse."
+    },
+    alerts: {
+      "group": "V2 model-group monitoring",
+      "metrics": {
+        "successRate": "V2 call success rate",
+        "cacheRate": "V2 cache rate",
+        "ttft": "V2 first-token P50",
+        "generation": "V2 image generation P95"
+      },
+      "descriptions": {
+        "successRate": "Actual success rate for one platform, model and group, including ignored errors.",
+        "cacheRate": "Cache hit rate for one model group; unavailable cache data is skipped.",
+        "ttft": "First-token P50 for one model group; missing streaming data is skipped.",
+        "generation": "Image generation P95, falling back to P90 then P50. Missing latency samples are skipped."
+      },
+      "selectPlatform": "Select platform",
+      "minimumSample": "Minimum call samples",
+      "consecutive": "Consecutive breach observations",
+      "recovery": "Consecutive recovery observations",
+      "notifyRecovery": "Send recovery notifications",
+      "hint": "Each new aggregation watermark is observed once. Both the observation count and sustained duration must be met. Missing samples or stale data neither trigger an alert nor confirm recovery. Existing operations email settings apply; new V2 rules are disabled by default.",
+      "scopeRequired": "V2 alerts require an exact platform, model and group.",
+      "invalidCounts": "Minimum samples must be 1–1000000; breach and recovery observations must be 1–60.",
+      "invalidThreshold": "Thresholds must be nonnegative; success and cache rates cannot exceed 100%."
+    },
     cards: {
       aria: 'Channel status cards',
       healthy: 'Healthy',
@@ -49,7 +147,7 @@ export default {
       label: 'Group by', platform: 'Platform', platformGroup: 'Platform / Group', platformModel: 'Platform / Model', platformGroupModel: 'Platform / Group / Model'
     },
     trendView: { label: 'Trend view', pulse: 'Pulse matrix', line: 'Line chart' },
-    healthMode: { label: 'Health display', overall: 'Overall', success: 'Error rate', ttft: 'First token', cache: 'Cache rate' },
+    healthMode: { label: 'Health display', overall: 'Overall', success: 'Actual success', ttft: 'First token / generation', cache: 'Cache rate' },
     tabs: { aria: 'Detail dimension', models: 'Models', errors: 'Error reasons', users: 'User ranking' },
     metrics: {
       rpm: 'RPM',
@@ -118,8 +216,8 @@ export default {
       addPlatform: 'Add platform',
       platformsTitle: 'Platforms and models',
       platformsHint:
-        'Leave empty = show all real model names; when filled, only listed models get their own rows and the rest roll into “Other”',
-      modelsPlaceholder: 'Empty = all real models; or list popular models (rest → Other)',
+        'Leave empty to show all real model names. With a list, unlisted text models roll into “Other”; image models always stay separate.',
+      modelsPlaceholder: 'Empty = all real models; or list text models (image models stay separate)',
       badgeAllModels: 'All models',
       badgeOther: '+ Other',
       groupsTitle: 'Monitored groups',
@@ -130,10 +228,19 @@ export default {
       errorsHint:
         'Checked “ignore” categories are excluded from error rate and health score, but still appear greyed in the error breakdown. Unmatched errors roll into “Other”.',
       ignoredSummary: 'Ignored {ignored} categories · counted in error rate {counted} categories',
+      generationOverrides: "Custom image latency limits",
+      generationHint: "Evaluate P95, then P90, then P50. Match an exact platform, model or group. More selectors take priority; equal specificity favors group, then model, then platform. Missing first-token or cache data is neutral.",
+      addOverride: "Add custom limit",
+      removeOverride: "Remove rule",
+      anyPlatform: "All platforms",
+      exactModel: "Exact model name; optional",
+      invalidGeneration: "Image limits must be positive, with critical greater than warning. Each rule needs a platform, model or group; duplicate selectors are not allowed.",
       healthTitle: 'Health thresholds',
       healthHint:
         'Controls user-facing color bands and overall score. Defaults are tolerant so small error rates or low cache do not immediately show as unhealthy.',
       fields: {
+        warningGeneration: "Image latency warning ms",
+        criticalGeneration: "Image latency critical ms",
         minimumSample: 'Minimum samples',
         warningError: 'Error rate watch %',
         criticalError: 'Error rate critical %',
@@ -144,7 +251,7 @@ export default {
         criticalCache: 'Cache rate critical %',
       },
       namedModelsEmpty: 'Platform model lists are empty: every real model name will be shown (not folded into “Other”).',
-      namedModelsCount: 'Showing {count} named model dimensions; unlisted models fold into per-platform “Other”.',
+      namedModelsCount: '{count} named models configured. Unlisted text models fold into “Other”; image models stay separate.',
       userContractTitle: 'User-facing display contract',
       userContract: {
         health: 'Health color weights: error rate 60% + first-token P50 20% + cache rate 20% (thresholds configurable above)',

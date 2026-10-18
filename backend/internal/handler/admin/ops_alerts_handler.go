@@ -17,6 +17,10 @@ import (
 )
 
 var validOpsAlertMetricTypes = []string{
+	"channel_monitor_success_rate",
+	"channel_monitor_cache_rate",
+	"channel_monitor_ttft_ms",
+	"channel_monitor_duration_ms",
 	"success_rate",
 	"error_rate",
 	"upstream_error_rate",
@@ -89,6 +93,8 @@ type opsAlertRuleValidatedInput struct {
 func isPercentOrRateMetric(metricType string) bool {
 	switch metricType {
 	case "success_rate",
+		"channel_monitor_success_rate",
+		"channel_monitor_cache_rate",
 		"error_rate",
 		"upstream_error_rate",
 		"cpu_usage_percent",
@@ -184,7 +190,7 @@ func validateOpsAlertRulePayload(raw map[string]json.RawMessage) (*opsAlertRuleV
 			return nil, fmt.Errorf("enabled must be a boolean")
 		}
 	} else {
-		validated.Enabled = true
+		validated.Enabled = !service.IsOpsChannelMonitorMetric(metricType)
 	}
 
 	if v, ok := raw["notify_email"]; ok {
@@ -193,7 +199,7 @@ func validateOpsAlertRulePayload(raw map[string]json.RawMessage) (*opsAlertRuleV
 			return nil, fmt.Errorf("notify_email must be a boolean")
 		}
 	} else {
-		validated.NotifyEmail = true
+		validated.NotifyEmail = !service.IsOpsChannelMonitorMetric(metricType)
 	}
 
 	if v, ok := raw["window_minutes"]; ok {

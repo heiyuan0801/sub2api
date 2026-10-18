@@ -514,7 +514,7 @@ SELECT
   created_at
 FROM ops_alert_events
 WHERE rule_id = $1
-ORDER BY fired_at DESC
+ORDER BY fired_at DESC, id DESC
 LIMIT 1`
 
 	row := r.db.QueryRowContext(ctx, q, ruleID)
@@ -789,7 +789,8 @@ func scanOpsAlertEvent(row opsAlertEventRow) (*service.OpsAlertEvent, error) {
 }
 
 func buildOpsAlertEventsWhere(filter *service.OpsAlertEventFilter) (string, []any) {
-	clauses := []string{"1=1"}
+	// Pending monitor checkpoints are internal state, not confirmed incidents.
+	clauses := []string{"status <> 'pending'"}
 	args := []any{}
 
 	if filter == nil {

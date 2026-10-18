@@ -89,6 +89,10 @@ type ChannelMonitorV2Filter struct {
 }
 
 type ChannelMonitorV2Metric struct {
+	// Presence flags survive public volume redaction so zero success/cache rates
+	// remain distinguishable from periods without request/token samples.
+	HasData                  bool                    `json:"has_data"`
+	CacheRateAvailable       bool                    `json:"cache_rate_available"`
 	SuccessRequests          int64                   `json:"success_requests"`
 	ErrorRequests            int64                   `json:"error_requests"`
 	RequestCount             int64                   `json:"request_count"`
@@ -119,18 +123,25 @@ type ChannelMonitorV2Latency struct {
 }
 
 type ChannelMonitorV2Health struct {
-	Overall   string `json:"overall"`
-	ErrorRate string `json:"error_rate"`
-	TTFT      string `json:"ttft"`
-	Cache     string `json:"cache"`
+	Overall              string   `json:"overall"`
+	SuccessRate          string   `json:"success_rate"`
+	ErrorRate            string   `json:"error_rate"`
+	TTFT                 string   `json:"ttft"`
+	Cache                string   `json:"cache"`
+	Generation           string   `json:"generation"`
+	GenerationLatencyMs  *int64   `json:"generation_latency_ms,omitempty"`
+	GenerationPercentile string   `json:"generation_percentile,omitempty"`
+	Reasons              []string `json:"reasons,omitempty"`
 	// Score is 0–100 when samples are sufficient; omitted/null when unknown.
-	// Overall blends error-rate, TTFT p50, and cache rate (weights in Thresholds).
-	Score          *float64                         `json:"score,omitempty"`
-	ErrorRateScore *float64                         `json:"error_rate_score,omitempty"`
-	TTFTScore      *float64                         `json:"ttft_score,omitempty"`
-	CacheScore     *float64                         `json:"cache_score,omitempty"`
-	MinimumSample  int64                            `json:"minimum_sample"`
-	Thresholds     ChannelMonitorV2HealthThresholds `json:"thresholds"`
+	// Overall blends scored errors, text TTFT or image generation latency, and
+	// cache rate. A critical participating signal prevents a healthy label.
+	Score           *float64                         `json:"score,omitempty"`
+	ErrorRateScore  *float64                         `json:"error_rate_score,omitempty"`
+	TTFTScore       *float64                         `json:"ttft_score,omitempty"`
+	CacheScore      *float64                         `json:"cache_score,omitempty"`
+	GenerationScore *float64                         `json:"generation_score,omitempty"`
+	MinimumSample   int64                            `json:"minimum_sample"`
+	Thresholds      ChannelMonitorV2HealthThresholds `json:"thresholds"`
 }
 
 type ChannelMonitorV2HealthThresholds struct {
@@ -140,9 +151,12 @@ type ChannelMonitorV2HealthThresholds struct {
 	WarningErrorRate  float64 `json:"warning_error_rate"`
 	CriticalErrorRate float64 `json:"critical_error_rate"`
 	// TargetTTFTMs is the primary TTFT p50 budget (ms). At or below this is full TTFT score.
-	TargetTTFTMs   int64 `json:"target_ttft_ms"`
-	WarningTTFTMs  int64 `json:"warning_ttft_ms"`
-	CriticalTTFTMs int64 `json:"critical_ttft_ms"`
+	TargetTTFTMs         int64                                `json:"target_ttft_ms"`
+	WarningTTFTMs        int64                                `json:"warning_ttft_ms"`
+	CriticalTTFTMs       int64                                `json:"critical_ttft_ms"`
+	WarningGenerationMs  int64                                `json:"warning_generation_ms"`
+	CriticalGenerationMs int64                                `json:"critical_generation_ms"`
+	GenerationOverrides  []ChannelMonitorV2GenerationOverride `json:"generation_overrides,omitempty"`
 	// WarningCacheRate / CriticalCacheRate: cache rate below these → warning/critical bands.
 	// Higher cache rate is better; defaults 20% warning / 5% critical.
 	WarningCacheRate  float64 `json:"warning_cache_rate"`
@@ -151,6 +165,22 @@ type ChannelMonitorV2HealthThresholds struct {
 	ErrorWeight float64 `json:"error_weight"`
 	TTFTWeight  float64 `json:"ttft_weight"`
 	CacheWeight float64 `json:"cache_weight"`
+}
+
+// Generation overrides select exact model/platform/group contexts. More
+// selectors win; ties prefer group, then model, then platform specificity.
+type ChannelMonitorV2GenerationOverride struct {
+	Platform             string `json:"platform,omitempty"`
+	Model                string `json:"model,omitempty"`
+	GroupID              int64  `json:"group_id,omitempty"`
+	WarningGenerationMs  int64  `json:"warning_generation_ms"`
+	CriticalGenerationMs int64  `json:"critical_generation_ms"`
+}
+
+type ChannelMonitorV2HealthContext struct {
+	Platform string
+	Model    string
+	GroupID  int64
 }
 
 type ChannelMonitorV2Coverage struct {
@@ -237,20 +267,30 @@ type ChannelMonitorV2Dimensions struct {
 }
 
 type ChannelMonitorV2ModelRow struct {
-	Platform string                 `json:"platform"`
-	Model    string                 `json:"model"`
-	Metrics  ChannelMonitorV2Metric `json:"metrics"`
-	Health   ChannelMonitorV2Health `json:"health"`
+	Platform     string                 `json:"platform"`
+	Model        string                 `json:"model"`
+	IsImageModel bool                   `json:"is_image_model,omitempty"`
+	Metrics      ChannelMonitorV2Metric `json:"metrics"`
+	Health       ChannelMonitorV2Health `json:"health"`
 }
 
 type ChannelMonitorV2MatrixRow struct {
-	Platform  string                       `json:"platform"`
-	GroupID   *int64                       `json:"group_id,omitempty"`
-	GroupName string                       `json:"group_name,omitempty"`
-	Model     string                       `json:"model,omitempty"`
-	Metrics   ChannelMonitorV2Metric       `json:"metrics"`
-	Health    ChannelMonitorV2Health       `json:"health"`
-	Buckets   []ChannelMonitorV2TrendPoint `json:"buckets"`
+	Platform     string                       `json:"platform"`
+	GroupID      *int64                       `json:"group_id,omitempty"`
+	GroupName    string                       `json:"group_name,omitempty"`
+	Model        string                       `json:"model,omitempty"`
+	IsImageModel bool                         `json:"is_image_model,omitempty"`
+	Metrics      ChannelMonitorV2Metric       `json:"metrics"`
+	Health       ChannelMonitorV2Health       `json:"health"`
+	Buckets      []ChannelMonitorV2TrendPoint `json:"buckets"`
+}
+
+// ChannelMonitorV2IsImageModel describes dedicated image-generation families
+// already accepted by the gateway. It is presentation metadata, not routing or
+// an assertion that an arbitrary model with image input generates images.
+func ChannelMonitorV2IsImageModel(model string) bool {
+	model = strings.TrimPrefix(strings.ToLower(strings.TrimSpace(model)), "models/")
+	return isOpenAIImageGenerationModel(model) || isGeminiCompatibleImageModel(model)
 }
 
 type ChannelMonitorV2Matrix struct {
@@ -625,6 +665,7 @@ func redactChannelMonitorV2PublicConfig(cfg *ChannelMonitorV2Config) {
 	cfg.GroupIDs = nil
 	cfg.IgnoredErrorCategories = nil
 	cfg.UpdatedBy = nil
+	cfg.HealthThresholds.GenerationOverrides = nil
 	for i := range cfg.Platforms {
 		cfg.Platforms[i].Models = nil
 	}
@@ -638,6 +679,9 @@ func redactChannelMonitorV2Metric(m *ChannelMonitorV2Metric, hideThroughput bool
 	if m == nil {
 		return
 	}
+	// Preserve already-derived presence when redacting a metric more than once.
+	m.HasData = m.HasData || m.RequestCount > 0
+	m.CacheRateAvailable = m.CacheRateAvailable || m.CacheRateDenominator > 0
 	m.SuccessRequests = 0
 	m.ErrorRequests = 0
 	m.RequestCount = 0
@@ -760,6 +804,9 @@ func normalizeChannelMonitorV2Config(cfg *ChannelMonitorV2Config) error {
 		return err
 	}
 	cfg.IgnoredErrorCategories = normalizeChannelMonitorV2IgnoredCategories(cfg.IgnoredErrorCategories)
+	if err := validateChannelMonitorV2GenerationOverrides(cfg.HealthThresholds.GenerationOverrides); err != nil {
+		return err
+	}
 	cfg.HealthThresholds = NormalizeChannelMonitorV2HealthThresholds(cfg.HealthThresholds)
 	seen := make(map[string]struct{}, len(cfg.Platforms))
 	for i := range cfg.Platforms {
@@ -794,12 +841,14 @@ var DefaultChannelMonitorV2IgnoredErrorCategories = []string{
 
 func DefaultChannelMonitorV2HealthThresholds() ChannelMonitorV2HealthThresholds {
 	return ChannelMonitorV2HealthThresholds{
-		MinimumSample:     50,
-		WarningErrorRate:  0.05,
-		CriticalErrorRate: 0.20,
-		TargetTTFTMs:      3000,
-		WarningTTFTMs:     3000,
-		CriticalTTFTMs:    10000,
+		MinimumSample:        50,
+		WarningErrorRate:     0.05,
+		CriticalErrorRate:    0.20,
+		TargetTTFTMs:         3000,
+		WarningTTFTMs:        3000,
+		CriticalTTFTMs:       10000,
+		WarningGenerationMs:  60000,
+		CriticalGenerationMs: 180000,
 		// A zero/zero cache threshold means cache misses do not affect health
 		// until an operator explicitly configures cache scoring.
 		WarningCacheRate:  0,
@@ -844,6 +893,30 @@ func NormalizeChannelMonitorV2HealthThresholds(in ChannelMonitorV2HealthThreshol
 	}
 	if in.CriticalTTFTMs < in.WarningTTFTMs {
 		in.CriticalTTFTMs = in.WarningTTFTMs
+	}
+	if in.WarningGenerationMs <= 0 {
+		in.WarningGenerationMs = def.WarningGenerationMs
+	}
+	if in.CriticalGenerationMs <= 0 {
+		in.CriticalGenerationMs = def.CriticalGenerationMs
+	}
+	if in.CriticalGenerationMs <= in.WarningGenerationMs {
+		in.CriticalGenerationMs = in.WarningGenerationMs + 1
+	}
+	in.GenerationOverrides = append([]ChannelMonitorV2GenerationOverride(nil), in.GenerationOverrides...)
+	for i := range in.GenerationOverrides {
+		rule := &in.GenerationOverrides[i]
+		rule.Platform = strings.ToLower(strings.TrimSpace(rule.Platform))
+		rule.Model = strings.TrimSpace(rule.Model)
+		if rule.WarningGenerationMs <= 0 {
+			rule.WarningGenerationMs = in.WarningGenerationMs
+		}
+		if rule.CriticalGenerationMs <= rule.WarningGenerationMs {
+			rule.CriticalGenerationMs = in.CriticalGenerationMs
+			if rule.CriticalGenerationMs <= rule.WarningGenerationMs {
+				rule.CriticalGenerationMs = rule.WarningGenerationMs + 1
+			}
+		}
 	}
 	if in.WarningCacheRate < 0 {
 		in.WarningCacheRate = 0
@@ -958,13 +1031,39 @@ func ChannelMonitorV2HealthFor(metrics ChannelMonitorV2Metric) ChannelMonitorV2H
 }
 
 func ChannelMonitorV2HealthForWithThresholds(metrics ChannelMonitorV2Metric, thresholds ChannelMonitorV2HealthThresholds) ChannelMonitorV2Health {
-	thresholds = NormalizeChannelMonitorV2HealthThresholds(thresholds)
+	return ChannelMonitorV2HealthForContext(metrics, thresholds, ChannelMonitorV2HealthContext{})
+}
+
+// ChannelMonitorV2HealthForContext evaluates independent availability and
+// operator-scored health, applying generation budgets only to a known image
+// model. Mixed snapshots deliberately use the context-free entry point.
+func ChannelMonitorV2HealthForContext(metrics ChannelMonitorV2Metric, thresholds ChannelMonitorV2HealthThresholds, row ChannelMonitorV2HealthContext) ChannelMonitorV2Health {
+	thresholds = channelMonitorV2GenerationThresholdsForContext(thresholds, row)
 	result := ChannelMonitorV2Health{
-		Overall: "unknown", ErrorRate: "unknown", TTFT: "unknown", Cache: "unknown",
+		Overall: "unknown", SuccessRate: "unknown", ErrorRate: "unknown", TTFT: "unknown", Cache: "unknown", Generation: "unknown",
 		MinimumSample: thresholds.MinimumSample, Thresholds: thresholds,
 	}
 	if metrics.RequestCount < result.MinimumSample {
 		return result
+	}
+	// Availability includes ignored client errors; it must not be confused with
+	// the operator's scored upstream error rate or alter that existing policy.
+	failureRate := 1 - metrics.SuccessRate
+	if metrics.SuccessRequests+metrics.ErrorRequests == metrics.RequestCount {
+		// Evaluate from the same exact counters when present: 1-0.8 is slightly
+		// below 0.2 in binary floating point and must not miss a 20% boundary.
+		failureRate = float64(metrics.ErrorRequests) / float64(metrics.RequestCount)
+	}
+	if failureRate < 0 {
+		failureRate = 0
+	}
+	if failureRate > 1 {
+		failureRate = 1
+	}
+	result.SuccessRate = healthBand(failureRate, thresholds.WarningErrorRate, thresholds.CriticalErrorRate)
+	result.Reasons = channelMonitorV2AppendHealthReason(result.Reasons, "success_rate", result.SuccessRate)
+	if float64(metrics.ErrorRequests)/float64(metrics.RequestCount) > metrics.ErrorRate+0.0000001 {
+		result.Reasons = append(result.Reasons, "ignored_errors_excluded")
 	}
 
 	type scored struct {
@@ -978,10 +1077,12 @@ func ChannelMonitorV2HealthForWithThresholds(metrics ChannelMonitorV2Metric, thr
 		s := errorRateScore(metrics.ErrorRate, thresholds.CriticalErrorRate)
 		result.ErrorRateScore = &s
 		result.ErrorRate = healthBand(metrics.ErrorRate, thresholds.WarningErrorRate, thresholds.CriticalErrorRate)
+		result.Reasons = channelMonitorV2AppendHealthReason(result.Reasons, "error_rate", result.ErrorRate)
 		parts = append(parts, scored{score: s, weight: thresholds.ErrorWeight, band: result.ErrorRate})
 	}
 	// Prefer p50 for TTFT scoring; fall back to p95 only if p50 is missing.
-	if metrics.TTFT.SampleCount >= result.MinimumSample {
+	isImage := ChannelMonitorV2IsImageModel(row.Model)
+	if !isImage && metrics.TTFT.SampleCount >= result.MinimumSample {
 		var ttftMs *int64
 		if metrics.TTFT.P50Ms != nil {
 			ttftMs = metrics.TTFT.P50Ms
@@ -992,7 +1093,19 @@ func ChannelMonitorV2HealthForWithThresholds(metrics ChannelMonitorV2Metric, thr
 			s := ttftP50Score(float64(*ttftMs), float64(thresholds.TargetTTFTMs), float64(thresholds.CriticalTTFTMs))
 			result.TTFTScore = &s
 			result.TTFT = healthBand(float64(*ttftMs), float64(thresholds.WarningTTFTMs), float64(thresholds.CriticalTTFTMs))
+			result.Reasons = channelMonitorV2AppendHealthReason(result.Reasons, "ttft", result.TTFT)
 			parts = append(parts, scored{score: s, weight: thresholds.TTFTWeight, band: result.TTFT})
+		}
+	}
+	if isImage && metrics.Duration.SampleCount >= result.MinimumSample {
+		generationMs, percentile := channelMonitorV2GenerationLatency(metrics.Duration)
+		if generationMs != nil {
+			s := ttftP50Score(float64(*generationMs), float64(thresholds.WarningGenerationMs), float64(thresholds.CriticalGenerationMs))
+			result.GenerationLatencyMs, result.GenerationPercentile = generationMs, percentile
+			result.GenerationScore = &s
+			result.Generation = healthBand(float64(*generationMs), float64(thresholds.WarningGenerationMs), float64(thresholds.CriticalGenerationMs))
+			result.Reasons = channelMonitorV2AppendHealthReason(result.Reasons, "generation", result.Generation)
+			parts = append(parts, scored{score: s, weight: thresholds.TTFTWeight, band: result.Generation})
 		}
 	}
 	// Cache: need a meaningful denominator; higher rate is better.
@@ -1005,6 +1118,7 @@ func ChannelMonitorV2HealthForWithThresholds(metrics ChannelMonitorV2Metric, thr
 		result.CacheScore = &s
 		// Invert for healthBand (lower is worse): use (1 - rate) against warning/critical floors.
 		result.Cache = cacheRateBand(metrics.CacheRate, thresholds.WarningCacheRate, thresholds.CriticalCacheRate)
+		result.Reasons = channelMonitorV2AppendHealthReason(result.Reasons, "cache", result.Cache)
 		parts = append(parts, scored{score: s, weight: thresholds.CacheWeight, band: result.Cache})
 	}
 
@@ -1012,9 +1126,14 @@ func ChannelMonitorV2HealthForWithThresholds(metrics ChannelMonitorV2Metric, thr
 		return result
 	}
 	var weightSum, scoreSum float64
+	hasCritical := false
 	for _, p := range parts {
+		if p.weight <= 0 {
+			continue
+		}
 		weightSum += p.weight
 		scoreSum += p.weight * p.score
+		hasCritical = hasCritical || p.band == "critical"
 	}
 	if weightSum <= 0 {
 		return result
@@ -1022,6 +1141,10 @@ func ChannelMonitorV2HealthForWithThresholds(metrics ChannelMonitorV2Metric, thr
 	overall := scoreSum / weightSum
 	result.Score = &overall
 	result.Overall = scoreBand(overall)
+	if hasCritical && result.Overall == "healthy" {
+		result.Overall = "warning"
+		result.Reasons = append(result.Reasons, "critical_signal_floor")
+	}
 	return result
 }
 
