@@ -62,6 +62,51 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Frontend typecheck and critical vitest
         run: make test-frontend
+      - name: Build production frontend
+        working-directory: frontend
+        run: pnpm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ci-frontend-dist
+          path: backend/internal/web/dist/
+          if-no-files-found: error
+          retention-days: 3
+
+  build:
+    needs: frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: ci-frontend-dist
+          path: backend/internal/web/dist/
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          check-latest: false
+          cache: true
+          cache-dependency-path: backend/go.sum
+      - name: Build Linux server with embedded frontend
+        working-directory: backend
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          VERSION="$(tr -d '\r\n' < cmd/server/VERSION)+ci.${GITHUB_SHA:0:7}"
+          mkdir -p ../ci-dist
+          go build -tags=embed -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o ../ci-dist/sub2api ./cmd/server
+          printf 'version=%s\ncommit=%s\n' "$VERSION" "$GITHUB_SHA" > ../ci-dist/build-info.txt
+          cd ../ci-dist
+          sha256sum sub2api > checksums.txt
+          tar -czf sub2api-linux-amd64.tar.gz sub2api build-info.txt checksums.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sub2api-linux-amd64-${{ github.sha }}
+          path: ci-dist/sub2api-linux-amd64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
 
   golangci-lint:
     runs-on: ubuntu-latest
