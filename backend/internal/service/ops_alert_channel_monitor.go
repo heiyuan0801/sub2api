@@ -295,11 +295,12 @@ func (s *OpsAlertEvaluatorService) evaluateChannelMonitorRule(ctx context.Contex
 	if latest != nil && state.Fingerprint != fingerprint {
 		// Editing a selector/threshold closes the old incident without falsely
 		// announcing recovery for another model or a changed policy.
-		if latest.Status == opsChannelMonitorPending {
+		switch latest.Status {
+		case opsChannelMonitorPending:
 			state = opsChannelMonitorState{Revision: state.Revision, Fingerprint: fingerprint}
 			latest.Title = rule.Name
 			latest.Dimensions = map[string]any{"platform": selector.Platform, "group_id": selector.GroupID, "model": selector.Model, "channel_monitor_state": state}
-		} else if latest.Status == OpsAlertStatusFiring {
+		case OpsAlertStatusFiring:
 			latest.Status, latest.ResolvedAt = OpsAlertStatusManualResolved, &now
 			state.RecoveryNotified = true
 			_, err = s.checkpointChannelMonitor(ctx, latest, state, latest.ID, state.Revision)
