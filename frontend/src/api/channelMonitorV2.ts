@@ -193,8 +193,8 @@ export interface MonitorMatrixResponse {
 
 export interface MonitorDimensions {
   platforms: Array<{ value: string; label: string; request_count: number }>
-  groups: Array<{ id: number; name: string; platform?: string; request_count: number }>
-  models: Array<{ value: string; label: string; platform?: string; request_count: number }>
+  groups: Array<{ id: number; name: string; platform?: string; platforms?: string[]; request_count: number }>
+  models: Array<{ value: string; label: string; platform?: string; group_ids?: number[]; request_count: number }>
 }
 
 export interface MonitorModelRow { platform: string; model: string; is_image_model?: boolean; metrics: MonitorMetric; health: MonitorHealth }

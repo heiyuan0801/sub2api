@@ -120,6 +120,7 @@
               class="input"
               :value="platform.models.join(', ')"
               type="text"
+              :aria-label="`${platformLabel(platform.platform)} ${t('channelMonitorV2.filters.model')}`"
               :placeholder="t('channelMonitorV2.settings.modelsPlaceholder')"
               @change="setModels(platform, $event)"
             />
@@ -127,7 +128,7 @@
               class="badge justify-self-start sm:justify-self-end"
               :class="platform.models.length ? 'badge-gray' : 'badge badge-primary'"
             >
-              {{ platform.models.length ? t('channelMonitorV2.settings.badgeOther') : t('channelMonitorV2.settings.badgeAllModels') }}
+              {{ platform.models.length ? t('channelMonitorV2.settings.badgeWhitelist') : t('channelMonitorV2.settings.badgeAllModels') }}
             </span>
           </div>
         </div>

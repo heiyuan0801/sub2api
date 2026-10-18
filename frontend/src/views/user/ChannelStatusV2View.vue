@@ -74,6 +74,10 @@
       </section>
 
       <section class="availability-workspace" :aria-label="t('channelMonitorV2.availability.title')">
+        <div class="availability-platforms" role="group" :aria-label="t('channelMonitorV2.filters.platform')">
+          <button type="button" :class="{ selected: filter.platforms.length === 0 }" :aria-pressed="filter.platforms.length === 0" :disabled="!dimensionsLoaded" data-testid="platform-all" @click="selectPlatforms([])">{{ t('channelMonitorV2.filters.allPlatforms') }}</button>
+          <button v-for="platform in platformShortcuts" :key="platform.value" type="button" :class="{ selected: filter.platforms.length === 1 && filter.platforms[0] === platform.value }" :aria-pressed="filter.platforms.length === 1 && filter.platforms[0] === platform.value" :data-testid="`platform-${platform.value}`" @click="selectPlatforms([platform.value])">{{ platform.label }}</button>
+        </div>
         <div class="availability-toolbar monitor-toolbar">
           <form class="availability-search" role="search" @submit.prevent="applySearch">
             <label for="monitor-model-search" class="sr-only">{{ t('channelMonitorV2.availability.searchPlaceholder') }}</label>
@@ -85,6 +89,7 @@
             <button type="button" class="availability-settings" :class="{ '!border-gray-900 !text-gray-950 dark:!border-gray-100 dark:!text-white': favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">{{ t('channelMonitorV2.preferences.favoritesOnly') }}</button>
             <Select v-model="modelTypeFilter" :options="modelTypeOptions" :aria-label="t('channelMonitorV2.availability.modelType')" class="availability-status" />
             <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.availability.allGroups')" :options="groupOptions" />
+            <FilterMultiSelect v-model="filter.models" compact :label="t('channelMonitorV2.filters.model')" :all-label="t('channelMonitorV2.filters.allModels')" :options="modelOptions" />
             <Select v-model="statusFilter" :options="statusOptions" :aria-label="t('channelMonitorV2.availability.filterStatus')" class="availability-status" />
           </div>
         </div>
@@ -114,7 +119,7 @@
             <Icon name="chevronDown" size="sm" class="transition-transform group-open:rotate-180" />
           </summary>
           <div class="monitor-toolbar flex flex-wrap items-center gap-2 border-t border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
-            <FilterMultiSelect v-model="filter.platforms" compact :label="t('channelMonitorV2.filters.platform')" :all-label="t('channelMonitorV2.filters.allPlatforms')" :options="platformOptions" />
+            <FilterMultiSelect v-model="selectedPlatformIds" compact :label="t('channelMonitorV2.filters.platform')" :all-label="t('channelMonitorV2.filters.allPlatforms')" :options="platformOptions" />
             <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.filters.allGroups')" :options="groupOptions" />
             <FilterMultiSelect v-model="filter.models" compact :label="t('channelMonitorV2.filters.model')" :all-label="t('channelMonitorV2.filters.allModels')" :options="modelOptions" />
             <button type="button" class="btn btn-ghost btn-sm !px-2 !py-1 text-xs" :disabled="!hasDimensionFilter" @click="clearDimensions">{{ t('channelMonitorV2.clearFilters') }}</button>
@@ -385,6 +390,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import Select from '@/components/common/Select.vue'
+import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
 import FilterMultiSelect from '@/features/channel-monitor-v2/FilterMultiSelect.vue'
 import MetricCell from '@/features/channel-monitor-v2/MetricCell.vue'
 import MonitorRankBadge from '@/features/channel-monitor-v2/MonitorRankBadge.vue'
@@ -485,6 +491,7 @@ const matrixGroupBy = ref<MonitorMatrixGroupBy>(parseMatrixGroupBy(initialValue(
 const healthMode = ref<HealthMode>(parseHealthMode(initialValue('health_mode')))
 const trendView = ref<TrendView>(parseTrendView(initialValue('trend_view')))
 const dimensions = ref<MonitorDimensions>({ platforms: [], groups: [], models: [] })
+const dimensionsLoaded = ref(false)
 const snapshot = ref<MonitorSnapshot | null>(null)
 const matrix = ref<MonitorMatrixResponse | null>(null)
 const modelRows = ref<MonitorModelRow[]>([])
@@ -532,18 +539,46 @@ const hasDimensionFilter = computed(
 const platformOptions = computed(() =>
   (dimensions.value.platforms || []).map((item) => ({
     value: item.value,
-    label: item.label,
+    label: item.label && item.label !== item.value
+      ? item.label
+      : item.value === 'anthropic'
+        ? 'Claude'
+        : CONCRETE_PLATFORM_OPTIONS.find(option => option.value === item.value)?.label || item.value,
   }))
 )
-const selectedPlatforms = computed(() => new Set(filter.value.platforms))
+const platformShortcuts = computed(() => {
+  const priority = ['openai', 'anthropic', 'grok', 'deepseek']
+  return [...platformOptions.value].sort((a, b) => {
+    const rank = (value: string) => priority.includes(value) ? priority.indexOf(value) : priority.length
+    return rank(a.value) - rank(b.value) || a.label.localeCompare(b.label)
+  })
+})
+function selectPlatforms(platforms: string[]) {
+  const groups = new Set(dimensions.value.groups.filter(item => groupInScope(item, platforms)).map(item => item.id))
+  const groupIds = dimensionsLoaded.value ? filter.value.groupIds.filter(id => groups.has(id)) : filter.value.groupIds
+  const models = new Set(dimensions.value.models.filter(item => modelInScope(item, platforms, groupIds)).map(item => item.value))
+  // Apply the new scope together so no request uses an incompatible old group/model.
+  filter.value = {
+    ...filter.value,
+    platforms,
+    groupIds,
+    models: dimensionsLoaded.value ? filter.value.models.filter(model => models.has(model)) : filter.value.models,
+  }
+}
+const selectedPlatformIds = computed({ get: () => filter.value.platforms, set: selectPlatforms })
+function groupInScope(item: MonitorDimensions['groups'][number], platforms: string[]) {
+  if (!platforms.length) return true
+  return item.platforms === undefined
+    ? !item.platform || platforms.includes(item.platform)
+    : item.platforms.some(platform => platforms.includes(platform))
+}
+function modelInScope(item: MonitorDimensions['models'][number], platforms: string[], groupIds: number[]) {
+  return (!platforms.length || !item.platform || platforms.includes(item.platform)) &&
+    (!groupIds.length || item.group_ids === undefined || item.group_ids.some(id => groupIds.includes(id)))
+}
 const groupOptions = computed(() =>
   (dimensions.value.groups || [])
-    .filter(
-      (item) =>
-        selectedPlatforms.value.size === 0 ||
-        !item.platform ||
-        selectedPlatforms.value.has(item.platform),
-    )
+    .filter(item => groupInScope(item, filter.value.platforms))
     .map((item) => ({
       value: String(item.id),
       label: item.platform ? `${item.platform} / ${item.name || `#${item.id}`}` : item.name || `#${item.id}`,
@@ -554,7 +589,7 @@ const modelOptions = computed(() => {
   // one option while platform selection continues to narrow the request scope.
   const options = new Map<string, { value: string; label: string; platforms: Set<string> }>()
   for (const item of dimensions.value.models || []) {
-    if (selectedPlatforms.value.size && item.platform && !selectedPlatforms.value.has(item.platform)) continue
+    if (!modelInScope(item, filter.value.platforms, filter.value.groupIds)) continue
     const option = options.get(item.value) || { value: item.value, label: item.label, platforms: new Set<string>() }
     if (item.platform) option.platforms.add(item.platform)
     options.set(item.value, option)
@@ -567,27 +602,30 @@ const modelOptions = computed(() => {
 const selectedGroupIds = computed({
   get: () => filter.value.groupIds.map(String),
   set: (value: string[]) => {
-    filter.value.groupIds = value.map(Number).filter((id) => Number.isInteger(id) && id > 0)
+    const groupIds = value.map(Number).filter((id) => Number.isInteger(id) && id > 0)
+    const models = new Set(dimensions.value.models.filter(item => modelInScope(item, filter.value.platforms, groupIds)).map(item => item.value))
+    filter.value = {
+      ...filter.value,
+      groupIds,
+      models: dimensionsLoaded.value ? filter.value.models.filter(model => models.has(model)) : filter.value.models,
+    }
   },
 })
-// Soft-prune group/model selections that fall outside the platform cascade.
-// Do NOT wipe when options are temporarily empty (loading); only drop invalid ids.
+// Wait for the full catalog before pruning saved filters. Once loaded, an empty
+// platform catalog also invalidates old group/model choices.
 watch(
-  [groupOptions, modelOptions],
+  [dimensionsLoaded, groupOptions, modelOptions],
   () => {
-    if (groupOptions.value.length > 0) {
-      const allowed = new Set(groupOptions.value.map((item) => item.value))
-      const next = filter.value.groupIds.filter((id) => allowed.has(String(id)))
-      if (next.length !== filter.value.groupIds.length) {
-        filter.value.groupIds = next
-      }
+    if (!dimensionsLoaded.value) return
+    const groups = new Set(groupOptions.value.map((item) => item.value))
+    const groupIds = filter.value.groupIds.filter((id) => groups.has(String(id)))
+    if (groupIds.length !== filter.value.groupIds.length) {
+      filter.value.groupIds = groupIds
     }
-    if (modelOptions.value.length > 0) {
-      const allowed = new Set(modelOptions.value.map((item) => item.value))
-      const next = filter.value.models.filter((model) => allowed.has(model))
-      if (next.length !== filter.value.models.length) {
-        filter.value.models = next
-      }
+    const allowedModels = new Set(modelOptions.value.map((item) => item.value))
+    const models = filter.value.models.filter((model) => allowedModels.has(model))
+    if (models.length !== filter.value.models.length) {
+      filter.value.models = models
     }
   },
   { flush: 'post' },
@@ -675,7 +713,7 @@ function applySearch() { appliedSearch.value = searchDraft.value.trim() }
 function onSearchInput() { if (!searchDraft.value) appliedSearch.value = '' }
 function resetAllFilters() { searchDraft.value = ''; appliedSearch.value = ''; statusFilter.value = 'all'; modelTypeFilter.value = 'all'; favoritesOnly.value = false; clearDimensions() }
 function selectGroup(row: MonitorMatrixRow) {
-  if (row.group_id) filter.value.groupIds = [row.group_id]
+  if (row.group_id) selectedGroupIds.value = [String(row.group_id)]
 }
 function closeIncident() {
   incidentController?.abort()
@@ -813,6 +851,7 @@ async function loadDimensions(signal?: AbortSignal, id = sequence) {
   const next = await api.getDimensions(rangeOnly, isAdmin.value, signal)
   if (id !== sequence) return
   dimensions.value = next
+  dimensionsLoaded.value = true
 }
 
 async function loadMetrics(signal?: AbortSignal, id = sequence) {
@@ -925,7 +964,7 @@ function scheduleAutoRefresh() {
   }, Math.max(bootstrapActive.value ? 10 : 60, seconds) * 1000)
 }
 function drillModel(row: MonitorModelRow) {
-  filter.value.platforms = [row.platform]
+  selectPlatforms([row.platform])
   filter.value.models = [row.model]
 }
 function formatRate(value: number) {
@@ -1064,6 +1103,11 @@ onBeforeUnmount(() => {
 .stat-critical, .legend-critical { background: #ff2d42; }
 .legend-unknown { background: #d4d4d4; }
 .availability-workspace { min-width: 0; border: 1px solid #e5e5e5; border-radius: .875rem; background: #fff; }
+.availability-platforms { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; border-bottom: 1px solid #ededed; padding: 1rem 1.25rem; }
+.availability-platforms button { border: 1px solid #e5e5e5; border-radius: 9999px; padding: .45rem .9rem; color: #525252; font-size: .75rem; white-space: nowrap; transition: background-color .15s, color .15s; }
+.availability-platforms button:hover { background: #f5f5f5; }
+.availability-platforms button.selected { border-color: #171717; background: #171717; color: #fff; font-weight: 600; }
+.availability-platforms button:focus-visible { outline: 2px solid #737373; outline-offset: 3px; }
 .availability-toolbar { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1.25rem; }
 .availability-search { display: flex; width: min(100%, 26rem); min-width: 0; align-items: center; gap: .5rem; }
 .availability-search input { height: 2.25rem; border-radius: .5rem; font-size: .8125rem; }
@@ -1074,7 +1118,10 @@ onBeforeUnmount(() => {
 .availability-advanced { border: 1px solid #e5e5e5; border-radius: .875rem; background: #fff; }
 .dark .availability-page { color: #f5f5f5; }
 .dark .availability-ranges, .dark .availability-settings, .dark .availability-stat, .dark .availability-workspace, .dark .availability-advanced { border-color: #404040; background: #262626; }
-.dark .availability-legend, .dark .availability-results { border-color: #404040; }
+.dark .availability-legend, .dark .availability-results, .dark .availability-platforms { border-color: #404040; }
+.dark .availability-platforms button { border-color: #525252; color: #d4d4d4; }
+.dark .availability-platforms button:hover { background: #404040; }
+.dark .availability-platforms button.selected { border-color: #f5f5f5; background: #f5f5f5; color: #171717; }
 .dark .availability-ranges button { color: #a3a3a3; }
 .dark .availability-ranges button.selected, .dark .availability-action, .dark .availability-source, .dark .stat-total { background: #f5f5f5; color: #171717; }
 .dark .availability-settings { color: #e5e5e5; }
@@ -1087,6 +1134,7 @@ onBeforeUnmount(() => {
   .availability-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .availability-stat { gap: .625rem; padding: 1rem; }
   .availability-toolbar { align-items: stretch; padding: 1rem; }
+  .availability-platforms { padding: 1rem; }
   .availability-search { width: 100%; }
   .availability-results { padding: .875rem; }
   .availability-legend { padding: .75rem 1rem; }

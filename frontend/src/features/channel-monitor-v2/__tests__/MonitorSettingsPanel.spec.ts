@@ -82,6 +82,23 @@ beforeEach(() => {
 })
 
 describe('MonitorSettingsPanel platform configuration', () => {
+  it('labels model lists as strict whitelists and persists an explicitly cleared list', async () => {
+    const original = config()
+    const wrapper = await panel(original)
+    const models = wrapper.get('input[aria-label="OpenAI channelMonitorV2.filters.model"]')
+    expect(wrapper.findAll('.badge').map(item => item.text())).toEqual([
+      'channelMonitorV2.settings.badgeWhitelist', 'channelMonitorV2.settings.badgeWhitelist',
+    ])
+    await models.setValue('')
+    expect(wrapper.findAll('.badge')[0].text()).toBe('channelMonitorV2.settings.badgeAllModels')
+    await button(wrapper, 'save').trigger('click')
+    await flushPromises()
+    expect(mocks.updateConfig).toHaveBeenCalledWith(expect.objectContaining({
+      platforms: [{ ...original.platforms[0], models: [] }, original.platforms[1]],
+    }))
+    expect(original.platforms[0].models).toEqual(['gpt-4'])
+  })
+
   it('adds a missing provider and saves its models without changing existing settings', async () => {
     const original = config()
     const wrapper = await panel(original)

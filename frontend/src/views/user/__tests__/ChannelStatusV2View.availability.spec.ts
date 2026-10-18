@@ -49,6 +49,7 @@ vi.mock('vue-i18n', async (importOriginal) => ({
 }))
 
 import ChannelStatusV2View from '../ChannelStatusV2View.vue'
+import FilterMultiSelect from '@/features/channel-monitor-v2/FilterMultiSelect.vue'
 
 const coverage: MonitorCoverage = {
   requested_start: '2026-10-16T15:00:00Z',
@@ -177,6 +178,8 @@ function render() {
 }
 let wrapper: ReturnType<typeof render> | undefined
 const displayedRows = () => wrapper!.getComponent(CardsStub).props('rows') as MonitorMatrixRow[]
+const dimensionPicker = (dimension: 'group' | 'model' | 'platform') => wrapper!.findAllComponents(FilterMultiSelect)
+  .find(item => item.props('label') === `channelMonitorV2.filters.${dimension}`)!
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] })
@@ -202,6 +205,210 @@ afterEach(() => {
 })
 
 describe('ChannelStatusV2View model availability', () => {
+  function platformCatalog() {
+    return {
+      platforms: [
+        { value: 'gemini', label: 'Gemini', request_count: 0 },
+        { value: 'deepseek', label: 'DeepSeek', request_count: 0 },
+        { value: 'grok', label: 'Grok', request_count: 0 },
+        { value: 'anthropic', label: 'Claude', request_count: 1 },
+        { value: 'openai', label: 'OpenAI', request_count: 1 },
+      ],
+      groups: [
+        { id: 1, name: 'default', platform: 'openai', request_count: 1 },
+        { id: 2, name: 'vip', platform: 'openai', request_count: 0 },
+        { id: 3, name: 'Claude group', platform: 'anthropic', request_count: 1 },
+      ],
+      models: [
+        { value: 'gpt-alpha', label: 'gpt-alpha', platform: 'openai', group_ids: [1], request_count: 1 },
+        { value: 'gpt-image-new', label: 'gpt-image-new', platform: 'openai', group_ids: [2], request_count: 0 },
+        { value: 'claude-critical', label: 'claude-critical', platform: 'anthropic', group_ids: [3], request_count: 1 },
+      ],
+    }
+  }
+
+  it('waits for the initial catalog before enabling platform switching without aborting its request', async () => {
+    let resolveCatalog!: (value: ReturnType<typeof platformCatalog>) => void
+    mocks.getDimensions.mockImplementationOnce(() => new Promise(resolve => { resolveCatalog = resolve }))
+    wrapper = render()
+    await flushPromises()
+    const signal = mocks.getDimensions.mock.calls[0][2] as AbortSignal
+    expect(wrapper.get('[data-testid="platform-all"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-testid="platform-all"]').trigger('click')
+    expect(signal.aborted).toBe(false)
+    expect(mocks.getSnapshot).toHaveBeenCalledTimes(1)
+    resolveCatalog(platformCatalog())
+    await flushPromises()
+    expect(wrapper.get('[data-testid="platform-all"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="platform-openai"]').exists()).toBe(true)
+  })
+
+  it('normalizes raw production platform labels while preserving a custom display label', async () => {
+    const catalog = platformCatalog()
+    mocks.getDimensions.mockResolvedValue({
+      ...catalog,
+      platforms: [
+        ...catalog.platforms.map(platform => ({ ...platform, label: platform.value })),
+        { value: 'custom-provider', label: 'Custom Provider', request_count: 0 },
+      ],
+    })
+    wrapper = render()
+    await flushPromises()
+    expect(wrapper.get('[data-testid="platform-openai"]').text()).toBe('OpenAI')
+    expect(wrapper.get('[data-testid="platform-anthropic"]').text()).toBe('Claude')
+    expect(wrapper.get('[data-testid="platform-grok"]').text()).toBe('Grok')
+    expect(wrapper.get('[data-testid="platform-deepseek"]').text()).toBe('DeepSeek')
+    expect(wrapper.get('[data-testid="platform-custom-provider"]').text()).toBe('Custom Provider')
+    expect(dimensionPicker('platform').props('options')).toContainEqual({ value: 'anthropic', label: 'Claude' })
+  })
+
+  it('dynamically offers no-traffic Gemini, Kimi and Zhipu groups with their account-supported models', async () => {
+    const providers = [
+      { value: 'kimi', label: 'Kimi', groupId: 80, group: 'Kimi account group', models: ['kimi-preview-chat', 'kimi-preview-reasoner'] },
+      { value: 'zhipu', label: 'Zhipu GLM', groupId: 81, group: 'GLM account group', models: ['glm-preview-chat', 'glm-image-preview'] },
+      { value: 'gemini', label: 'Gemini', groupId: 82, group: 'Gemini account group', models: ['gemini-preview-pro', 'gemini-image-preview'] },
+    ]
+    const catalog = platformCatalog()
+    mocks.getDimensions.mockResolvedValue({
+      platforms: [...catalog.platforms.filter(item => item.value !== 'gemini'), ...providers.map(provider => ({ value: provider.value, label: provider.value, request_count: 0 }))],
+      groups: [...catalog.groups, ...providers.map(provider => ({ id: provider.groupId, name: provider.group, platform: provider.value, platforms: [provider.value], request_count: 0 }))],
+      models: [...catalog.models, ...providers.flatMap(provider => provider.models.map(model => ({ value: model, label: model, platform: provider.value, group_ids: [provider.groupId], request_count: 0 })))],
+    })
+    mocks.getMatrix.mockImplementation(async (filter) => ({ coverage, group_by: 'platform_group_model', items: providers
+      .filter(provider => !filter.platforms.length || filter.platforms.includes(provider.value))
+      .flatMap(provider => provider.models.map(model => ({ ...row(model, provider.groupId, 'unknown', { has_data: false }), platform: provider.value, group_name: provider.group }))) }))
+    wrapper = render()
+    await flushPromises()
+
+    for (const provider of providers) {
+      const shortcut = wrapper.get(`[data-testid="platform-${provider.value}"]`)
+      expect(shortcut.text()).toBe(provider.label)
+      await shortcut.trigger('click')
+      await flushPromises()
+      expect(shortcut.attributes('aria-pressed')).toBe('true')
+      expect(dimensionPicker('group').props('options')).toEqual([{ value: String(provider.groupId), label: `${provider.value} / ${provider.group}` }])
+      expect(dimensionPicker('model').props('options')).toEqual(provider.models.map(model => ({ value: model, label: `${provider.value} / ${model}` })))
+      expect(displayedRows()).toHaveLength(2)
+      expect(displayedRows().every(item => item.platform === provider.value && item.metrics.has_data === false && item.health.overall === 'unknown')).toBe(true)
+      expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: [provider.value], groupIds: [], models: [] }, false, expect.any(AbortSignal))
+    }
+    expect(mocks.getDimensions).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows only the scoped dimensions and never adds a platform from an unselected group or global config', async () => {
+    mocks.getSnapshot.mockResolvedValue({ ...snapshot(), config: { ...config, group_ids: [1], platforms: [
+      { platform: 'openai', enabled: true, models: [] },
+      { platform: 'kimi', enabled: true, models: [] },
+      { platform: 'zhipu', enabled: true, models: [] },
+    ] } })
+    mocks.getDimensions.mockResolvedValue({
+      platforms: [{ value: 'openai', label: 'openai', request_count: 0 }],
+      groups: [{ id: 1, name: 'Selected group', platform: 'openai', platforms: ['openai'], request_count: 0 }],
+      models: [{ value: 'gpt-selected', label: 'gpt-selected', platform: 'openai', group_ids: [1], request_count: 0 }],
+    })
+    wrapper = render()
+    await flushPromises()
+    expect(wrapper.find('[data-testid="platform-openai"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="platform-kimi"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="platform-zhipu"]').exists()).toBe(false)
+    expect(dimensionPicker('group').props('options')).toEqual([{ value: '1', label: 'openai / Selected group' }])
+    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'gpt-selected', label: 'openai / gpt-selected' }])
+  })
+
+  it('shows enabled platform shortcuts from the catalog and switches scope without stale group/model selections', async () => {
+    mocks.getDimensions.mockResolvedValue(platformCatalog())
+    mocks.route.query = { platform: 'openai', group: '1', model: 'gpt-alpha', q: 'search', status: 'healthy', sort: 'name' }
+    wrapper = render()
+    await flushPromises()
+
+    expect(wrapper.findAll('.availability-platforms button').map(item => item.text())).toEqual([
+      'channelMonitorV2.filters.allPlatforms', 'OpenAI', 'Claude', 'Grok', 'DeepSeek', 'Gemini',
+    ])
+    expect(wrapper.get('[data-testid="platform-openai"]').attributes('aria-pressed')).toBe('true')
+    mocks.getSnapshot.mockClear()
+    mocks.getMatrix.mockClear()
+    await wrapper.get('[data-testid="platform-anthropic"]').trigger('click')
+    await flushPromises()
+
+    const scoped = { range: '24h', platforms: ['anthropic'], groupIds: [], models: [] }
+    expect(mocks.getSnapshot).toHaveBeenCalledTimes(1)
+    expect(mocks.getSnapshot).toHaveBeenCalledWith(scoped, false, expect.any(AbortSignal))
+    expect(mocks.getMatrix).toHaveBeenCalledTimes(1)
+    expect(mocks.getMatrix).toHaveBeenCalledWith(scoped, 'platform_group_model', false, expect.any(AbortSignal))
+    expect(dimensionPicker('group').props('options')).toEqual([{ value: '3', label: 'anthropic / Claude group' }])
+    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'claude-critical', label: 'anthropic / claude-critical' }])
+    expect(wrapper.get('[data-testid="platform-anthropic"]').attributes('aria-pressed')).toBe('true')
+    expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ platform: 'anthropic', group: undefined, model: undefined, q: 'search', status: 'healthy', sort: 'name' }) }))
+    expect(JSON.parse(localStorage.getItem('channel-monitor-v2:v1:42')!)).toMatchObject({ platform: ['anthropic'], group: [], model: [] })
+    expect(mocks.getDimensions).toHaveBeenCalledTimes(1)
+
+    // Enabled providers without any calls remain selectable, and incompatible
+    // old dimensions are cleared even when the new provider has no options.
+    await wrapper.get('[data-testid="platform-deepseek"]').trigger('click')
+    await flushPromises()
+    expect(dimensionPicker('group').props('options')).toEqual([])
+    expect(dimensionPicker('model').props('options')).toEqual([])
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ ...scoped, platforms: ['deepseek'] }, false, expect.any(AbortSignal))
+    await wrapper.get('[data-testid="platform-all"]').trigger('click')
+    await flushPromises()
+    expect(dimensionPicker('group').props('options')).toHaveLength(3)
+    expect(dimensionPicker('model').props('options')).toHaveLength(3)
+    expect(wrapper.get('[data-testid="platform-all"]').attributes('aria-pressed')).toBe('true')
+  })
+
+  it('cascades model choices by selected groups and clears a model outside the next group', async () => {
+    mocks.getDimensions.mockResolvedValue(platformCatalog())
+    mocks.route.query = { platform: 'openai', model: 'gpt-alpha' }
+    wrapper = render()
+    await flushPromises()
+    expect(dimensionPicker('model').props('options')).toHaveLength(2)
+
+    dimensionPicker('group').vm.$emit('update:modelValue', ['2'])
+    await flushPromises()
+    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'gpt-image-new', label: 'openai / gpt-image-new' }])
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['openai'], groupIds: [2], models: [] }, false, expect.any(AbortSignal))
+    expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ group: '2', model: undefined }) }))
+  })
+
+  it('keeps compatible dimensions on platform selection and supports older catalogs without model group links', async () => {
+    const catalog = platformCatalog()
+    mocks.getDimensions.mockResolvedValue({ ...catalog, models: catalog.models.map(model => ({ value: model.value, label: model.label, platform: model.platform, request_count: model.request_count })) })
+    mocks.route.query = { group: '1', model: 'gpt-alpha' }
+    wrapper = render()
+    await flushPromises()
+
+    await wrapper.get('[data-testid="platform-openai"]').trigger('click')
+    await flushPromises()
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['openai'], groupIds: [1], models: ['gpt-alpha'] }, false, expect.any(AbortSignal))
+    expect(dimensionPicker('model').props('options')).toHaveLength(2)
+    dimensionPicker('platform').vm.$emit('update:modelValue', ['anthropic', 'grok'])
+    await flushPromises()
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['anthropic', 'grok'], groupIds: [], models: [] }, false, expect.any(AbortSignal))
+    expect(dimensionPicker('model').props('options')).toHaveLength(1)
+  })
+
+  it('includes a composite group under every platform advertised by its catalog models', async () => {
+    const catalog = platformCatalog()
+    mocks.getDimensions.mockResolvedValue({
+      ...catalog,
+      groups: [...catalog.groups, { id: 9, name: 'Mixed group', platform: 'composite', platforms: ['openai', 'anthropic'], request_count: 0 }],
+      models: catalog.models.map(model => ({ ...model, group_ids: [...model.group_ids, 9] })),
+    })
+    mocks.route.query = { platform: 'openai', group: '9', model: 'gpt-alpha' }
+    wrapper = render()
+    await flushPromises()
+    expect(dimensionPicker('group').props('options')).toContainEqual({ value: '9', label: 'composite / Mixed group' })
+    await wrapper.get('[data-testid="platform-anthropic"]').trigger('click')
+    await flushPromises()
+    expect(dimensionPicker('group').props('options')).toContainEqual({ value: '9', label: 'composite / Mixed group' })
+    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'claude-critical', label: 'anthropic / claude-critical' }])
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['anthropic'], groupIds: [9], models: [] }, false, expect.any(AbortSignal))
+    await wrapper.get('[data-testid="platform-grok"]').trigger('click')
+    await flushPromises()
+    expect(dimensionPicker('group').props('options')).toEqual([])
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['grok'], groupIds: [], models: [] }, false, expect.any(AbortSignal))
+  })
+
   it('loads a 24-hour model/group view using the authenticated user API', async () => {
     wrapper = render()
     await flushPromises()

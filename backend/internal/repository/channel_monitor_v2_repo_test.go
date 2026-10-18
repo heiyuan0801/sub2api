@@ -37,11 +37,13 @@ func TestChannelMonitorV2DisplayModelIsPlatformScoped(t *testing.T) {
 		{Platform: "anthropic", Enabled: true, Models: []string{}},
 	}}
 	require.Equal(t, "shared", channelMonitorV2DisplayModel(cfg, "openai", "shared"))
-	require.Equal(t, service.ChannelMonitorV2OtherModel, channelMonitorV2DisplayModel(cfg, "grok", "shared"))
+	require.Equal(t, "shared", channelMonitorV2DisplayModel(cfg, "grok", "shared"))
 	require.Equal(t, "claude-sonnet-4", channelMonitorV2DisplayModel(cfg, "anthropic", "claude-sonnet-4"))
 	// Unconfigured platform still surfaces the real model name.
 	require.Equal(t, "gemini-2.5-pro", channelMonitorV2DisplayModel(cfg, "gemini", "gemini-2.5-pro"))
-	require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{service.ChannelMonitorV2OtherModel}}, cfg, "grok", "shared"))
+	require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{}, cfg, "openai", "shared"))
+	require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{}, cfg, "grok", "shared"))
+	require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{service.ChannelMonitorV2OtherModel}}, cfg, "grok", "shared"))
 }
 
 func TestChannelMonitorV2ImageNamesRemainIndependentWithoutBypassingFilters(t *testing.T) {
@@ -49,11 +51,14 @@ func TestChannelMonitorV2ImageNamesRemainIndependentWithoutBypassingFilters(t *t
 	for _, model := range []string{"gpt-image-2.5", "grok-imagine-image", "gemini-3-pro-image-preview"} {
 		require.Equal(t, model, channelMonitorV2DisplayModel(cfg, "openai", model))
 		require.Equal(t, channelMonitorV2MatrixKey{platform: "openai", groupID: 7, model: model}, channelMonitorV2MatrixDimensionKey(service.ChannelMonitorV2GroupByPlatformGroupModel, cfg, "openai", 7, model))
-		require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{model}}, cfg, "openai", model))
+		require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{model}}, cfg, "openai", model), "image models obey the platform whitelist")
+		unrestricted := service.ChannelMonitorV2Config{Platforms: []service.ChannelMonitorV2PlatformConfig{{Platform: "openai", Enabled: true}}}
+		require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{model}}, unrestricted, "openai", model))
 		require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{"gpt-5"}}, cfg, "openai", model))
 		require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{service.ChannelMonitorV2OtherModel}}, cfg, "openai", model))
 	}
-	require.Equal(t, service.ChannelMonitorV2OtherModel, channelMonitorV2DisplayModel(cfg, "openai", "unlisted-text"))
+	require.Equal(t, "unlisted-text", channelMonitorV2DisplayModel(cfg, "openai", "unlisted-text"))
+	require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{}, cfg, "openai", "unlisted-text"))
 	where, args := channelMonitorV2Where(service.ChannelMonitorV2Filter{
 		RestrictGroups: true, AllowedGroupIDs: []int64{7}, GroupIDs: []int64{7},
 	}, cfg, "m")
@@ -73,7 +78,7 @@ func TestChannelMonitorV2ImageRowsKeepSuccessFailureAndGenerationDuration(t *tes
 			end := start.Add(time.Hour)
 			filter := service.ChannelMonitorV2Filter{Start: start, End: end, Bucket: time.Minute}
 			cfg := service.ChannelMonitorV2Config{
-				Platforms: []service.ChannelMonitorV2PlatformConfig{{Platform: "openai", Enabled: true, Models: []string{"gpt-5"}}},
+				Platforms: []service.ChannelMonitorV2PlatformConfig{{Platform: "openai", Enabled: true, Models: []string{"gpt-5", "gpt-image-2.5", "gpt-image-2.5-pro"}}},
 				GroupIDs:  []int64{7},
 				HealthThresholds: service.ChannelMonitorV2HealthThresholds{GenerationOverrides: []service.ChannelMonitorV2GenerationOverride{{
 					GroupID: 7, Model: "gpt-image-2.5", WarningGenerationMs: 600000, CriticalGenerationMs: 900000,
@@ -149,7 +154,8 @@ func TestChannelMonitorV2MatrixDimensionKey(t *testing.T) {
 	key := channelMonitorV2MatrixDimensionKey(service.ChannelMonitorV2GroupByPlatformGroupModel, cfg, "openai", 7, "gpt-5")
 	require.Equal(t, channelMonitorV2MatrixKey{platform: "openai", groupID: 7, model: "gpt-5"}, key)
 	key = channelMonitorV2MatrixDimensionKey(service.ChannelMonitorV2GroupByPlatformModel, cfg, "openai", 7, "unlisted")
-	require.Equal(t, channelMonitorV2MatrixKey{platform: "openai", model: service.ChannelMonitorV2OtherModel}, key)
+	require.Equal(t, channelMonitorV2MatrixKey{platform: "openai", model: "unlisted"}, key)
+	require.False(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{}, cfg, "openai", "unlisted"))
 	key = channelMonitorV2MatrixDimensionKey(service.ChannelMonitorV2GroupByPlatform, cfg, "openai", 7, "gpt-5")
 	require.Equal(t, channelMonitorV2MatrixKey{platform: "openai"}, key)
 }
@@ -358,20 +364,19 @@ func TestChannelMonitorV2DimensionsExposeSelectableModelNames(t *testing.T) {
 
 	dimensions, err := repo.GetDimensions(context.Background(), filter, cfg)
 	require.NoError(t, err)
-	require.Len(t, dimensions.Models, 4)
+	require.Len(t, dimensions.Models, 3)
 	counts := map[string]int64{}
 	for _, model := range dimensions.Models {
 		require.NotContains(t, model.Value, "\x00")
 		require.NotContains(t, model.Label, "\x00")
 		require.True(t, channelMonitorV2ModelSelected(service.ChannelMonitorV2Filter{Models: []string{model.Value}}, cfg, model.Platform, model.Value))
 		counts[model.Platform+"/"+model.Value] = model.RequestCount
-		if model.Value == service.ChannelMonitorV2OtherModel {
-			require.Equal(t, "Other models", model.Label)
-		}
+		require.NotEqual(t, service.ChannelMonitorV2OtherModel, model.Value)
 	}
 	require.Equal(t, int64(2), counts["openai/gpt-image-2.5"])
 	require.Equal(t, int64(7), counts["grok/gpt-image-2.5"])
-	require.Equal(t, int64(3), counts["openai/"+service.ChannelMonitorV2OtherModel])
+	require.NotContains(t, counts, "openai/"+service.ChannelMonitorV2OtherModel)
+	require.NotContains(t, counts, "openai/unlisted-image-alias")
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 

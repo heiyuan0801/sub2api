@@ -86,6 +86,9 @@ type ChannelMonitorV2Filter struct {
 	Start           time.Time
 	End             time.Time
 	Bucket          time.Duration
+	// Catalog is the server-scoped group directory used to seed models without
+	// traffic. Nil means no catalog reader was installed (standalone callers).
+	Catalog []PlazaGroup
 }
 
 type ChannelMonitorV2Metric struct {
@@ -247,17 +250,19 @@ type ChannelMonitorV2Snapshot struct {
 }
 
 type ChannelMonitorV2Dimension struct {
-	Value        string `json:"value"`
-	Label        string `json:"label"`
-	Platform     string `json:"platform,omitempty"`
-	RequestCount int64  `json:"request_count"`
+	Value        string  `json:"value"`
+	Label        string  `json:"label"`
+	Platform     string  `json:"platform,omitempty"`
+	RequestCount int64   `json:"request_count"`
+	GroupIDs     []int64 `json:"group_ids,omitempty"`
 }
 
 type ChannelMonitorV2GroupDimension struct {
-	ID           int64  `json:"id"`
-	Name         string `json:"name"`
-	Platform     string `json:"platform,omitempty"`
-	RequestCount int64  `json:"request_count"`
+	ID           int64    `json:"id"`
+	Name         string   `json:"name"`
+	Platform     string   `json:"platform,omitempty"`
+	RequestCount int64    `json:"request_count"`
+	Platforms    []string `json:"platforms,omitempty"`
 }
 
 type ChannelMonitorV2Dimensions struct {
@@ -418,7 +423,124 @@ func ChannelMonitorV2BootstrapProgress(now, coveredFrom time.Time, hasData bool)
 type ChannelMonitorV2Service struct {
 	repo     ChannelMonitorV2Repository
 	settings channelMonitorRuntimeReader
+	catalog  channelMonitorV2CatalogReader
 	now      func() time.Time
+}
+
+type channelMonitorV2CatalogReader interface {
+	ListModelCatalog(context.Context) ([]PlazaGroup, error)
+}
+
+func (s *ChannelMonitorV2Service) SetModelCatalogReader(reader channelMonitorV2CatalogReader) {
+	s.catalog = reader
+}
+
+// withModelCatalog carries only monitored, authorized groups to the repository.
+// Query selections are applied there; dimensions keep the full authorized menu.
+func (s *ChannelMonitorV2Service) withModelCatalog(ctx context.Context, filter ChannelMonitorV2Filter, cfg ChannelMonitorV2Config) (ChannelMonitorV2Filter, error) {
+	if s.catalog == nil {
+		return filter, nil
+	}
+	filter.Catalog = []PlazaGroup{}
+	scope := filter
+	scope.GroupIDs = nil
+	groupIDs, empty := ChannelMonitorV2ScopedGroupIDs(scope, cfg)
+	if empty {
+		return filter, nil
+	}
+	groups, err := s.catalog.ListModelCatalog(ctx)
+	if err != nil {
+		return filter, fmt.Errorf("load channel monitor model catalog: %w", err)
+	}
+	for _, group := range groups {
+		if group.ID <= 0 || (len(groupIDs) > 0 && !channelMonitorV2ContainsGroup(groupIDs, group.ID)) {
+			continue
+		}
+		filter.Catalog = append(filter.Catalog, group)
+	}
+	return filter, nil
+}
+
+// Discover concrete platforms only inside the configured monitor/viewer scope.
+// Existing platform policies (including disabled switches and whitelists) win;
+// a newly added group platform defaults to all account-supported models.
+func (s *ChannelMonitorV2Service) prepareQuery(ctx context.Context, filter ChannelMonitorV2Filter) (ChannelMonitorV2Filter, *ChannelMonitorV2Config, error) {
+	cfg, err := s.getEnabledConfig(ctx)
+	if err != nil {
+		return filter, nil, err
+	}
+	filter, err = s.withModelCatalog(ctx, filter, *cfg)
+	if err != nil {
+		return filter, nil, err
+	}
+	platforms := map[string]bool{}
+	for _, platform := range cfg.Platforms {
+		platforms[platform.Platform] = true
+	}
+	discovered := map[string]bool{}
+	for _, group := range filter.Catalog {
+		if isConcreteRequestPlatform(group.Platform) && !platforms[group.Platform] {
+			discovered[group.Platform] = true
+		}
+		for _, model := range group.Models {
+			if isConcreteRequestPlatform(model.Platform) && !platforms[model.Platform] {
+				discovered[model.Platform] = true
+			}
+		}
+	}
+	if len(discovered) > 0 {
+		names := make([]string, 0, len(discovered))
+		for name := range discovered {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		cfg.Platforms = append([]ChannelMonitorV2PlatformConfig(nil), cfg.Platforms...)
+		for _, name := range names {
+			cfg.Platforms = append(cfg.Platforms, ChannelMonitorV2PlatformConfig{Platform: name, Enabled: true, Models: []string{}})
+		}
+	}
+	return filter, cfg, nil
+}
+
+func channelMonitorV2ContainsGroup(groups []int64, id int64) bool {
+	for _, group := range groups {
+		if group == id {
+			return true
+		}
+	}
+	return false
+}
+
+// ChannelMonitorV2ScopedGroupIDs is shared by catalog and metric queries so an
+// empty intersection can never be interpreted as unrestricted access.
+func ChannelMonitorV2ScopedGroupIDs(filter ChannelMonitorV2Filter, cfg ChannelMonitorV2Config) ([]int64, bool) {
+	groups := append([]int64(nil), cfg.GroupIDs...)
+	intersect := func(wanted []int64) {
+		if len(groups) == 0 {
+			groups = append([]int64(nil), wanted...)
+			return
+		}
+		out := make([]int64, 0, len(groups))
+		for _, id := range groups {
+			if channelMonitorV2ContainsGroup(wanted, id) {
+				out = append(out, id)
+			}
+		}
+		groups = out
+	}
+	if filter.RestrictGroups {
+		intersect(filter.AllowedGroupIDs)
+		if len(groups) == 0 {
+			return nil, true
+		}
+	}
+	if len(filter.GroupIDs) > 0 {
+		intersect(filter.GroupIDs)
+		if len(groups) == 0 {
+			return nil, true
+		}
+	}
+	return groups, false
 }
 
 func NewChannelMonitorV2Service(repo ChannelMonitorV2Repository) *ChannelMonitorV2Service {
@@ -510,7 +632,7 @@ func (s *ChannelMonitorV2Service) ParseFilter(rangeValue string, platforms, mode
 }
 
 func (s *ChannelMonitorV2Service) Dimensions(ctx context.Context, filter ChannelMonitorV2Filter) (*ChannelMonitorV2Dimensions, error) {
-	cfg, err := s.getEnabledConfig(ctx)
+	filter, cfg, err := s.prepareQuery(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +647,7 @@ func (s *ChannelMonitorV2Service) Dimensions(ctx context.Context, filter Channel
 }
 
 func (s *ChannelMonitorV2Service) Snapshot(ctx context.Context, filter ChannelMonitorV2Filter, admin bool) (*ChannelMonitorV2Snapshot, error) {
-	cfg, err := s.getEnabledConfig(ctx)
+	filter, cfg, err := s.prepareQuery(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -540,7 +662,7 @@ func (s *ChannelMonitorV2Service) Snapshot(ctx context.Context, filter ChannelMo
 }
 
 func (s *ChannelMonitorV2Service) Models(ctx context.Context, filter ChannelMonitorV2Filter, admin bool) (*ChannelMonitorV2List[ChannelMonitorV2ModelRow], error) {
-	cfg, err := s.getEnabledConfig(ctx)
+	filter, cfg, err := s.prepareQuery(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +683,7 @@ func (s *ChannelMonitorV2Service) Matrix(ctx context.Context, filter ChannelMoni
 	if !groupBy.Valid() {
 		return nil, fmt.Errorf("%w: %s", ErrChannelMonitorV2InvalidGroupBy, groupBy)
 	}
-	cfg, err := s.getEnabledConfig(ctx)
+	filter, cfg, err := s.prepareQuery(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -610,7 +732,7 @@ func (s *ChannelMonitorV2Service) Errors(ctx context.Context, filter ChannelMoni
 // Non-admin callers receive category rates + ignored flags only: absolute Count
 // is zeroed and Details (upstream messages / status codes / volume) are omitted.
 func (s *ChannelMonitorV2Service) ErrorsForViewer(ctx context.Context, filter ChannelMonitorV2Filter, admin bool) (*ChannelMonitorV2List[ChannelMonitorV2ErrorRow], error) {
-	cfg, err := s.getEnabledConfig(ctx)
+	filter, cfg, err := s.prepareQuery(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -704,7 +826,7 @@ func redactChannelMonitorV2Metric(m *ChannelMonitorV2Metric, hideThroughput bool
 }
 
 func (s *ChannelMonitorV2Service) Users(ctx context.Context, filter ChannelMonitorV2Filter, viewerID int64, admin bool) (*ChannelMonitorV2List[ChannelMonitorV2UserRow], error) {
-	cfg, err := s.getEnabledConfig(ctx)
+	filter, cfg, err := s.prepareQuery(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
