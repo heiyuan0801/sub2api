@@ -143,6 +143,10 @@ func (s *OpenAIGatewayService) forwardOpenAIWSV2(
 		}
 	}
 	storeDisabled := s.isOpenAIWSStoreDisabledInRequest(reqBody, account)
+	if err := checkClusterContinuation(ctx, stateStore, groupID, previousResponseID, storeDisabled); err != nil {
+		c.JSON(409, gin.H{"error": gin.H{"type": "invalid_request_error", "code": "cluster_continuation_unavailable", "message": err.Error()}})
+		return nil, err
+	}
 	if stateStore != nil && storeDisabled && previousResponseID == "" && sessionHash != "" {
 		if connID, ok := stateStore.GetSessionConn(groupID, sessionHash); ok {
 			preferredConnID = connID

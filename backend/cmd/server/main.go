@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -91,7 +92,9 @@ func main() {
 	}
 
 	// Normal server mode
-	runMainServer()
+	if err := runMainServer(); err != nil {
+		log.Fatalf("Server startup failed: %v", err)
+	}
 }
 
 func runSetupServer() {
@@ -131,7 +134,7 @@ func runSetupServer() {
 	}
 }
 
-func runMainServer() {
+func runMainServer() error {
 	cfg, err := config.LoadForBootstrap()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
@@ -153,6 +156,27 @@ func runMainServer() {
 		log.Fatalf("Failed to initialize application: %v", err)
 	}
 	defer app.Cleanup()
+	clusterCtx, stopCluster := context.WithCancel(context.Background())
+	clusterStopped := make(chan struct{})
+	if cfg.Cluster.Enabled {
+		settingsCtx, cancelSettings := context.WithTimeout(clusterCtx, 5*time.Second)
+		err := app.Settings.InitializeClusterSettings(settingsCtx)
+		cancelSettings()
+		if err != nil {
+			stopCluster()
+			return fmt.Errorf("cluster node cannot load shared runtime settings: %w", err)
+		}
+		go func() {
+			defer close(clusterStopped)
+			app.Settings.RunClusterSettingsRefresh(clusterCtx)
+		}()
+	} else {
+		close(clusterStopped)
+	}
+	defer func() { stopCluster(); <-clusterStopped }()
+	if cfg.Cluster.Enabled {
+		log.Printf("Cluster node %s started with role %s", cfg.Cluster.NodeID, cfg.Cluster.Role)
+	}
 	if app.PluginManager != nil {
 		if err := app.PluginManager.Start(context.Background()); err != nil {
 			log.Printf("Plugin manager started in degraded state: %v", err)
@@ -184,12 +208,21 @@ func runMainServer() {
 
 	log.Println("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	var propagation time.Duration
+	if cfg.Cluster.Enabled {
+		propagation = time.Duration(cfg.Cluster.DrainSeconds) * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout()+propagation)
 	defer cancel()
 
-	if err := app.Server.Shutdown(ctx); err != nil {
+	if cfg.Cluster.Enabled {
+		if err := app.NodeRuntime.Drain(ctx, app.Server, propagation); err != nil {
+			log.Printf("Cluster drain deadline reached: %v", err)
+		}
+	} else if err := app.Server.Shutdown(ctx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
 	}
 
 	log.Println("Server exited")
+	return nil
 }

@@ -327,6 +327,9 @@ func (s *OpenAIGatewayService) getOpenAIWSStateStore() OpenAIWSStateStore {
 	s.openaiWSStateStoreOnce.Do(func() {
 		if s.openaiWSStateStore == nil {
 			s.openaiWSStateStore = NewOpenAIWSStateStore(s.cache)
+			if s.cfg != nil && s.cfg.Cluster.Enabled {
+				s.openaiWSStateStore = NewClusterOpenAIWSStateStore(s.cache, s.cfg.Cluster.NodeID)
+			}
 		}
 	})
 	return s.openaiWSStateStore

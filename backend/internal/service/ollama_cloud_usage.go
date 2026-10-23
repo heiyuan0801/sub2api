@@ -442,7 +442,9 @@ func ProvideOllamaCloudUsageService(
 	svc := NewOllamaCloudUsageService(accountRepo, httpUpstream, settingService, encryptor, keyConfigured)
 	svc.lockCache = lockCache
 	svc.db = db
-	svc.Start()
+	if cfg.RunsBackgroundJobs() {
+		svc.Start()
+	}
 	return svc
 }
 

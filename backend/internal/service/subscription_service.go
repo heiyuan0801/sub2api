@@ -7,6 +7,8 @@ import (
 	"math/rand/v2"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
@@ -50,10 +52,15 @@ type SubscriptionService struct {
 	entClient           *dbent.Client
 
 	// L1 缓存：加速中间件热路径的订阅查询
-	subCacheL1     *ristretto.Cache
-	subCacheGroup  singleflight.Group
-	subCacheTTL    time.Duration
-	subCacheJitter int // 抖动百分比
+	subCacheL1            *ristretto.Cache
+	subCacheGroup         singleflight.Group
+	subCacheTTL           time.Duration
+	subCacheJitter        int // 抖动百分比
+	subInvalidationOnce   sync.Once
+	subInvalidationCancel context.CancelFunc
+	subInvalidationWG     sync.WaitGroup
+	subCacheEpoch         atomic.Uint64
+	subCacheWriteMu       sync.RWMutex
 
 	maintenanceQueue *SubscriptionMaintenanceQueue
 	now              func() time.Time
@@ -89,6 +96,10 @@ func (s *SubscriptionService) initMaintenanceQueue(cfg *config.Config) {
 func (s *SubscriptionService) Stop() {
 	if s == nil {
 		return
+	}
+	if s.subInvalidationCancel != nil {
+		s.subInvalidationCancel()
+		s.subInvalidationWG.Wait()
 	}
 	if s.maintenanceQueue != nil {
 		s.maintenanceQueue.Stop()
@@ -145,7 +156,7 @@ func (s *SubscriptionService) InvalidateSubCache(userID, groupID int64) {
 	if s.subCacheL1 == nil {
 		return
 	}
-	s.subCacheL1.Del(subCacheKey(userID, groupID))
+	s.invalidateSubCacheKeySync(subCacheKey(userID, groupID))
 }
 
 // InvalidateSubCacheSync 失效订阅 L1 缓存并等待 Ristretto 删除操作生效。
@@ -157,6 +168,10 @@ func (s *SubscriptionService) invalidateSubCacheKeySync(key string) {
 	if s.subCacheL1 == nil {
 		return
 	}
+	s.subCacheWriteMu.Lock()
+	defer s.subCacheWriteMu.Unlock()
+	s.subCacheEpoch.Add(1)
+	s.subCacheGroup.Forget(key)
 	s.subCacheL1.Del(key)
 	s.subCacheL1.Wait()
 }
@@ -166,11 +181,7 @@ func (s *SubscriptionService) StartSubCacheInvalidationSubscriber(ctx context.Co
 	if s.billingCacheService == nil || s.subCacheL1 == nil {
 		return
 	}
-	if err := s.billingCacheService.SubscribeSubscriptionCacheInvalidation(ctx, func(cacheKey string) {
-		s.invalidateSubCacheKeySync(cacheKey)
-	}); err != nil {
-		log.Printf("Warning: failed to start subscription cache invalidation subscriber: %v", err)
-	}
+	s.startSubscriptionInvalidation(ctx)
 }
 
 func (s *SubscriptionService) invalidateSubscriptionCaches(userID, groupID int64) error {
@@ -747,7 +758,10 @@ func (s *SubscriptionService) GetActiveSubscription(ctx context.Context, userID,
 
 	// L1 缓存命中：返回浅拷贝
 	if s.subCacheL1 != nil {
-		if v, ok := s.subCacheL1.Get(key); ok {
+		s.subCacheWriteMu.RLock()
+		v, ok := s.subCacheL1.Get(key)
+		s.subCacheWriteMu.RUnlock()
+		if ok {
 			if sub, ok := v.(*UserSubscription); ok {
 				cp := *sub
 				return &cp, nil
@@ -757,13 +771,19 @@ func (s *SubscriptionService) GetActiveSubscription(ctx context.Context, userID,
 
 	// singleflight 防止并发击穿
 	value, err, _ := s.subCacheGroup.Do(key, func() (any, error) {
+		epoch := s.subCacheEpoch.Load()
 		sub, err := s.userSubRepo.GetActiveByUserIDAndGroupID(ctx, userID, groupID)
 		if err != nil {
 			return nil, err // 直接透传 repo 已翻译的错误（NotFound → ErrSubscriptionNotFound，其他错误原样返回）
 		}
 		// 写入 L1 缓存
 		if s.subCacheL1 != nil {
-			_ = s.subCacheL1.SetWithTTL(key, sub, 1, s.jitteredTTL(s.subCacheTTL))
+			s.subCacheWriteMu.Lock()
+			if s.subCacheEpoch.Load() == epoch {
+				_ = s.subCacheL1.SetWithTTL(key, sub, 1, s.jitteredTTL(s.subCacheTTL))
+				s.subCacheL1.Wait()
+			}
+			s.subCacheWriteMu.Unlock()
 		}
 		return sub, nil
 	})

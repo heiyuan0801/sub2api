@@ -1,0 +1,24 @@
+[Unit]
+Description=Sub2API private load balancer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=haproxy
+Group=haproxy
+ExecStartPre=/usr/sbin/haproxy -c -f /etc/sub2api/haproxy.cfg
+ExecStart=/usr/sbin/haproxy -W -db -f /etc/sub2api/haproxy.cfg
+ExecReload=/usr/sbin/haproxy -c -f /etc/sub2api/haproxy.cfg
+ExecReload=/bin/kill -USR2 $MAINPID
+KillSignal=SIGUSR1
+KillMode=mixed
+TimeoutStopSec=3700
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=100000
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

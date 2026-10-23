@@ -1,0 +1,7 @@
+{
+  "listen": "127.0.0.1:8088",
+  "nodes": [
+    { "id": "us-primary", "address": "10.70.0.1:8080", "role": "primary", "weight": 100 },
+    { "id": "hk-worker", "address": "10.70.0.2:8080", "role": "worker", "weight": 100 }
+  ]
+}

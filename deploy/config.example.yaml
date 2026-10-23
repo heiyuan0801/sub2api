@@ -10,6 +10,17 @@
 # Server Configuration
 # 服务器配置
 # =============================================================================
+cluster:
+  # Opt-in multi-server operation; see deploy/CLUSTER.md.
+  # All nodes must share PostgreSQL, Redis and explicit JWT/TOTP secrets.
+  enabled: false
+  node_id: ""
+  role: primary # exactly one primary, all other nodes worker
+  drain_seconds: 10
+  shutdown_timeout_seconds: 120
+  # 集群默认 closed：预留依赖失败时拒绝新收费请求。open 显式沿用旧降级策略。
+  billing_failure_mode: "closed"
+
 server:
   # Bind address (0.0.0.0 for all interfaces)
   # 绑定地址（0.0.0.0 表示监听所有网络接口）

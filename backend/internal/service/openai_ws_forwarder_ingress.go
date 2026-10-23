@@ -563,6 +563,9 @@ func (s *OpenAIGatewayService) ProxyResponsesWebSocketFromClient(
 		}
 	}
 	refreshIngressRouteState(firstPayload)
+	if err := checkClusterContinuation(ctx, stateStore, groupID, firstPayload.previousResponseID, storeDisabled && !useHTTPBridge); err != nil {
+		return NewOpenAIWSClientCloseError(coderws.StatusPolicyViolation, err.Error(), err)
+	}
 
 	if useHTTPBridge {
 		logOpenAIWSModeInfo(

@@ -53,6 +53,21 @@ func (s *OpenAIGatewayService) findOpenAICompatAnthropicDigestPromptCacheKey(acc
 		return "", ""
 	}
 	chain := digestChain
+	if s.cfg != nil && s.cfg.Cluster.Enabled {
+		if shared, ok := s.cache.(SharedSessionCache); ok {
+			keys, chains := sessionDigestKeys("openai-compat:"+ns, chain)
+			ctx, cancel := sessionCacheContext()
+			values, err := shared.GetSessionValues(ctx, keys)
+			cancel()
+			sharedSessionWarning(err)
+			for i, value := range values {
+				var binding openAICompatAnthropicDigestBinding
+				if json.Unmarshal([]byte(value), &binding) == nil && time.Now().Before(binding.ExpiresAt) && binding.PromptCacheKey != "" {
+					return binding.PromptCacheKey, chains[i]
+				}
+			}
+		}
+	}
 	for {
 		if raw, ok := s.openaiCompatAnthropicDigestSessions.Load(ns + chain); ok {
 			if binding, ok := raw.(openAICompatAnthropicDigestBinding); ok {
@@ -85,6 +100,16 @@ func (s *OpenAIGatewayService) bindOpenAICompatAnthropicDigestPromptCacheKey(acc
 		ExpiresAt:      time.Now().Add(s.openAIWSResponseStickyTTL()),
 	}
 	s.openaiCompatAnthropicDigestSessions.Store(ns+digestChain, binding)
+	if s.cfg != nil && s.cfg.Cluster.Enabled {
+		if shared, ok := s.cache.(SharedSessionCache); ok {
+			value, _ := json.Marshal(binding)
+			ctx, cancel := sessionCacheContext()
+			sharedSessionWarning(shared.SetSessionValue(ctx, sessionMetadataKey("digest", "openai-compat:"+ns, digestChain), string(value), time.Until(binding.ExpiresAt)))
+			cancel()
+			// Redis owns TTL cleanup; avoid an unbounded per-process sync.Map.
+			s.openaiCompatAnthropicDigestSessions.Delete(ns + digestChain)
+		}
+	}
 	if oldDigestChain != "" && oldDigestChain != digestChain {
 		s.openaiCompatAnthropicDigestSessions.Delete(ns + oldDigestChain)
 	}

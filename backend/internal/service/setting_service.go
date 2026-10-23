@@ -123,6 +123,9 @@ type SettingService struct {
 	cfg                         *config.Config
 	onUpdate                    func() // Callback when settings are updated (for cache invalidation)
 	version                     string // Application version
+	clusterSettingsLastSuccess  atomic.Int64
+	clusterSettingsFailures     atomic.Uint64
+	clusterSettingsVersion      atomic.Value
 	webSearchManagerBuilder     WebSearchManagerBuilder
 	antigravityUAVersionCache   atomic.Value // *cachedAntigravityUserAgentVersion
 	antigravityUAVersionSF      singleflight.Group

@@ -22,6 +22,7 @@ import (
 
 // ProviderSet 提供服务器层的依赖
 var ProviderSet = wire.NewSet(
+	ProvideNodeRuntime,
 	ProvideRouter,
 	ProvideHTTPServer,
 )
@@ -42,13 +43,21 @@ func ProvideRouter(
 	settingService *service.SettingService,
 	compositeResolver *service.CompositeRouteResolver,
 	redisClient *redis.Client,
+	nodeRuntime *NodeRuntime,
 ) *gin.Engine {
 	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
+	if cfg.Cluster.Enabled {
+		nodeRuntime.checks = append(nodeRuntime.checks, settingService.CheckClusterSettingsFresh)
+		nodeRuntime.settingsStatus = settingService.ClusterSettingsStatus
+		slog.Info("cluster node capacity", "node", cfg.Cluster.NodeID, "database_pool_limit", cfg.Database.MaxOpenConns, "redis_pool_limit", cfg.Redis.PoolSize)
+	}
 	r.Use(middleware2.Recovery())
+	r.Use(nodeRuntime.Middleware())
+	r.GET("/readyz", nodeRuntime.Ready)
 	configureTrustedProxies(r, cfg.Server)
 
 	// Wire up websearch Manager builder so it initializes on startup and rebuilds on config save.

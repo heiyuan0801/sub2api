@@ -66,6 +66,7 @@ const DefaultUpstreamResponseReadMaxBytes int64 = 128 * 1024 * 1024
 const DefaultModelsListReadMaxBytes int64 = 8 * 1024 * 1024
 
 type Config struct {
+	Cluster                 ClusterConfig                 `mapstructure:"cluster"`
 	Server                  ServerConfig                  `mapstructure:"server"`
 	Log                     LogConfig                     `mapstructure:"log"`
 	CORS                    CORSConfig                    `mapstructure:"cors"`
@@ -1972,6 +1973,12 @@ func load(allowMissingJWTSecret bool) (*Config, error) {
 		cfg.Gateway.UserMessageQueue.Mode = ""
 	}
 
+	// Cluster nodes must use the existing installation's identical secrets.
+	// Reject before bootstrap can generate a per-process key or substitute JWT.
+	if cfg.Cluster.Enabled && (strings.TrimSpace(cfg.Totp.EncryptionKey) == "" || cfg.JWT.Secret == "") {
+		return nil, fmt.Errorf("cluster mode requires explicit shared jwt.secret and totp.encryption_key")
+	}
+
 	// Auto-generate TOTP encryption key if not set (32 bytes = 64 hex chars for AES-256)
 	cfg.Totp.EncryptionKey = strings.TrimSpace(cfg.Totp.EncryptionKey)
 	if cfg.Totp.EncryptionKey == "" {
@@ -2037,6 +2044,12 @@ func configureConfigSource(setConfigFile, addConfigPath func(string)) {
 }
 
 func setDefaults() {
+	viper.SetDefault("cluster.enabled", false)
+	viper.SetDefault("cluster.node_id", "")
+	viper.SetDefault("cluster.role", "primary")
+	viper.SetDefault("cluster.drain_seconds", 10)
+	viper.SetDefault("cluster.shutdown_timeout_seconds", 120)
+	viper.SetDefault("cluster.billing_failure_mode", "closed")
 	viper.SetDefault("run_mode", RunModeStandard)
 	viper.SetDefault("gateway.min_output_tokens", 128)
 	viper.SetDefault("simple_mode.auto_create_default_groups", true)
@@ -2711,6 +2724,9 @@ func setEnvReachableDefaults() {
 }
 
 func (c *Config) Validate() error {
+	if err := c.Cluster.Validate(); err != nil {
+		return err
+	}
 	if c.Gateway.MinOutputTokens < 16 {
 		return fmt.Errorf("gateway.min_output_tokens must be at least 16")
 	}

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -95,7 +96,9 @@ type OpenAIWSStateStore interface {
 }
 
 type defaultOpenAIWSStateStore struct {
-	cache GatewayCache
+	cache      GatewayCache
+	shared     SharedSessionCache
+	instanceID string
 
 	responseToAccountMu  sync.RWMutex
 	responseToAccount    map[string]openAIWSAccountBinding
@@ -127,6 +130,13 @@ func NewOpenAIWSStateStore(cache GatewayCache) OpenAIWSStateStore {
 	}
 	store.lastCleanupUnixNano.Store(time.Now().UnixNano())
 	return store
+}
+
+func NewClusterOpenAIWSStateStore(cache GatewayCache, nodeID string) OpenAIWSStateStore {
+	s := NewOpenAIWSStateStore(cache).(*defaultOpenAIWSStateStore)
+	s.shared, _ = cache.(SharedSessionCache)
+	s.instanceID = nodeID + ":" + uuid.NewString()
+	return s
 }
 
 func (s *defaultOpenAIWSStateStore) BindHTTPResponseOwner(ctx context.Context, groupID int64, responseID string, userID, apiKeyID int64, ttl time.Duration) error {
@@ -201,6 +211,12 @@ func (s *defaultOpenAIWSStateStore) BindResponseAccount(ctx context.Context, gro
 		return nil
 	}
 	ttl = normalizeOpenAIWSTTL(ttl)
+	_, writesRoute := s.cache.(sharedResponseRouteWriter)
+	if s.shared != nil && !writesRoute {
+		sharedCtx, cancel := sessionCacheContext()
+		sharedSessionWarning(s.shared.SetSessionValue(sharedCtx, responseOriginKey(groupID, id), s.instanceID, ttl))
+		cancel()
+	}
 	s.maybeCleanup()
 
 	expiresAt := time.Now().Add(ttl)
@@ -216,6 +232,9 @@ func (s *defaultOpenAIWSStateStore) BindResponseAccount(ctx context.Context, gro
 	cacheKey := openAIWSResponseAccountCacheKey(id)
 	cacheCtx, cancel := withOpenAIWSStateStoreRedisTimeout(ctx)
 	defer cancel()
+	if s.shared != nil && writesRoute {
+		return s.cache.(sharedResponseRouteWriter).SetResponseRoute(cacheCtx, groupID, id, cacheKey, accountID, responseOriginKey(groupID, id), s.instanceID, ttl)
+	}
 	return s.cache.SetSessionAccountID(cacheCtx, groupID, cacheKey, accountID, ttl)
 }
 
@@ -338,6 +357,11 @@ func (s *defaultOpenAIWSStateStore) BindSessionTurnState(groupID int64, sessionH
 		return
 	}
 	ttl = normalizeOpenAIWSTTL(ttl)
+	if s.shared != nil {
+		ctx, cancel := sessionCacheContext()
+		sharedSessionWarning(s.shared.SetSessionValue(ctx, "turn:"+key, state, ttl))
+		cancel()
+	}
 	s.maybeCleanup()
 
 	s.sessionToTurnStateMu.Lock()
@@ -353,6 +377,17 @@ func (s *defaultOpenAIWSStateStore) GetSessionTurnState(groupID int64, sessionHa
 	key := openAIWSSessionTurnStateKey(groupID, sessionHash)
 	if key == "" {
 		return "", false
+	}
+	if s.shared != nil {
+		ctx, cancel := sessionCacheContext()
+		values, err := s.shared.GetSessionValues(ctx, []string{"turn:" + key})
+		cancel()
+		sharedSessionWarning(err)
+		// Turn state is mutable. Never resurrect a peer-invalidated state from L1.
+		if err != nil || len(values) == 0 {
+			return "", false
+		}
+		return values[0], values[0] != ""
 	}
 	s.maybeCleanup()
 
@@ -370,6 +405,11 @@ func (s *defaultOpenAIWSStateStore) DeleteSessionTurnState(groupID int64, sessio
 	key := openAIWSSessionTurnStateKey(groupID, sessionHash)
 	if key == "" {
 		return
+	}
+	if s.shared != nil {
+		ctx, cancel := sessionCacheContext()
+		sharedSessionWarning(s.shared.DeleteSessionValue(ctx, "turn:"+key))
+		cancel()
 	}
 	s.sessionToTurnStateMu.Lock()
 	delete(s.sessionToTurnState, key)

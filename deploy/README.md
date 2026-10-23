@@ -4,6 +4,10 @@ This directory contains files for deploying Sub2API on Linux servers and Apple-s
 
 ## Deployment Methods
 
+For multiple application servers sharing PostgreSQL and Redis, see
+[多服务器负载均衡](CLUSTER.md). It includes primary/worker settings, a server
+inventory generator, HAProxy routing, readiness checks and rolling shutdown.
+
 | Method | Best For | Setup Wizard |
 |--------|----------|--------------|
 | **Docker Compose** | Quick setup, all-in-one | Not needed (auto-setup) |

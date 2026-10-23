@@ -215,6 +215,10 @@ func (s *BillingCacheService) inflightReservationConfig() (config.InflightReserv
 		return config.InflightReservationConfig{}, false
 	}
 	cfg := s.cfg.Billing.InflightReservation
+	if s.cfg.Cluster.StrictBilling() {
+		cfg.Enabled = true
+		cfg.FailClosedOnUnpriced = true
+	}
 	if !cfg.Enabled || s.cfg.RunMode == config.RunModeSimple {
 		return cfg, false
 	}
@@ -268,14 +272,18 @@ func inflightAPIKeyScope(apiKeyID int64) string {
 
 // reserveInflightScope 在 scope 维度为 amount 登记在途预留并挂到 res 上（res 为 nil 时新建句柄），
 // 返回句柄与登记前该 scope 下其他在途预留的合计。开关关闭 / 缓存不支持 / Redis 执行失败时不登记（fail-open），合计按 0。
-func (s *BillingCacheService) reserveInflightScope(ctx context.Context, res *InflightReservation, userID int64, scope string, amount float64) (*InflightReservation, float64) {
+func (s *BillingCacheService) reserveInflightScope(ctx context.Context, res *InflightReservation, userID int64, scope string, amount float64) (*InflightReservation, float64, error) {
 	cfg, ok := s.inflightReservationConfig()
 	if !ok {
-		return res, 0
+		return res, 0, nil
 	}
 	sc, ok := s.cache.(InflightScopeReservationCache)
 	if !ok || sc == nil {
-		return res, 0
+		if s.strictClusterBilling() {
+			res.Release()
+			return nil, 0, ErrBillingServiceUnavailable
+		}
+		return res, 0, nil
 	}
 	if res == nil {
 		ttl := defaultInflightReservationTTL
@@ -289,12 +297,16 @@ func (s *BillingCacheService) reserveInflightScope(ctx context.Context, res *Inf
 	pending, err := sc.ReserveInflightScope(reserveCtx, scope, res.requestID, amount, res.ttl)
 	cancel()
 	if err != nil {
+		if s.strictClusterBilling() {
+			res.Release()
+			return nil, 0, ErrBillingServiceUnavailable.WithCause(err)
+		}
 		logger.LegacyPrintf("service.billing_cache", "Warning: inflight reservation failed for %s (fail-open): %v", scope, err)
-		return res, 0
+		return res, 0, nil
 	}
 	res.scopeCache = sc
 	res.scopes = append(res.scopes, scope)
-	return res, pending
+	return res, pending, nil
 }
 
 func (s *BillingCacheService) reserveInflight(ctx context.Context, user *User, group *Group, subscription *UserSubscription, estimate float64, renew, capped bool) (*InflightReservation, error) {
@@ -313,11 +325,18 @@ func (s *BillingCacheService) reserveInflight(ctx context.Context, user *User, g
 	}
 	rc, ok := s.cache.(InflightBalanceReservationCache)
 	if !ok || rc == nil {
+		if s.strictClusterBilling() {
+			return nil, ErrBillingServiceUnavailable
+		}
 		return nil, nil
 	}
 
 	balance, err := s.GetUserBalance(ctx, user.ID)
 	if err != nil {
+		if s.strictClusterBilling() {
+			logger.LegacyPrintf("service.billing_cache", "cluster billing admission rejected: reservation unavailable")
+			return nil, ErrBillingServiceUnavailable.WithCause(err)
+		}
 		logger.LegacyPrintf("service.billing_cache", "Warning: inflight reservation balance read failed for user %d (fail-open): %v", user.ID, err)
 		return nil, nil
 	}
@@ -331,6 +350,10 @@ func (s *BillingCacheService) reserveInflight(ctx context.Context, user *User, g
 	allowed, inflight, err := rc.ReserveInflightBalance(reserveCtx, user.ID, requestID, estimate, balance, ttl)
 	cancel()
 	if err != nil {
+		if s.strictClusterBilling() {
+			logger.LegacyPrintf("service.billing_cache", "cluster billing admission rejected: reservation unavailable")
+			return nil, ErrBillingServiceUnavailable.WithCause(err)
+		}
 		logger.LegacyPrintf("service.billing_cache", "Warning: inflight reservation failed for user %d (fail-open): %v", user.ID, err)
 		return nil, nil
 	}
@@ -773,4 +796,8 @@ func (s *OpenAIGatewayService) EstimateInflightReservation(ctx context.Context, 
 		return 0, false
 	}
 	return s.inflightEstimateDeps().estimate(ctx, apiKey, req)
+}
+
+func (s *BillingCacheService) strictClusterBilling() bool {
+	return s != nil && s.cfg != nil && s.cfg.Cluster.StrictBilling()
 }

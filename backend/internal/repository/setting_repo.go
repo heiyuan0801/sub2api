@@ -3,6 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
+	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/redis/go-redis/v9"
+	"log/slog"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/ent"
@@ -33,13 +36,68 @@ func (r *settingRepository) SetContentModerationConfig(ctx context.Context, valu
 		return err
 	}
 	if tx != nil {
-		return tx.Commit()
+		return r.notifyChange(ctx, tx.Commit())
 	}
-	return nil
+	return r.notifyChange(ctx, nil)
 }
 
 type settingRepository struct {
-	client *ent.Client
+	client       *ent.Client
+	clusterRedis *redis.Client
+}
+
+func ProvideSettingRepository(client *ent.Client, rdb *redis.Client, cfg *config.Config) service.SettingRepository {
+	r := &settingRepository{client: client}
+	if cfg != nil && cfg.Cluster.Enabled {
+		r.clusterRedis = rdb
+	}
+	return r
+}
+
+// Events carry no setting names or values. Periodic snapshots cover lost events.
+func (r *settingRepository) notifyChange(ctx context.Context, writeErr error) error {
+	if writeErr == nil && r.clusterRedis != nil {
+		pubCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+		defer cancel()
+		if err := r.clusterRedis.Publish(pubCtx, "cluster:settings:changed", "changed").Err(); err != nil {
+			slog.Warn("cluster settings notification unavailable; polling will reconcile")
+		}
+	}
+	return writeErr
+}
+
+func (r *settingRepository) SubscribeSettingChanges(ctx context.Context) (<-chan struct{}, func(), error) {
+	if r.clusterRedis == nil {
+		return nil, func() {}, nil
+	}
+	pubsub := r.clusterRedis.Subscribe(ctx, "cluster:settings:changed")
+	readyCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	_, err := pubsub.Receive(readyCtx)
+	cancel()
+	if err != nil {
+		_ = pubsub.Close()
+		return nil, func() {}, err
+	}
+	ch := make(chan struct{}, 1)
+	go func() {
+		defer close(ch)
+		messages := pubsub.Channel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case _, ok := <-messages:
+				if !ok {
+					return
+				}
+				select {
+				case ch <- struct{}{}:
+				default:
+				}
+			}
+		}
+	}()
+	return ch, func() { _ = pubsub.Close() }, nil
 }
 
 func NewSettingRepository(client *ent.Client) service.SettingRepository {
@@ -72,7 +130,7 @@ func (r *settingRepository) GetValue(ctx context.Context, key string) (string, e
 
 func (r *settingRepository) Set(ctx context.Context, key, value string) error {
 	now := time.Now()
-	return r.client.Setting.
+	err := r.client.Setting.
 		Create().
 		SetKey(key).
 		SetValue(value).
@@ -80,6 +138,7 @@ func (r *settingRepository) Set(ctx context.Context, key, value string) error {
 		OnConflictColumns(setting.FieldKey).
 		UpdateNewValues().
 		Exec(ctx)
+	return r.notifyChange(ctx, err)
 }
 
 func (r *settingRepository) GetMultiple(ctx context.Context, keys []string) (map[string]string, error) {
@@ -108,11 +167,12 @@ func (r *settingRepository) SetMultiple(ctx context.Context, settings map[string
 	for key, value := range settings {
 		builders = append(builders, r.client.Setting.Create().SetKey(key).SetValue(value).SetUpdatedAt(now))
 	}
-	return r.client.Setting.
+	err := r.client.Setting.
 		CreateBulk(builders...).
 		OnConflictColumns(setting.FieldKey).
 		UpdateNewValues().
 		Exec(ctx)
+	return r.notifyChange(ctx, err)
 }
 
 func (r *settingRepository) GetAll(ctx context.Context) (map[string]string, error) {
@@ -130,5 +190,5 @@ func (r *settingRepository) GetAll(ctx context.Context) (map[string]string, erro
 
 func (r *settingRepository) Delete(ctx context.Context, key string) error {
 	_, err := r.client.Setting.Delete().Where(setting.KeyEQ(key)).Exec(ctx)
-	return err
+	return r.notifyChange(ctx, err)
 }

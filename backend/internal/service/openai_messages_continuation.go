@@ -168,6 +168,12 @@ func (s *OpenAIGatewayService) getOpenAICompatSessionResponseID(_ context.Contex
 	if key == "" {
 		return ""
 	}
+	if values, shared := s.clusterCompatRead(key, "disabled", "response"); shared {
+		if values[0] != "" {
+			return ""
+		}
+		return values[1]
+	}
 	raw, ok := s.openaiCompatSessionResponses.Load(key)
 	if !ok {
 		return ""
@@ -200,6 +206,9 @@ func (s *OpenAIGatewayService) bindOpenAICompatSessionResponseID(_ context.Conte
 	if key == "" || id == "" {
 		return
 	}
+	if s.clusterCompatWrite(key, "response", id) {
+		return
+	}
 	binding := openAICompatSessionResponseBinding{
 		ResponseID: id,
 		ExpiresAt:  time.Now().Add(s.openAIWSResponseStickyTTL()),
@@ -224,6 +233,9 @@ func (s *OpenAIGatewayService) deleteOpenAICompatSessionResponseID(_ context.Con
 	}
 	key := openAICompatSessionResponseKey(c, account, promptCacheKey)
 	if key == "" {
+		return
+	}
+	if s.clusterCompatWrite(key, "response", "") {
 		return
 	}
 	raw, ok := s.openaiCompatSessionResponses.Load(key)
@@ -252,6 +264,9 @@ func (s *OpenAIGatewayService) disableOpenAICompatSessionContinuation(_ context.
 	if key == "" {
 		return
 	}
+	if s.clusterCompatWrite(key, "disabled", "1") {
+		return
+	}
 	binding := openAICompatSessionResponseBinding{
 		ContinuationDisabled: true,
 		ExpiresAt:            time.Now().Add(s.openAIWSResponseStickyTTL()),
@@ -271,6 +286,9 @@ func (s *OpenAIGatewayService) isOpenAICompatSessionContinuationDisabled(_ conte
 	key := openAICompatSessionResponseKey(c, account, promptCacheKey)
 	if key == "" {
 		return false
+	}
+	if values, shared := s.clusterCompatRead(key, "disabled"); shared {
+		return values[0] != ""
 	}
 	raw, ok := s.openaiCompatSessionResponses.Load(key)
 	if !ok {
@@ -296,6 +314,9 @@ func (s *OpenAIGatewayService) getOpenAICompatSessionTurnState(_ context.Context
 	if key == "" {
 		return ""
 	}
+	if values, shared := s.clusterCompatRead(key, "turn"); shared {
+		return values[0]
+	}
 	raw, ok := s.openaiCompatSessionResponses.Load(key)
 	if !ok {
 		return ""
@@ -320,6 +341,9 @@ func (s *OpenAIGatewayService) bindOpenAICompatSessionTurnState(_ context.Contex
 	if key == "" || state == "" {
 		return
 	}
+	if s.clusterCompatWrite(key, "turn", state) {
+		return
+	}
 	binding := openAICompatSessionResponseBinding{
 		TurnState: state,
 		ExpiresAt: time.Now().Add(s.openAIWSResponseStickyTTL()),
@@ -331,4 +355,46 @@ func (s *OpenAIGatewayService) bindOpenAICompatSessionTurnState(_ context.Contex
 		}
 	}
 	s.openaiCompatSessionResponses.Store(key, binding)
+}
+
+// Independent keys prevent a concurrent turn-state update from overwriting a
+// response binding or a disabled-continuation marker on another node.
+func (s *OpenAIGatewayService) clusterCompatRead(key string, fields ...string) ([]string, bool) {
+	if s.cfg == nil || !s.cfg.Cluster.Enabled {
+		return nil, false
+	}
+	cache, ok := s.cache.(SharedSessionCache)
+	if !ok {
+		return nil, false
+	}
+	keys := make([]string, len(fields))
+	for i, f := range fields {
+		keys[i] = sessionMetadataKey("compat-"+f, "", key)
+	}
+	ctx, cancel := sessionCacheContext()
+	defer cancel()
+	values, err := cache.GetSessionValues(ctx, keys)
+	if err != nil || len(values) != len(fields) {
+		sharedSessionWarning(err)
+		return make([]string, len(fields)), true
+	}
+	return values, true
+}
+func (s *OpenAIGatewayService) clusterCompatWrite(key, field, value string) bool {
+	if s.cfg == nil || !s.cfg.Cluster.Enabled {
+		return false
+	}
+	cache, ok := s.cache.(SharedSessionCache)
+	if !ok {
+		return false
+	}
+	ctx, cancel := sessionCacheContext()
+	defer cancel()
+	cacheKey := sessionMetadataKey("compat-"+field, "", key)
+	if value == "" {
+		sharedSessionWarning(cache.DeleteSessionValue(ctx, cacheKey))
+	} else {
+		sharedSessionWarning(cache.SetSessionValue(ctx, cacheKey, value, s.openAIWSResponseStickyTTL()))
+	}
+	return true
 }

@@ -254,7 +254,21 @@ func (c *billingCache) UpdateSubscriptionUsage(ctx context.Context, userID, grou
 
 func (c *billingCache) InvalidateSubscriptionCache(ctx context.Context, userID, groupID int64) error {
 	key := billingSubKey(userID, groupID)
-	return c.rdb.Del(ctx, key).Err()
+	// All mutation paths get invalidation, including renewals and manual resets.
+	pipe := c.rdb.TxPipeline()
+	pipe.Del(ctx, key)
+	pipe.Incr(ctx, "cluster:subscription:revision")
+	pipe.Publish(ctx, subCacheInvalidateChannel, fmt.Sprintf("sub:%d:%d", userID, groupID))
+	_, err := pipe.Exec(ctx)
+	return err
+}
+
+func (c *billingCache) SubscriptionCacheRevision(ctx context.Context) (string, error) {
+	value, err := c.rdb.Get(ctx, "cluster:subscription:revision").Result()
+	if errors.Is(err, redis.Nil) {
+		return "", nil
+	}
+	return value, err
 }
 
 func (c *billingCache) PublishSubscriptionCacheInvalidation(ctx context.Context, cacheKey string) error {
@@ -263,8 +277,9 @@ func (c *billingCache) PublishSubscriptionCacheInvalidation(ctx context.Context,
 
 func (c *billingCache) SubscribeSubscriptionCacheInvalidation(ctx context.Context, handler func(cacheKey string)) error {
 	pubsub := c.rdb.Subscribe(ctx, subCacheInvalidateChannel)
-
-	_, err := pubsub.Receive(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	_, err := pubsub.Receive(readyCtx)
+	cancel()
 	if err != nil {
 		_ = pubsub.Close()
 		return fmt.Errorf("subscribe to subscription cache invalidation: %w", err)

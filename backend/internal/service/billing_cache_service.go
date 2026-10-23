@@ -820,10 +820,16 @@ func (s *BillingCacheService) ReserveFixedCharge(ctx context.Context, user *User
 	}
 	var subscriptionPending, apiKeyPending float64
 	if subscriptionBill && (group.HasDailyLimit() || group.HasWeeklyLimit() || group.HasMonthlyLimit()) {
-		res, subscriptionPending = s.reserveInflightScope(ctx, res, user.ID, inflightSubscriptionScope(subscription.ID), amount)
+		res, subscriptionPending, err = s.reserveInflightScope(ctx, res, user.ID, inflightSubscriptionScope(subscription.ID), amount)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if apiKey != nil && (apiKey.Quota > 0 || apiKey.HasRateLimits()) {
-		res, apiKeyPending = s.reserveInflightScope(ctx, res, user.ID, inflightAPIKeyScope(apiKey.ID), amount)
+		res, apiKeyPending, err = s.reserveInflightScope(ctx, res, user.ID, inflightAPIKeyScope(apiKey.ID), amount)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if subscriptionBill {
 		err = s.checkFixedChargeSubscription(ctx, user.ID, group, amount+subscriptionPending)
