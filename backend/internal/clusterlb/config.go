@@ -34,6 +34,8 @@ type Node struct {
 type Config struct {
 	Listen string `json:"listen"`
 	Nodes  []Node `json:"nodes"`
+	// HA routes the management backend by the current leased role, not a fixed host.
+	HA bool `json:"ha,omitempty"`
 }
 
 func Read(r io.Reader) (Config, error) {
@@ -66,7 +68,7 @@ func (c Config) Validate() error {
 		}
 		ids[n.ID] = true
 		addr, err := netip.ParseAddrPort(n.Address)
-		if err != nil || addr.Port() == 0 || !(addr.Addr().IsPrivate() || addr.Addr().IsLoopback()) || addresses[addr] || addr == listen {
+		if err != nil || addr.Port() == 0 || (!addr.Addr().IsPrivate() && !addr.Addr().IsLoopback()) || addresses[addr] || addr == listen {
 			return fmt.Errorf("node %s requires a unique private tunnel IP:port (or loopback for local tests)", n.ID)
 		}
 		addresses[addr] = true
@@ -76,8 +78,11 @@ func (c Config) Validate() error {
 		if n.MaxConnections < 0 || n.MaxConnections > 20000 {
 			return fmt.Errorf("node %s max_connections must be 0-20000", n.ID)
 		}
-		if n.Role != "primary" && n.Role != "worker" {
+		if n.Role != "primary" && n.Role != "worker" && (!c.HA || n.Role != "candidate") {
 			return fmt.Errorf("node %s role must be primary or worker", n.ID)
+		}
+		if c.HA && n.Role != "candidate" {
+			return fmt.Errorf("HA inventory nodes must all use role candidate")
 		}
 		if n.Role == "primary" {
 			primaries++
@@ -89,7 +94,7 @@ func (c Config) Validate() error {
 			enabled++
 		}
 	}
-	if primaries != 1 || enabled == 0 {
+	if (!c.HA && primaries != 1) || enabled == 0 {
 		return fmt.Errorf("exactly one enabled primary is required")
 	}
 	return nil
@@ -119,6 +124,9 @@ defaults
 frontend sub2api
     bind %s
     http-request deny deny_status 404 if { path -i /readyz }
+    # External ingress is ready only when management and inference can route.
+    http-request return status 200 content-type text/plain string ready if { path -i /ingress-ready } { nbsrv(primary) gt 0 } { nbsrv(gateway) gt 0 } { nbsrv(responses) gt 0 }
+    http-request return status 503 content-type text/plain string unavailable if { path -i /ingress-ready }
     http-request del-header X-Sub2API-Node
     http-request del-header X-Sub2API-Affinity
     http-request del-header CF-Connecting-IP
@@ -141,11 +149,11 @@ frontend sub2api
 	for _, backend := range []string{"primary", "gateway", "responses"} {
 		fmt.Fprintf(&b, "\nbackend %s\n", backend)
 		if backend == "responses" {
-			b.WriteString("    balance hash var(txn.affinity)\n    hash-type consistent\n")
+			_, _ = b.WriteString("    balance hash var(txn.affinity)\n    hash-type consistent\n")
 		} else {
-			b.WriteString("    balance leastconn\n")
+			_, _ = b.WriteString("    balance leastconn\n")
 		}
-		b.WriteString("    option httpchk\n    http-check connect\n")
+		_, _ = b.WriteString("    option httpchk\n    http-check connect\n")
 		// Per-server readiness verifies the node ID. The dedicated primary
 		// backend additionally checks role to catch an accidental demotion.
 		role := ""
@@ -153,9 +161,9 @@ frontend sub2api
 			role = "&role=primary"
 		}
 		fmt.Fprintf(&b, "    http-check send meth GET uri-lf /readyz?node=%%[srv_name]%s ver HTTP/1.1 hdr Host localhost\n", role)
-		b.WriteString("    http-check expect status 200\n    http-check expect string '\"status\":\"ready\"'\n    default-server check inter 2s fall 2 rise 2\n")
+		_, _ = b.WriteString("    http-check expect status 200\n    http-check expect string '\"status\":\"ready\"'\n    default-server check inter 2s fall 2 rise 2\n")
 		for _, n := range c.Nodes {
-			if backend == "primary" && n.Role != "primary" {
+			if backend == "primary" && n.Role != "primary" && !c.HA {
 				continue
 			}
 			disabled := ""

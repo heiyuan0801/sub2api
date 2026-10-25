@@ -38,6 +38,16 @@ func TestUsageRecordWorkerPool_SubmitEnqueued(t *testing.T) {
 	}, time.Second, 10*time.Millisecond)
 }
 
+func TestUsageRecordWorkerPoolHACompletesWithoutMemoryQueue(t *testing.T) {
+	p := NewUsageRecordWorkerPool(&config.Config{Cluster: config.ClusterConfig{HAEnabled: true}})
+	defer p.Stop()
+	var done atomic.Bool
+	mode := p.Submit(func(context.Context) { done.Store(true) })
+	require.Equal(t, UsageRecordSubmitModeSync, mode)
+	require.True(t, done.Load())
+	require.Zero(t, p.Stats().WaitingTasks)
+}
+
 func TestUsageRecordWorkerPool_OverflowDrop(t *testing.T) {
 	pool := NewUsageRecordWorkerPoolWithOptions(UsageRecordWorkerPoolOptions{
 		WorkerCount:           1,

@@ -902,6 +902,13 @@ database:
 # Redis 配置
 # =============================================================================
 redis:
+  # Optional HA: three independent Sentinel members; credentials are separate
+  # from Redis data-node username/password. Empty master name keeps standalone mode.
+  sentinel_master_name: ""
+  sentinel_addrs: []
+  sentinel_username: ""
+  sentinel_password: ""
+  tls_server_name: ""
   # Redis host address
   # Redis 主机地址
   host: "localhost"

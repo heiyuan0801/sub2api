@@ -1,0 +1,27 @@
+[Unit]
+Description=Sub2API leased HA application supervisor
+After=network-online.target sub2api-ha-proxy.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=sub2api
+Group=sub2api
+WorkingDirectory=/var/lib/sub2api
+Environment=CONFIG_FILE=/etc/sub2api/config.yaml
+Environment=DATA_DIR=/var/lib/sub2api
+EnvironmentFile=-/etc/sub2api/extra.env
+RuntimeDirectory=sub2api-ha
+RuntimeDirectoryMode=0700
+ExecStart=/usr/local/bin/cluster-runner -config /etc/sub2api-ha/runner.json
+Restart=always
+RestartSec=3s
+WatchdogSec=10s
+TimeoutStopSec=8s
+KillMode=control-group
+SendSIGKILL=yes
+UMask=0077
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

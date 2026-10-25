@@ -91,6 +91,7 @@ type UsageRecordWorkerPoolStats struct {
 // UsageRecordWorkerPool 提供“有界队列 + 固定 worker”的异步执行器。
 // 用于替代请求路径里的直接 goroutine，避免高并发时无界堆积。
 type UsageRecordWorkerPool struct {
+	inline                bool // HA cannot leave completed usage tasks queued only in process memory.
 	pool                  pond.Pool
 	taskTimeout           time.Duration
 	overflowPolicy        string
@@ -118,7 +119,9 @@ type UsageRecordWorkerPool struct {
 // NewUsageRecordWorkerPool 从配置构建使用量记录池。
 func NewUsageRecordWorkerPool(cfg *config.Config) *UsageRecordWorkerPool {
 	opts := usageRecordPoolOptionsFromConfig(cfg)
-	return NewUsageRecordWorkerPoolWithOptions(opts)
+	p := NewUsageRecordWorkerPoolWithOptions(opts)
+	p.inline = cfg != nil && cfg.Cluster.HAEnabled
+	return p
 }
 
 // NewUsageRecordWorkerPoolWithOptions 根据给定参数构建使用量记录池。
@@ -155,6 +158,11 @@ func NewUsageRecordWorkerPoolWithOptions(opts UsageRecordWorkerPoolOptions) *Usa
 func (p *UsageRecordWorkerPool) Submit(task UsageRecordTask) UsageRecordSubmitMode {
 	if p == nil || task == nil {
 		return UsageRecordSubmitModeDropped
+	}
+	if p.inline {
+		p.syncFallback.Add(1)
+		p.execute(task)
+		return UsageRecordSubmitModeSync
 	}
 	if p.pool == nil || p.pool.Stopped() {
 		p.droppedPoolStopped.Add(1)

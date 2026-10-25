@@ -8,11 +8,14 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/clusterha"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
@@ -75,6 +78,35 @@ func TestNodeWorkerRejectsManagementAndLocalTasks(t *testing.T) {
 		r.ServeHTTP(w, httptest.NewRequest("POST", path, nil))
 		require.Equal(t, 204, w.Code, path)
 	}
+}
+
+func TestHANodeRejectsRequestsAfterSupervisorProofLoss(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "proof.json")
+	cfg := config.ClusterConfig{Enabled: true, HAEnabled: true, NodeID: "ha-a", Role: "primary", LeaseFile: path, LeaseToken: "private-token"}
+	n := newNodeRuntime(cfg)
+	r := nodeTestRouter(n)
+	var calls int
+	r.POST("/v1/responses", func(c *gin.Context) { calls++; c.Status(200) })
+	check := func(expected int) {
+		for _, path := range []string{"/readyz", "/v1/responses"} {
+			method := "GET"
+			if path != "/readyz" {
+				method = "POST"
+			}
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(method, path, nil))
+			require.Equal(t, expected, w.Code)
+			require.NotContains(t, w.Body.String(), cfg.LeaseToken)
+		}
+	}
+	check(503)
+	require.Zero(t, calls)
+	require.NoError(t, clusterha.WriteProof(path, clusterha.Proof{Token: cfg.LeaseToken, Role: cfg.Role, Until: time.Now().Add(5 * time.Second).UnixNano()}))
+	check(200)
+	require.Equal(t, 1, calls)
+	require.NoError(t, os.Remove(path))
+	check(503)
+	require.Equal(t, 1, calls, "fenced requests must not reach billing or the provider")
 }
 
 func TestNodeDrainWaitsForStream(t *testing.T) {

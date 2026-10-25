@@ -1,0 +1,7 @@
+{
+  "name": "sub2api-hk",
+  "enabled": true,
+  "minimum_origins": 1,
+  "monitor": "REPLACE_WITH_MONITOR_ID",
+  "origins": [{"name": "hk", "address": "REPLACE_WITH_HK_ORIGIN_IP", "enabled": true, "weight": 1}]
+}

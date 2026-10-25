@@ -21,7 +21,12 @@ import (
 // 2. MinIdleConns: 保持最小空闲连接，减少冷启动延迟（默认 10）
 // 3. DialTimeout/ReadTimeout/WriteTimeout: 精确控制各阶段超时
 func InitRedis(cfg *config.Config) *redis.Client {
-	client := redis.NewClient(buildRedisOptions(cfg))
+	var client *redis.Client
+	if cfg.Redis.SentinelMasterName != "" {
+		client = redis.NewFailoverClient(buildRedisFailoverOptions(cfg))
+	} else {
+		client = redis.NewClient(buildRedisOptions(cfg))
+	}
 	if cfg.Server.EnableServerTiming {
 		client.AddHook(serverTimingRedisHook{})
 	}
@@ -44,11 +49,28 @@ func buildRedisOptions(cfg *config.Config) *redis.Options {
 	}
 
 	if cfg.Redis.EnableTLS {
+		serverName := cfg.Redis.TLSServerName
+		if serverName == "" && cfg.Redis.SentinelMasterName == "" {
+			serverName = cfg.Redis.Host
+		}
 		opts.TLSConfig = &tls.Config{
 			MinVersion: tls.VersionTLS12,
-			ServerName: cfg.Redis.Host,
+			ServerName: serverName,
 		}
 	}
 
 	return opts
+}
+
+func buildRedisFailoverOptions(cfg *config.Config) *redis.FailoverOptions {
+	o := buildRedisOptions(cfg)
+	return &redis.FailoverOptions{
+		MasterName: cfg.Redis.SentinelMasterName, SentinelAddrs: cfg.Redis.SentinelAddrs,
+		SentinelUsername: cfg.Redis.SentinelUsername, SentinelPassword: cfg.Redis.SentinelPassword,
+		Username: o.Username, Password: o.Password, DB: o.DB, TLSConfig: o.TLSConfig,
+		DialTimeout: o.DialTimeout, ReadTimeout: o.ReadTimeout, WriteTimeout: o.WriteTimeout,
+		PoolSize: o.PoolSize, MinIdleConns: o.MinIdleConns,
+		// Mutating commands must not be replayed after an ambiguous connection failure.
+		MaxRetries: -1,
+	}
 }

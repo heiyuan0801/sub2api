@@ -54,3 +54,18 @@ func TestClusterValidation(t *testing.T) {
 	require.Equal(t, 5*time.Second, cfg.ShutdownTimeout())
 	require.True(t, (*Config)(nil).RunsBackgroundJobs())
 }
+
+func TestHAConfigurationRequiresSupervisorAndStrictBilling(t *testing.T) {
+	valid := ClusterConfig{Enabled: true, HAEnabled: true, NodeID: "ha-a", Role: "primary", LeaseFile: "/run/sub2api-ha/proof.json", LeaseToken: "private-token", ShutdownTimeoutSeconds: 30}
+	require.NoError(t, valid.Validate())
+	for _, mutate := range []func(*ClusterConfig){
+		func(c *ClusterConfig) { c.Enabled = false },
+		func(c *ClusterConfig) { c.LeaseFile = "relative.json" },
+		func(c *ClusterConfig) { c.LeaseToken = "" },
+		func(c *ClusterConfig) { c.BillingFailureMode = "open" },
+	} {
+		cfg := valid
+		mutate(&cfg)
+		require.Error(t, cfg.Validate())
+	}
+}

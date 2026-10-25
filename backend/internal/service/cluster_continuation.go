@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var errClusterContinuation = errors.New("Session connection changed. Resend full context without previous_response_id.")
+var errClusterContinuation = errors.New("session connection changed; resend full context without previous_response_id")
 
 func responseOriginKey(groupID int64, responseID string) string {
 	return sessionMetadataKey("response-origin", strconv.FormatInt(groupID, 10), responseID)

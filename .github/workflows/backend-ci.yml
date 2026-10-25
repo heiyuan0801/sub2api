@@ -74,12 +74,28 @@ jobs:
 
   cluster-proxy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test HA deployment inventory
+        run: python -m unittest discover -s deploy/ha -p 'test_*.py'
+      - name: Install pinned etcd for real quorum tests
+        run: |
+          cd "$RUNNER_TEMP"
+          curl --fail --location --retry 2 --output etcd.tar.gz https://github.com/etcd-io/etcd/releases/download/v3.6.16/etcd-v3.6.16-linux-amd64.tar.gz
+          echo 'c8c0d96d8292ef085deabbf735e9561d3d396768e4d606df005aa25964f21911  etcd.tar.gz' | sha256sum --check
+          tar -xzf etcd.tar.gz
+          echo "ETCD_BIN=$RUNNER_TEMP/etcd-v3.6.16-linux-amd64/etcd" >> "$GITHUB_ENV"
+          echo "ETCDCTL_BIN=$RUNNER_TEMP/etcd-v3.6.16-linux-amd64/etcdctl" >> "$GITHUB_ENV"
+      - name: Exercise single ownership and lease recovery with three etcd members
+        run: bash deploy/ha/test-etcd.sh
       - name: Build pinned HAProxy for real multi-node routing tests
         run: |
           cd "$RUNNER_TEMP"
@@ -117,10 +133,13 @@ jobs:
           VERSION="$(tr -d '\r\n' < cmd/server/VERSION)+ci.${GITHUB_SHA:0:7}"
           mkdir -p ../ci-dist
           go build -tags=embed -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o ../ci-dist/sub2api ./cmd/server
+          go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-runner ./cmd/cluster-runner
+          go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-config ./cmd/cluster-config
+          cp -R ../deploy/ha ../ci-dist/ha
           printf 'version=%s\ncommit=%s\n' "$VERSION" "$GITHUB_SHA" > ../ci-dist/build-info.txt
           cd ../ci-dist
-          sha256sum sub2api > checksums.txt
-          tar -czf sub2api-linux-amd64.tar.gz sub2api build-info.txt checksums.txt
+          sha256sum sub2api cluster-runner cluster-config > checksums.txt
+          tar -czf sub2api-linux-amd64.tar.gz sub2api cluster-runner cluster-config ha build-info.txt checksums.txt
       - uses: actions/upload-artifact@v7
         with:
           name: sub2api-linux-amd64-${{ github.sha }}

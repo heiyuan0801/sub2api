@@ -119,6 +119,10 @@ type defaultOpenAIWSStateStore struct {
 
 // NewOpenAIWSStateStore 创建默认 WS 状态存储。
 func NewOpenAIWSStateStore(cache GatewayCache) OpenAIWSStateStore {
+	return newDefaultOpenAIWSStateStore(cache)
+}
+
+func newDefaultOpenAIWSStateStore(cache GatewayCache) *defaultOpenAIWSStateStore {
 	store := &defaultOpenAIWSStateStore{
 		cache:                   cache,
 		responseToAccount:       make(map[string]openAIWSAccountBinding, 256),
@@ -133,7 +137,7 @@ func NewOpenAIWSStateStore(cache GatewayCache) OpenAIWSStateStore {
 }
 
 func NewClusterOpenAIWSStateStore(cache GatewayCache, nodeID string) OpenAIWSStateStore {
-	s := NewOpenAIWSStateStore(cache).(*defaultOpenAIWSStateStore)
+	s := newDefaultOpenAIWSStateStore(cache)
 	s.shared, _ = cache.(SharedSessionCache)
 	s.instanceID = nodeID + ":" + uuid.NewString()
 	return s
@@ -211,7 +215,7 @@ func (s *defaultOpenAIWSStateStore) BindResponseAccount(ctx context.Context, gro
 		return nil
 	}
 	ttl = normalizeOpenAIWSTTL(ttl)
-	_, writesRoute := s.cache.(sharedResponseRouteWriter)
+	routeWriter, writesRoute := s.cache.(sharedResponseRouteWriter)
 	if s.shared != nil && !writesRoute {
 		sharedCtx, cancel := sessionCacheContext()
 		sharedSessionWarning(s.shared.SetSessionValue(sharedCtx, responseOriginKey(groupID, id), s.instanceID, ttl))
@@ -233,7 +237,7 @@ func (s *defaultOpenAIWSStateStore) BindResponseAccount(ctx context.Context, gro
 	cacheCtx, cancel := withOpenAIWSStateStoreRedisTimeout(ctx)
 	defer cancel()
 	if s.shared != nil && writesRoute {
-		return s.cache.(sharedResponseRouteWriter).SetResponseRoute(cacheCtx, groupID, id, cacheKey, accountID, responseOriginKey(groupID, id), s.instanceID, ttl)
+		return routeWriter.SetResponseRoute(cacheCtx, groupID, id, cacheKey, accountID, responseOriginKey(groupID, id), s.instanceID, ttl)
 	}
 	return s.cache.SetSessionAccountID(cacheCtx, groupID, cacheKey, accountID, ttl)
 }

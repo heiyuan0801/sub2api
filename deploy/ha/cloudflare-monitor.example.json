@@ -1,0 +1,14 @@
+{
+  "description": "Sub2API elected primary readiness",
+  "type": "https",
+  "method": "GET",
+  "path": "/ingress-ready",
+  "expected_codes": "200",
+  "expected_body": "ready",
+  "interval": 60,
+  "timeout": 5,
+  "retries": 2,
+  "allow_insecure": false,
+  "follow_redirects": false,
+  "header": {"Host": ["api.example.com"]}
+}

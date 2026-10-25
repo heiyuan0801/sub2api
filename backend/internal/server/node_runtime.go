@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"fmt"
 	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/clusterha"
 	"github.com/Wei-Shaw/sub2api/internal/clusterlb"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
@@ -30,7 +32,27 @@ type NodeRuntime struct {
 }
 
 func ProvideNodeRuntime(cfg *config.Config, db *sql.DB, rdb *redis.Client) *NodeRuntime {
-	return newNodeRuntime(cfg.Cluster, db.PingContext, func(ctx context.Context) error { return rdb.Ping(ctx).Err() })
+	n := newNodeRuntime(cfg.Cluster, func(ctx context.Context) error {
+		if !cfg.Cluster.HAEnabled {
+			return db.PingContext(ctx)
+		}
+		var readonly bool
+		if err := db.QueryRowContext(ctx, "SELECT pg_is_in_recovery() OR current_setting('transaction_read_only')::boolean").Scan(&readonly); err != nil {
+			return err
+		}
+		if readonly {
+			return fmt.Errorf("database writer unavailable")
+		}
+		return nil
+	}, func(ctx context.Context) error { return rdb.Ping(ctx).Err() })
+	if cfg.Cluster.HAEnabled {
+		n.checks = append(n.checks, func(context.Context) error { return n.checkProof() })
+	}
+	return n
+}
+
+func (n *NodeRuntime) checkProof() error {
+	return clusterha.CheckProof(n.cfg.LeaseFile, n.cfg.LeaseToken, n.cfg.Role, time.Now())
 }
 
 func newNodeRuntime(cfg config.ClusterConfig, checks ...func(context.Context) error) *NodeRuntime {
@@ -71,6 +93,7 @@ func (n *NodeRuntime) Ready(c *gin.Context) {
 	result := gin.H{"status": "ready"}
 	if c.Query("details") == "1" && n.cfg.Enabled {
 		result["node"] = n.cfg.NodeID
+		result["role"] = n.cfg.Role
 		result["active_requests"] = n.active.Load()
 		if n.settingsStatus != nil {
 			result["settings"] = n.settingsStatus()
@@ -81,6 +104,10 @@ func (n *NodeRuntime) Ready(c *gin.Context) {
 
 func (n *NodeRuntime) Middleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if n.cfg.HAEnabled && n.checkProof() != nil {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": gin.H{"type": "ha_lease_unavailable", "message": "Node is waiting for cluster ownership"}})
+			return
+		}
 		if !n.cfg.Enabled || c.Request.URL.Path == "/health" || c.Request.URL.Path == "/readyz" {
 			c.Next()
 			return

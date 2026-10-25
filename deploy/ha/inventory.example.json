@@ -1,0 +1,9 @@
+{
+  "cluster": "sub2api",
+  "postgres_bin_dir": "/usr/lib/postgresql/17/bin",
+  "nodes": [
+    {"id": "us", "private_ip": "10.70.0.1", "kind": "application"},
+    {"id": "hk", "private_ip": "10.70.0.2", "kind": "application"},
+    {"id": "witness", "private_ip": "10.70.0.3", "kind": "witness"}
+  ]
+}

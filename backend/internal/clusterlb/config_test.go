@@ -3,6 +3,7 @@ package clusterlb
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"net"
@@ -56,6 +57,25 @@ func TestClusterRouteClassification(t *testing.T) {
 	}
 }
 
+func TestClusterHAElectsManagementByReadiness(t *testing.T) {
+	c := exampleConfig()
+	c.HA = true
+	for i := range c.Nodes {
+		c.Nodes[i].Role = "candidate"
+	}
+	r, err := c.Render()
+	require.NoError(t, err)
+	primary := strings.Split(strings.Split(r, "\nbackend primary\n")[1], "\nbackend gateway\n")[0]
+	require.Contains(t, primary, "&role=primary")
+	require.Contains(t, primary, "server primary-a")
+	require.Contains(t, primary, "server worker-b")
+	require.Contains(t, r, "nbsrv(primary) gt 0")
+	require.Contains(t, r, "nbsrv(gateway) gt 0")
+	require.Contains(t, r, "nbsrv(responses) gt 0")
+	c.Nodes[0].Role = "primary"
+	require.Error(t, c.Validate())
+}
+
 // Opt-in executable test: run with HAPROXY_BIN=/path/to/haproxy (3.2+).
 // Real TCP requests pass through the generated proxy to two controlled nodes.
 // No upstream model or payment provider is called.
@@ -66,6 +86,7 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 	}
 	var workerDown atomic.Bool
 	var primaryDown atomic.Bool
+	var inferenceDown atomic.Bool
 	var failedRequests atomic.Int32
 	hold, started := make(chan struct{}), make(chan string, 2)
 	var releaseOnce sync.Once
@@ -73,6 +94,10 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 	makeNode := func(id, role string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/readyz" {
+				if inferenceDown.Load() && r.URL.Query().Get("role") == "" {
+					w.WriteHeader(503)
+					return
+				}
 				if (role == "worker" && workerDown.Load()) || (role == "primary" && primaryDown.Load()) || r.URL.Query().Get("node") != id || (r.URL.Query().Get("role") != "" && r.URL.Query().Get("role") != role) {
 					w.WriteHeader(503)
 					return
@@ -136,14 +161,17 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 	cfg.Nodes[1].Address = strings.TrimPrefix(b.URL, "http://")
 	rendered, err := cfg.Render()
 	require.NoError(t, err)
+	statsPath := fmt.Sprintf("/tmp/sub2api-lb-%d-%d.sock", os.Getpid(), time.Now().UnixNano())
+	t.Cleanup(func() { _ = os.Remove(statsPath) })
+	rendered = strings.Replace(rendered, "global\n", "global\n    stats socket "+statsPath+" mode 600\n", 1)
 	file := filepath.Join(t.TempDir(), "haproxy.cfg")
 	require.NoError(t, os.WriteFile(file, []byte(rendered), 0600))
-	out, err := exec.Command(binary, "-c", "-f", file).CombinedOutput()
+	out, err := exec.Command(binary, "-c", "-f", file).CombinedOutput() //nolint:gosec // HAPROXY_BIN is a trusted test-runner setting; no shell or application request input.
 	require.NoError(t, err, string(out))
 	logFile, err := os.CreateTemp(t.TempDir(), "proxy-log")
 	require.NoError(t, err)
 	defer func() { _ = logFile.Close() }()
-	cmd := exec.Command(binary, "-db", "-f", file)
+	cmd := exec.Command(binary, "-db", "-f", file) //nolint:gosec // HAPROXY_BIN is a trusted test-runner setting; no shell or application request input.
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	require.NoError(t, cmd.Start())
 	defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
@@ -160,7 +188,39 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 		_, _ = io.Copy(io.Discard, resp.Body)
 		return resp.StatusCode, resp.Header.Get("X-Test-Node"), nil
 	}
-	require.Eventually(t, func() bool { status, _, err := request("/home", "test"); return err == nil && status == 200 }, 10*time.Second, 50*time.Millisecond)
+	require.Eventually(t, func() bool { status, _, err := request("/ingress-ready", "test"); return err == nil && status == 200 }, 10*time.Second, 50*time.Millisecond)
+	// Management alone must not mark an origin ready for paid inference.
+	inferenceDown.Store(true)
+	require.Eventually(t, func() bool { status, _, err := request("/ingress-ready", "test"); return err == nil && status == 503 }, 10*time.Second, 50*time.Millisecond)
+	status, _, err := request("/home", "test")
+	require.NoError(t, err)
+	require.Equal(t, 200, status)
+	inferenceDown.Store(false)
+	require.Eventually(t, func() bool { status, _, err := request("/ingress-ready", "test"); return err == nil && status == 200 }, 10*time.Second, 50*time.Millisecond)
+	// Each backend has independent rise checks. One healthy server is enough
+	// for ingress; distribution assertions require both servers in every pool.
+	require.Eventually(t, func() bool {
+		conn, err := net.DialTimeout("unix", statsPath, time.Second)
+		if err != nil {
+			return false
+		}
+		defer func() { _ = conn.Close() }()
+		_ = conn.SetDeadline(time.Now().Add(time.Second))
+		_, _ = io.WriteString(conn, "show stat\n")
+		reader := csv.NewReader(conn)
+		reader.FieldsPerRecord = -1
+		rows, err := reader.ReadAll()
+		if err != nil {
+			return false
+		}
+		up := 0
+		for _, row := range rows {
+			if len(row) > 17 && (row[0] == "gateway" || row[0] == "responses") && (row[1] == "primary-a" || row[1] == "worker-b") && row[17] == "UP" {
+				up++
+			}
+		}
+		return up == 4
+	}, 10*time.Second, 50*time.Millisecond)
 	for _, path := range []string{"/home", "/api/v1/admin/settings", "/api/v1/payment/notify", "/v1/images/batches", "/v1/images/generations/async", "/v1/videos"} {
 		status, node, err := request(path, "test")
 		require.NoError(t, err)
@@ -233,7 +293,7 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 	_ = resp.Body.Close()
 	require.NoError(t, <-done)
 	require.NoError(t, <-done)
-	status, _, err := request("/v1/chat/completions?fail=1", "test")
+	status, _, err = request("/v1/chat/completions?fail=1", "test")
 	require.NoError(t, err)
 	require.Equal(t, 503, status)
 	require.EqualValues(t, 1, failedRequests.Load(), "must not replay billed requests")
@@ -277,8 +337,8 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 		status, _, _ := request("/api/v1/payment/notify", "test")
 		return status == 503
 	}, 10*time.Second, 100*time.Millisecond)
-	status, node, err := request("/v1/chat/completions", "test")
-	require.NoError(t, err)
-	require.Equal(t, 200, status)
-	require.Equal(t, "worker-b", node)
+	require.Eventually(t, func() bool {
+		status, node, err := request("/v1/chat/completions", "test")
+		return err == nil && status == 200 && node == "worker-b"
+	}, 10*time.Second, 100*time.Millisecond)
 }

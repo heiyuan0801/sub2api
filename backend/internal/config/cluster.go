@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"time"
 )
@@ -16,6 +17,9 @@ type ClusterConfig struct {
 	ShutdownTimeoutSeconds int    `mapstructure:"shutdown_timeout_seconds"`
 	// Empty is strict when clustered; "open" is an explicit availability tradeoff.
 	BillingFailureMode string `mapstructure:"billing_failure_mode"`
+	HAEnabled          bool   `mapstructure:"ha_enabled"`
+	LeaseFile          string `mapstructure:"lease_file"`
+	LeaseToken         string `mapstructure:"lease_token"`
 }
 
 var clusterNodeIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$`)
@@ -34,6 +38,9 @@ func (c *Config) ShutdownTimeout() time.Duration {
 }
 
 func (c ClusterConfig) Validate() error {
+	if c.HAEnabled && (!c.Enabled || !filepath.IsAbs(c.LeaseFile) || c.LeaseToken == "" || c.BillingFailureMode == "open") {
+		return fmt.Errorf("HA requires cluster mode, strict billing and a private supervisor lease proof")
+	}
 	if !c.Enabled {
 		return nil
 	}

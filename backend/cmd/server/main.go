@@ -17,6 +17,7 @@ import (
 	"time"
 
 	_ "github.com/Wei-Shaw/sub2api/ent/runtime"
+	"github.com/Wei-Shaw/sub2api/internal/clusterha"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
@@ -144,6 +145,26 @@ func runMainServer() error {
 	}
 	if cfg.RunMode == config.RunModeSimple {
 		log.Println("⚠️  WARNING: Running in SIMPLE mode - billing and quota checks are DISABLED")
+	}
+	if cfg.Cluster.HAEnabled {
+		check := func() error {
+			return clusterha.CheckProof(cfg.Cluster.LeaseFile, cfg.Cluster.LeaseToken, cfg.Cluster.Role, time.Now())
+		}
+		if err := check(); err != nil {
+			return err
+		}
+		// Independent of the runner: orphaned children must stop jobs and writes
+		// before their 30-second distributed lease can be reassigned.
+		go func() {
+			ticker := time.NewTicker(250 * time.Millisecond)
+			defer ticker.Stop()
+			for range ticker.C {
+				if err := check(); err != nil {
+					log.Print("HA supervisor lost; terminating fenced process")
+					os.Exit(1)
+				}
+			}
+		}()
 	}
 
 	buildInfo := handler.BuildInfo{

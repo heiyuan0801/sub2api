@@ -47,3 +47,18 @@ func TestBuildRedisOptions(t *testing.T) {
 	require.NotNil(t, optsTLS.TLSConfig)
 	require.Equal(t, "localhost", optsTLS.TLSConfig.ServerName)
 }
+
+func TestBuildRedisSentinelOptions(t *testing.T) {
+	c := &config.Config{Redis: config.RedisConfig{SentinelMasterName: "cache", SentinelAddrs: []string{"a:26379", "b:26379", "c:26379"}, SentinelUsername: "monitor", SentinelPassword: "monitor-password", Username: "app", Password: "app-password", DB: 4, EnableTLS: true, PoolSize: 32, ReadTimeoutSeconds: 2}}
+	o := buildRedisFailoverOptions(c)
+	require.Equal(t, "cache", o.MasterName)
+	require.Len(t, o.SentinelAddrs, 3)
+	require.Equal(t, "monitor-password", o.SentinelPassword)
+	require.Equal(t, "app-password", o.Password)
+	require.Equal(t, 4, o.DB)
+	require.Equal(t, 32, o.PoolSize)
+	require.Equal(t, -1, o.MaxRetries)
+	require.Equal(t, 2*time.Second, o.ReadTimeout)
+	require.NotNil(t, o.TLSConfig)
+	require.Empty(t, o.TLSConfig.ServerName, "TLS must verify each discovered host, not the obsolete standalone host")
+}

@@ -16,8 +16,8 @@ import (
 func TestClusterSharedSessionAcrossInstances(t *testing.T) {
 	r := miniredis.RunT(t)
 	aClient, bClient := redis.NewClient(&redis.Options{Addr: r.Addr()}), redis.NewClient(&redis.Options{Addr: r.Addr()})
-	defer aClient.Close()
-	defer bClient.Close()
+	t.Cleanup(func() { require.NoError(t, aClient.Close()) })
+	t.Cleanup(func() { require.NoError(t, bClient.Close()) })
 	cfg := &config.Config{Cluster: config.ClusterConfig{Enabled: true}}
 	aCache, bCache := NewGatewayCache(aClient), NewGatewayCache(bClient)
 	a, b := service.ProvideDigestSessionStore(aCache, cfg), service.ProvideDigestSessionStore(bCache, cfg)
@@ -61,7 +61,7 @@ func (r *clusterSubscriptionRepo) GetActiveByUserIDAndGroupID(context.Context, i
 func TestClusterSubscriptionInvalidationAndMissedEventRecovery(t *testing.T) {
 	r := miniredis.RunT(t)
 	client := redis.NewClient(&redis.Options{Addr: r.Addr()})
-	defer client.Close()
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	cache := NewBillingCache(client)
 	cfg := &config.Config{}
 	cfg.SubscriptionCache.L1Size = 128

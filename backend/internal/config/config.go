@@ -1608,11 +1608,16 @@ func (d *DatabaseConfig) DSNWithTimezone(tz string) string {
 // RedisConfig Redis 连接配置
 // 性能优化：新增连接池和超时参数，提升高并发场景下的吞吐量
 type RedisConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
-	DB       int    `mapstructure:"db"`
+	Host               string   `mapstructure:"host"`
+	Port               int      `mapstructure:"port"`
+	Username           string   `mapstructure:"username"`
+	Password           string   `mapstructure:"password"`
+	DB                 int      `mapstructure:"db"`
+	SentinelMasterName string   `mapstructure:"sentinel_master_name"`
+	SentinelAddrs      []string `mapstructure:"sentinel_addrs"`
+	SentinelUsername   string   `mapstructure:"sentinel_username"`
+	SentinelPassword   string   `mapstructure:"sentinel_password"`
+	TLSServerName      string   `mapstructure:"tls_server_name"`
 	// 连接池与超时配置（性能优化：可配置化连接池参数）
 	// DialTimeoutSeconds: 建立连接超时，防止慢连接阻塞
 	DialTimeoutSeconds int `mapstructure:"dial_timeout_seconds"`
@@ -2045,6 +2050,9 @@ func configureConfigSource(setConfigFile, addConfigPath func(string)) {
 
 func setDefaults() {
 	viper.SetDefault("cluster.enabled", false)
+	viper.SetDefault("cluster.ha_enabled", false)
+	viper.SetDefault("cluster.lease_file", "")
+	viper.SetDefault("cluster.lease_token", "")
 	viper.SetDefault("cluster.node_id", "")
 	viper.SetDefault("cluster.role", "primary")
 	viper.SetDefault("cluster.drain_seconds", 10)
@@ -2248,6 +2256,11 @@ func setDefaults() {
 	viper.SetDefault("redis.username", "")
 	viper.SetDefault("redis.password", "")
 	viper.SetDefault("redis.db", 0)
+	viper.SetDefault("redis.sentinel_master_name", "")
+	viper.SetDefault("redis.sentinel_addrs", []string{})
+	viper.SetDefault("redis.sentinel_username", "")
+	viper.SetDefault("redis.sentinel_password", "")
+	viper.SetDefault("redis.tls_server_name", "")
 	viper.SetDefault("redis.dial_timeout_seconds", 5)
 	viper.SetDefault("redis.read_timeout_seconds", 3)
 	viper.SetDefault("redis.write_timeout_seconds", 3)
@@ -2724,6 +2737,9 @@ func setEnvReachableDefaults() {
 }
 
 func (c *Config) Validate() error {
+	if err := c.Redis.ValidateSentinel(); err != nil {
+		return err
+	}
 	if err := c.Cluster.Validate(); err != nil {
 		return err
 	}

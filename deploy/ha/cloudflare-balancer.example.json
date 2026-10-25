@@ -1,0 +1,10 @@
+{
+  "name": "api.example.com",
+  "description": "Hong Kong preferred, United States failover",
+  "proxied": true,
+  "enabled": true,
+  "default_pools": ["REPLACE_WITH_HK_POOL_ID", "REPLACE_WITH_US_POOL_ID"],
+  "fallback_pool": "REPLACE_WITH_US_POOL_ID",
+  "steering_policy": "off",
+  "session_affinity": "none"
+}

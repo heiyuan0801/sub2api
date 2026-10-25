@@ -1,0 +1,16 @@
+[Unit]
+Description=Sub2API HA application and PostgreSQL writer routing
+After=network-online.target
+
+[Service]
+User=haproxy
+Group=haproxy
+ExecStartPre=/usr/sbin/haproxy -c -f /etc/sub2api-ha/haproxy.cfg
+ExecStart=/usr/sbin/haproxy -Ws -f /etc/sub2api-ha/haproxy.cfg
+ExecReload=/bin/kill -USR2 $MAINPID
+Type=notify
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

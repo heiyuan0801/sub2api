@@ -2,6 +2,8 @@
 
 本模式让多台 Sub2API 共同处理模型请求，沿用同一套 PostgreSQL、Redis、账号、用户和计费数据。没有新增数据库迁移；默认关闭，单机行为保持兼容。
 
+需要在任一业务整机故障后自动恢复入口、数据服务和后台主节点时，使用 [双故障域 HA 部署](ha/README.md)。下文的固定 primary/worker 模式继续兼容，不能单独提供整机高可用。
+
 ```text
 客户端 → 香港 Nginx（HTTPS）→ 香港 HAProxy（127.0.0.1:8088）
                               ├─ 美国 Sub2API primary
