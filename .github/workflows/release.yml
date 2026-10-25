@@ -20,6 +20,11 @@ on:
         required: false
         type: boolean
         default: false
+      notify_telegram:
+        description: 'Send the configured Telegram release announcement'
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ github.repository }}
@@ -307,7 +312,7 @@ jobs:
 
       # Send Telegram notification
       - name: Send Telegram Notification
-        if: ${{ env.DRY_RUN != 'true' && env.SIMPLE_RELEASE != 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.notify_telegram == true && env.DRY_RUN != 'true' && env.SIMPLE_RELEASE != 'true' }}
         env:
           TAG_MESSAGE: ${{ steps.tag_message.outputs.message }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -383,14 +388,21 @@ jobs:
       contents: write
     env:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_SHA: ${{ needs.prepare.outputs.sha }}
     steps:
       - name: Checkout default branch
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
 
       - name: Sync VERSION file to released tag
         run: |
+          if ! git merge-base --is-ancestor "$RELEASE_SHA" HEAD; then
+            echo "Release source is outside the default branch; keeping its VERSION unchanged"
+            exit 0
+          fi
+
           VERSION="$RELEASE_VERSION"
 
           CURRENT_VERSION=$(tr -d '\r\n' < backend/cmd/server/VERSION || true)
