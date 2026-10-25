@@ -11,6 +11,8 @@
 # 服务器配置
 # =============================================================================
 cluster:
+  # Per-node admission limit; shared dashboard control overrides after heartbeat.
+  max_concurrency: 1000
   # Opt-in multi-server operation; see deploy/CLUSTER.md.
   # All nodes must share PostgreSQL, Redis and explicit JWT/TOTP secrets.
   enabled: false

@@ -1,0 +1,10 @@
+[Unit]
+Description=Retain verified Sub2API physical backups and required WAL
+After=sub2api-ha-backup.service
+
+[Service]
+Type=oneshot
+User=postgres
+EnvironmentFile=/etc/sub2api-ha/backup.env
+ExecStart=/bin/sh -ec 'exec /usr/bin/python3 /opt/sub2api/deploy/ha/retention.py --root "$BACKUP_ROOT" --pg-bin "$PG_BIN" --days 14 --keep 2 --apply'
+Nice=10

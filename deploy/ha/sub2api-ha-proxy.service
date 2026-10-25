@@ -4,7 +4,9 @@ After=network-online.target
 
 [Service]
 User=haproxy
-Group=haproxy
+Group=sub2api
+RuntimeDirectory=sub2api-proxy
+RuntimeDirectoryMode=0750
 ExecStartPre=/usr/sbin/haproxy -c -f /etc/sub2api-ha/haproxy.cfg
 ExecStart=/usr/sbin/haproxy -Ws -f /etc/sub2api-ha/haproxy.cfg
 ExecReload=/bin/kill -USR2 $MAINPID

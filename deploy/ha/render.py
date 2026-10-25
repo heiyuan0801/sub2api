@@ -181,6 +181,7 @@ def render(inv, out, generator, secrets):
         hap = subprocess.check_output(
             [str(generator), "-config", str(out / ident / "nodes.json")], text=True
         )
+        hap = hap.replace("global\n", "global\n    stats socket /run/sub2api-proxy/admin.sock mode 660 level admin\n", 1)
         hap += "\nlisten postgres_writer\n    bind 127.0.0.1:15432\n    mode tcp\n    option httpchk GET /primary\n    http-check expect status 200\n    timeout client 60s\n    timeout server 60s\n    default-server inter 2s fall 2 rise 1 on-marked-down shutdown-sessions\n"
         for a in apps:
             hap += f"    server {a['id']} {a['private_ip']}:5432 check port 8008\n"

@@ -2051,6 +2051,7 @@ func configureConfigSource(setConfigFile, addConfigPath func(string)) {
 func setDefaults() {
 	viper.SetDefault("cluster.enabled", false)
 	viper.SetDefault("cluster.ha_enabled", false)
+	viper.SetDefault("cluster.max_concurrency", 1000)
 	viper.SetDefault("cluster.lease_file", "")
 	viper.SetDefault("cluster.lease_token", "")
 	viper.SetDefault("cluster.node_id", "")

@@ -1,0 +1,17 @@
+[Unit]
+Description=Sub2API local ingress capacity control
+After=sub2api-ha-proxy.service sub2api-ha.service
+
+[Service]
+User=sub2api
+Group=sub2api
+ExecStart=/usr/bin/python3 /opt/sub2api/deploy/ha/proxy_agent.py --proof /run/sub2api-ha/proof.json --socket /run/sub2api-proxy/admin.sock --inventory /etc/sub2api-ha/nodes.json
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/run/sub2api-ha /run/sub2api-proxy
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

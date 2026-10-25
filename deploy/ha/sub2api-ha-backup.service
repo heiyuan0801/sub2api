@@ -1,0 +1,13 @@
+[Unit]
+Description=Sub2API verified PostgreSQL base backup
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=postgres
+EnvironmentFile=/etc/sub2api-ha/backup.env
+ExecStart=/bin/sh -ec 'exec /usr/bin/python3 /opt/sub2api/deploy/ha/backup.py basebackup --pg-bin "$PG_BIN" --destination "$BACKUP_ROOT/base-$(date -u +%%Y%%m%%dT%%H%%M%%SZ)"'
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=7500

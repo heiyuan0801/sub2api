@@ -1,0 +1,15 @@
+# Only dedicated Sub2API file logs; never target PostgreSQL data/pg_wal.
+/var/log/sub2api-ha/*.log {
+    daily
+    maxsize 100M
+    rotate 14
+    maxage 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    su sub2api sub2api
+}
+# PostgreSQL must use its own logging_collector rotation if enabled.
+# systemd stdout logs are bounded by the host's journald storage policy.

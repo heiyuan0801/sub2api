@@ -96,3 +96,7 @@ export SUB2API_HA_HAPROXY=/absolute/haproxy
 本机实验不等于真实物理机断电、跨洋网络分区或 Cloudflare、硬件 watchdog、对象存储、真实支付回调的验证。上线门槛包括：实机 fencing、外部域名切换、数据库复制恢复、真实账号请求、支付回调重试/去重、异步任务及文件可读性逐项验收。
 
 参考：[Patroni 复制语义](https://patroni.readthedocs.io/en/latest/replication_modes.html)、[watchdog](https://patroni.readthedocs.io/en/latest/watchdog.html)、[Patroni 健康接口](https://patroni.readthedocs.io/en/latest/rest_api.html)、[Redis Sentinel](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/)、[Cloudflare LB API](https://developers.cloudflare.com/api/resources/load_balancers/methods/create/)。
+
+## 集群运维
+
+节点控制、请求账务核对、异步任务恢复、滚动升级、物理备份/PITR、保留和日志策略见 [OPERATIONS.md](OPERATIONS.md)。所有脚本均需显式执行，不会在安装前自行连接或更新服务器。

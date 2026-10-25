@@ -8,7 +8,10 @@ import misc from './misc'
 import publicSite from './publicSite'
 import publicHome from './publicHome'
 
+import cluster from './cluster'
+
 export default {
+  ...cluster,
   ...landing,
   ...common,
   ...dashboard,

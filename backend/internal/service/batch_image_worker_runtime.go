@@ -79,7 +79,8 @@ func (r *BatchImageWorkerRuntime) Start() {
 	r.done = done
 
 	var wg sync.WaitGroup
-	wg.Add(4)
+	wg.Add(5)
+	go func() { defer wg.Done(); r.runDurableQueueRecovery(ctx) }()
 	go func() {
 		defer wg.Done()
 		r.worker.Run(ctx)

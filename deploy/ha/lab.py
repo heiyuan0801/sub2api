@@ -211,6 +211,8 @@ def start_host(host):
             host + "-proxy",
             [TOOLS["HAPROXY"], "-db", "-f", ROOT / host / "haproxy.cfg"],
         )
+    if n < 2:
+        launch(host + "-controls", [sys.executable, REPO / "deploy/ha/proxy_agent.py", "--proof", ROOT / host / "proof.json", "--socket", ROOT / host / "admin.sock", "--inventory", ROOT / host / "nodes.json"])
     launch(
         host + "-sentinel",
         [TOOLS["REDIS"], ROOT / host / "sentinel.conf", "--sentinel"],
@@ -401,6 +403,7 @@ def start():
             "frontend sub2api\n",
             "frontend sub2api\n    http-response set-header X-Local-Test-Node %[srv_name]\n",
         )
+        cfg = cfg.replace("global\n", f"global\n    stats socket {d}/admin.sock mode 600 level admin\n", 1)
         cfg += f"\nlisten postgres_writer\n    bind 127.0.0.1:{15431 + i}\n    mode tcp\n    option httpchk GET /primary\n    http-check expect status 200\n    default-server inter 1s fall 2 rise 1 on-marked-down shutdown-sessions\n    server us 127.0.0.1:25431 check port 28001\n    server hk 127.0.0.1:25432 check port 28002\n"
         (d / "haproxy.cfg").write_text(cfg)
         save(

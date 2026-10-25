@@ -428,6 +428,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/cluster',
+    name: 'AdminCluster',
+    component: () => import('@/views/admin/ClusterView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Cluster management', titleKey: 'cluster.title', descriptionKey: 'cluster.description' }
+  },
+  {
     path: '/admin/ops',
     name: 'AdminOps',
     component: () => import('@/views/admin/ops/OpsDashboard.vue'),

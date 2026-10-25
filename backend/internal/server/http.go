@@ -3,11 +3,13 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/clusterops"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/websearch"
@@ -22,10 +24,15 @@ import (
 
 // ProviderSet 提供服务器层的依赖
 var ProviderSet = wire.NewSet(
+	ProvideClusterManager,
 	ProvideNodeRuntime,
 	ProvideRouter,
 	ProvideHTTPServer,
 )
+
+func ProvideClusterManager(db *sql.DB, rdb *redis.Client, cfg *config.Config, build handler.BuildInfo) *clusterops.Manager {
+	return clusterops.NewManager(db, rdb, cfg, build.Version)
+}
 
 // ProvideRouter 提供路由器
 func ProvideRouter(
@@ -40,6 +47,7 @@ func ProvideRouter(
 	apiKeyService *service.APIKeyService,
 	subscriptionService *service.SubscriptionService,
 	opsService *service.OpsService,
+	opsAlerts *service.OpsAlertEvaluatorService,
 	settingService *service.SettingService,
 	compositeResolver *service.CompositeRouteResolver,
 	redisClient *redis.Client,
@@ -50,10 +58,25 @@ func ProvideRouter(
 	}
 
 	r := gin.New()
+	nodeRuntime.operations = handlers.ClusterOps
+	handlers.ClusterOps.SetNotifier(opsAlerts.DeliverClusterEvent)
 	if cfg.Cluster.Enabled {
 		nodeRuntime.checks = append(nodeRuntime.checks, settingService.CheckClusterSettingsFresh)
 		nodeRuntime.settingsStatus = settingService.ClusterSettingsStatus
 		slog.Info("cluster node capacity", "node", cfg.Cluster.NodeID, "database_pool_limit", cfg.Database.MaxOpenConns, "redis_pool_limit", cfg.Redis.PoolSize)
+	}
+	if handlers.ClusterOps.Enabled() {
+		handlers.ClusterOps.Start(func() clusterops.Stats {
+			s := clusterops.Stats{Active: nodeRuntime.active.Load()}
+			nodeRuntime.mu.Lock()
+			s.Active += int64(len(nodeRuntime.hijacked))
+			nodeRuntime.mu.Unlock()
+			if nodeRuntime.settingsStatus != nil {
+				v, _ := nodeRuntime.settingsStatus()["version"].(string)
+				s.SettingsVersion = v
+			}
+			return s
+		})
 	}
 	r.Use(middleware2.Recovery())
 	r.Use(nodeRuntime.Middleware())

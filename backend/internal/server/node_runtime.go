@@ -13,6 +13,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/clusterha"
 	"github.com/Wei-Shaw/sub2api/internal/clusterlb"
+	"github.com/Wei-Shaw/sub2api/internal/clusterops"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -21,6 +22,7 @@ import (
 // NodeRuntime owns readiness and the lifetime of in-flight requests, including
 // hijacked WebSockets which net/http.Server.Shutdown does not wait for.
 type NodeRuntime struct {
+	operations     *clusterops.Manager
 	cfg            config.ClusterConfig
 	checks         []func(context.Context) error
 	draining       atomic.Bool
@@ -63,6 +65,10 @@ func (n *NodeRuntime) BeginDrain() { n.draining.Store(true) }
 
 func (n *NodeRuntime) Ready(c *gin.Context) {
 	c.Header("Cache-Control", "no-store")
+	if n.operations.Enabled() && (!n.operations.Fresh() || n.operations.Control().Maintenance) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not_ready"})
+		return
+	}
 	if n.draining.Load() || (c.Query("node") != "" && (!n.cfg.Enabled || c.Query("node") != n.cfg.NodeID)) ||
 		(c.Query("role") != "" && (!n.cfg.Enabled || c.Query("role") != n.cfg.Role)) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not_ready"})
@@ -155,7 +161,7 @@ func (n *NodeRuntime) Drain(ctx context.Context, srv *http.Server, propagation t
 func (n *NodeRuntime) hasActiveRequests() bool {
 	n.mu.Lock()
 	defer n.mu.Unlock()
-	return n.active.Load() > 0 || len(n.hijacked) > 0
+	return n.active.Load() > 0 || len(n.hijacked) > 0 || n.operations.BackgroundActive() > 0
 }
 
 func (n *NodeRuntime) closeHijacked() {

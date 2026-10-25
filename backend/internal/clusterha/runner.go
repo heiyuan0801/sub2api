@@ -160,6 +160,16 @@ func (p *child) stop() {
 // ResolveRole uses a linearizable transaction. Matching value alone is not
 // enough: the key must belong to the current lease (including after reconnect).
 func ResolveRole(ctx context.Context, cli *clientv3.Client, key, owner string, lease clientv3.LeaseID) (string, error) {
+	return resolveEligibleRole(ctx, cli, key, owner, lease, true)
+}
+
+func resolveEligibleRole(ctx context.Context, cli *clientv3.Client, key, owner string, lease clientv3.LeaseID, eligible bool) (string, error) {
+	if !eligible {
+		// A linearizable read still proves quorum while a drained worker stays
+		// alive to receive the shared resume command.
+		_, err := cli.Get(ctx, key)
+		return "worker", err
+	}
 	r, err := cli.Txn(ctx).If(clientv3.Compare(clientv3.CreateRevision(key), "=", 0)).Then(clientv3.OpPut(key, owner, clientv3.WithLease(lease))).Else(clientv3.OpGet(key)).Commit()
 	if err != nil {
 		return "", err
@@ -212,6 +222,21 @@ func Run(ctx context.Context, c RunnerConfig) error {
 			return nil
 		}
 		started := time.Now()
+		maintenance, controlErr := ReadMaintenance(c.ProofFile+".control", c.NodeID)
+		if controlErr != nil {
+			stop()
+			closeSession()
+			return fmt.Errorf("read private maintenance control: %w", controlErr)
+		}
+		eligible := !maintenance.Maintenance
+		if maintenance.Maintenance && proc != nil && proc.role == "primary" {
+			if maintenance.Drained {
+				stop()
+				closeSession()
+			} else {
+				eligible = true
+			}
+		}
 		if session != nil {
 			select {
 			case <-session.Done():
@@ -235,7 +260,7 @@ func Run(ctx context.Context, c RunnerConfig) error {
 		role := ""
 		if session != nil {
 			probeCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-			role, err = ResolveRole(probeCtx, cli, key, owner, session.Lease())
+			role, err = resolveEligibleRole(probeCtx, cli, key, owner, session.Lease(), eligible)
 			cancel()
 		}
 		if err != nil || role == "" || time.Since(started) > 3*time.Second {

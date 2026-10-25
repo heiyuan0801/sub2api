@@ -20,6 +20,7 @@ type ClusterConfig struct {
 	HAEnabled          bool   `mapstructure:"ha_enabled"`
 	LeaseFile          string `mapstructure:"lease_file"`
 	LeaseToken         string `mapstructure:"lease_token"`
+	MaxConcurrency     int64  `mapstructure:"max_concurrency"`
 }
 
 var clusterNodeIDPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$`)
@@ -58,6 +59,9 @@ func (c ClusterConfig) Validate() error {
 	}
 	if c.BillingFailureMode != "" && c.BillingFailureMode != "closed" && c.BillingFailureMode != "open" {
 		return fmt.Errorf("cluster.billing_failure_mode must be closed or open")
+	}
+	if c.MaxConcurrency < 0 || c.MaxConcurrency > 20000 {
+		return fmt.Errorf("cluster.max_concurrency must be between 0 and 20000")
 	}
 	return nil
 }

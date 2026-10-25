@@ -9,6 +9,8 @@ import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+ThreadingHTTPServer.request_queue_size = 256
+
 ROOT = pathlib.Path(os.environ["SUB2API_HA_LAB_DIR"])
 PRICING = (
     pathlib.Path(__file__).resolve().parents[2]

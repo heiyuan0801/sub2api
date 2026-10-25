@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Wei-Shaw/sub2api/internal/clusterops"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
@@ -371,6 +372,15 @@ func applyUsageBilling(ctx context.Context, requestID string, usageLog *UsageLog
 
 	billingCtx, cancel := detachedBillingContext(ctx)
 	defer cancel()
+	if deps.cfg != nil && deps.cfg.Cluster.HAEnabled {
+		writer, ok := repo.(ClusterBillingEvidenceWriter)
+		if !ok {
+			return false, errors.New("HA billing evidence store unavailable")
+		}
+		if err := writer.StageClusterBillingEvidence(billingCtx, cmd, usageLog, clusterops.AttemptID(ctx)); err != nil {
+			return false, err
+		}
+	}
 
 	result, err := repo.Apply(billingCtx, cmd)
 	if err != nil {
