@@ -21,30 +21,32 @@ import (
 )
 
 type Manager struct {
-	db         *sql.DB
-	rdb        *redis.Client
-	cfg        *config.Config
-	version    string
-	instance   string
-	started    time.Time
-	control    atomic.Pointer[Control]
-	lastOK     atomic.Int64
-	requests   atomic.Uint64
-	errors     atomic.Uint64
-	rejected   atomic.Uint64
-	active     atomic.Int64
-	background atomic.Int64
-	cancel     context.CancelFunc
-	done       chan struct{}
-	once       sync.Once
-	stopOnce   sync.Once
-	probe      func() Stats
-	notify     func(context.Context, Event) error
-	notifyDone chan struct{}
+	db            *sql.DB
+	rdb           *redis.Client
+	cfg           *config.Config
+	version       string
+	instance      string
+	started       time.Time
+	control       atomic.Pointer[Control]
+	lastOK        atomic.Int64
+	requests      atomic.Uint64
+	errors        atomic.Uint64
+	rejected      atomic.Uint64
+	active        atomic.Int64
+	background    atomic.Int64
+	cancel        context.CancelFunc
+	done          chan struct{}
+	once          sync.Once
+	stopOnce      sync.Once
+	probe         func() Stats
+	notify        func(context.Context, Event) error
+	notifyDone    chan struct{}
+	resources     atomic.Pointer[Resources]
+	resourcesDone chan struct{}
 }
 
 func NewManager(db *sql.DB, rdb *redis.Client, cfg *config.Config, version string) *Manager {
-	m := &Manager{db: db, rdb: rdb, cfg: cfg, version: version, instance: uuid.NewString(), started: time.Now(), done: make(chan struct{}), notifyDone: make(chan struct{})}
+	m := &Manager{db: db, rdb: rdb, cfg: cfg, version: version, instance: uuid.NewString(), started: time.Now(), done: make(chan struct{}), notifyDone: make(chan struct{}), resourcesDone: make(chan struct{})}
 	limit := int64(1000)
 	if cfg.Cluster.MaxConcurrency > 0 {
 		limit = cfg.Cluster.MaxConcurrency
@@ -114,6 +116,7 @@ func (m *Manager) Start(probe func() Stats) {
 		ctx, cancel := context.WithCancel(context.Background())
 		m.cancel = cancel
 		m.probe = probe
+		go m.collectResources(ctx)
 		go m.notifyLoop(ctx)
 		go func() {
 			defer close(m.done)
@@ -149,6 +152,7 @@ func (m *Manager) Stop() {
 			m.cancel()
 			<-m.done
 			<-m.notifyDone
+			<-m.resourcesDone
 		})
 	}
 }
@@ -167,19 +171,26 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	s.HeapBytes = mem.HeapAlloc
+	s.Resources = m.resources.Load()
 	s.LeaseOK = m.leaseOK()
 	var readOnly bool
+	started := time.Now()
 	err := m.db.QueryRowContext(ctx, "SELECT pg_is_in_recovery() OR current_setting('transaction_read_only')::boolean").Scan(&readOnly)
 	s.DatabaseOK = err == nil && !readOnly
 	if !s.DatabaseOK {
 		return ErrUnavailable
 	}
+	dbLatency := float64(time.Since(started).Microseconds()) / 1000
+	s.DatabaseLatencyMS = &dbLatency
 	if m.rdb != nil {
 		rctx, cancel := context.WithTimeout(ctx, time.Second)
+		started = time.Now()
 		info, e := m.rdb.Info(rctx, "replication").Result()
 		cancel()
 		s.RedisOK = e == nil
 		if e == nil {
+			redisLatency := float64(time.Since(started).Microseconds()) / 1000
+			s.RedisLatencyMS = &redisLatency
 			values := map[string]string{}
 			for _, line := range strings.Split(info, "\n") {
 				k, v, ok := strings.Cut(strings.TrimSpace(line), ":")
@@ -199,12 +210,17 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 	c := m.Control()
 	s.ControlRevision = c.Revision
 	if m.HAEnabled() {
+		ingressOK := false
+		s.IngressOK = &ingressOK
 		var ack struct {
 			Revisions map[string]int64 `json:"revisions"`
 			UpdatedAt time.Time        `json:"updated_at"`
 		}
 		if b, e := os.ReadFile(m.cfg.Cluster.LeaseFile + ".proxy-ack"); e == nil && json.Unmarshal(b, &ack) == nil && time.Since(ack.UpdatedAt) < 15*time.Second {
-			s.IngressRevision = ack.Revisions[m.cfg.Cluster.NodeID]
+			if revision, exists := ack.Revisions[m.cfg.Cluster.NodeID]; exists {
+				s.IngressRevision = revision
+				ingressOK = revision >= c.Revision
+			}
 		}
 	}
 	payload, err := json.Marshal(s)

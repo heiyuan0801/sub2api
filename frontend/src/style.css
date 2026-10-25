@@ -3,6 +3,30 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%; --foreground: 0 0% 9%;
+    --card: 0 0% 100%; --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%; --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 9%; --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%; --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%; --muted-foreground: 0 0% 43%;
+    --accent: 0 0% 96%; --accent-foreground: 0 0% 9%;
+    --destructive: 0 72% 51%; --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%; --input: 0 0% 88%; --ring: 0 0% 64%;
+    --radius: 0.625rem;
+  }
+  .dark {
+    --background: 0 0% 7%; --foreground: 0 0% 96%;
+    --card: 0 0% 10%; --card-foreground: 0 0% 96%;
+    --popover: 0 0% 10%; --popover-foreground: 0 0% 96%;
+    --primary: 0 0% 96%; --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 16%; --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 15%; --muted-foreground: 0 0% 65%;
+    --accent: 0 0% 16%; --accent-foreground: 0 0% 96%;
+    --destructive: 0 63% 45%; --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 20%; --input: 0 0% 24%; --ring: 0 0% 50%;
+  }
+
   * {
     @apply border-gray-200 dark:border-dark-700;
   }
@@ -774,4 +798,41 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* Shared shadcn tokens also keep legacy business controls visually consistent. */
+@layer components {
+  .btn { @apply rounded-md px-3.5 py-2 text-sm; min-height: 36px; }
+  .btn-sm { @apply rounded-md px-3 py-1.5; min-height: 32px; }
+  .btn-lg { @apply rounded-lg px-6 py-3; min-height: 44px; }
+  .btn-icon { @apply rounded-md p-2; }
+  .input { @apply rounded-md border-input bg-background px-3 py-2 text-foreground shadow-sm; }
+  .input:focus { @apply border-ring ring-ring/20; }
+  .card, .glass-card { @apply rounded-xl border-border bg-card text-card-foreground shadow-sm; }
+  .card-hover:hover { transform: none; }
+  .stat-card { @apply relative flex-col gap-3 rounded-xl p-5; }
+  .stat-card .stat-icon { @apply absolute right-5 top-5 size-8 rounded-md bg-muted p-1.5 text-muted-foreground; }
+  .stat-card .stat-label { @apply pr-10 text-sm font-medium text-muted-foreground; }
+  .stat-card .stat-value { @apply text-3xl font-semibold tracking-tight; font-variant-numeric: tabular-nums; }
+  .sidebar { @apply border-border bg-gray-50 dark:bg-dark-950; }
+  .sidebar-header { @apply border-transparent px-5; }
+  .sidebar-brand-title { @apply text-base font-semibold tracking-tight; }
+  .sidebar-nav { @apply px-3 pt-3; }
+  .sidebar-link { @apply gap-2.5 rounded-md py-2 text-[13px]; }
+  .sidebar-link > svg { @apply size-4; }
+  .sidebar-link-active { @apply bg-white text-gray-950 shadow-sm ring-1 ring-gray-200 dark:bg-dark-800 dark:text-white dark:ring-dark-700; }
+  .sidebar-section { @apply mb-5; }
+  .sidebar-section-title { @apply text-[11px] font-medium tracking-normal; }
+  .console-content { @apply min-w-0; }
+  .console-content .table-wrapper thead { @apply bg-muted/50; }
+  .console-content .table-wrapper tbody tr:hover { @apply bg-muted/40; }
+  .modal-content { @apply rounded-xl border border-border bg-background shadow-xl; }
+  .modal-header { @apply px-6 py-5; }
+  .modal-title { @apply text-lg font-semibold tracking-tight; }
+  .modal-footer { @apply bg-muted/30; }
+  .dropdown { @apply rounded-lg border-border bg-popover text-popover-foreground shadow-lg; }
+  input[type='checkbox'], input[type='radio'] { accent-color: hsl(var(--primary)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot] { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

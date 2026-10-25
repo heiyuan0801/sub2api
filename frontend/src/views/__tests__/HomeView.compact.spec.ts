@@ -29,6 +29,10 @@ vi.mock('@/stores/app', () => ({
   useAppStore: () => appStore,
 }))
 
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => authStore }))
+vi.mock('vue-router', async (original) => ({ ...(await original<typeof import('vue-router')>()), useRoute: () => ({ name: 'Home', fullPath: '/home' }) }))
+vi.mock('@/api/modelPlaza', () => ({ getModelPlaza: vi.fn().mockResolvedValue({ groups: [] }) }))
+
 vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()
   return {
@@ -108,7 +112,7 @@ describe('HomeView compact mode', () => {
     const wrapper = mountHome(settings)
 
     expect(wrapper.find('[data-testid="compact-home"]').exists()).toBe(false)
-    expect(wrapper.find('.terminal-container').exists()).toBe(true)
+    expect(wrapper.find('#api-example').exists()).toBe(true)
   })
 
   it('links unauthenticated visitors to login', () => {

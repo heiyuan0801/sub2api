@@ -1,5 +1,5 @@
 <template>
-  <div class="card">
+  <Card class="card">
     <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('dashboard.quickActions') }}</h2>
     </div>
@@ -64,10 +64,11 @@
         />
       </button>
     </div>
-  </div>
+  </Card>
 </template>
 
 <script setup lang="ts">
+import { Card } from '@/components/ui/card'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'

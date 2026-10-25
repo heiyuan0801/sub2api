@@ -97,7 +97,8 @@
     <main>
       <section class="hero" aria-labelledby="hero-heading">
         <div class="hero-grid" aria-hidden="true"></div>
-        <div class="hero-inner">
+        <div class="hero-shell"><div class="hero-inner">
+          <p class="hero-eyebrow">{{ t('design.homeEyebrow') }}</p>
           <router-link
             v-if="showModelPlazaEntry && featuredModel"
             :to="{ path: '/model-plaza', query: { search: featuredModel } }"
@@ -121,17 +122,22 @@
           </h1>
           <p class="hero-description">{{ heroSubtitle }}</p>
           <div class="hero-actions">
-            <router-link :to="startPath" class="public-button button-primary">
+            <Button as-child size="lg"><router-link :to="startPath">
               {{ isAuthenticated ? t('publicHome.actions.dashboard') : t('publicHome.actions.getStarted') }}
-              <Icon name="arrowRight" size="sm" aria-hidden="true" />
-            </router-link>
-            <a
+              <ArrowUpRight :size="16" aria-hidden="true" />
+            </router-link></Button>
+            <Button as-child variant="outline" size="lg"><a
               :href="docUrl || '#quick-start'"
               :target="docUrl ? '_blank' : undefined"
               :rel="docUrl ? 'noopener noreferrer' : undefined"
-              class="public-button button-secondary"
-            >{{ t('publicHome.actions.documentation') }}</a>
+            >{{ t('publicHome.actions.documentation') }}</a></Button>
           </div>
+        </div>
+        <Card class="hero-preview">
+          <div class="hero-preview-header"><span><Terminal :size="15" />{{ t('publicHome.examples.request') }}</span><Badge variant="outline">API</Badge></div>
+          <div class="hero-preview-body"><p>POST <span>/v1/chat/completions</span></p><pre><code>{{ requestExamples.chat }}</code></pre></div>
+          <div class="hero-preview-footer"><span>{{ t('publicHome.quickstart.apiEndpoint') }}</span><code>{{ gatewayRoot }}</code></div>
+        </Card>
         </div>
       </section>
 
@@ -143,11 +149,11 @@
             <p>{{ t('publicHome.services.description') }}</p>
           </div>
           <div class="service-grid">
-            <article v-for="feature in features" :key="feature.title" class="service-card">
+            <Card v-for="feature in features" :key="feature.title" class="service-card">
               <div class="service-icon"><Icon :name="feature.icon" size="lg" aria-hidden="true" /></div>
               <h3>{{ feature.title }}</h3>
               <p>{{ feature.description }}</p>
-            </article>
+            </Card>
           </div>
         </div>
       </section>
@@ -266,6 +272,11 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Terminal, ArrowUpRight } from '@lucide/vue'
+
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
@@ -680,4 +691,36 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .public-home *, .public-home *::before, .public-home *::after { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Public landing uses the same neutral tokens as the console. */
+.hero-shell { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 56px; width: min(1200px, calc(100% - 64px)); margin: 0 auto; padding: 88px 0 96px; }
+.hero-inner { width: 100%; padding: 0; text-align: left; }
+.hero-eyebrow { margin-bottom: 28px; color: var(--home-muted); font-size: 12px; letter-spacing: .08em; }
+.hero-title { margin-top: 28px; letter-spacing: -.055em; line-height: 1.14; }
+.hero-title span { font-size: clamp(36px, 4.2vw, 60px); }
+.hero-title span + span { font-size: clamp(30px, 3.3vw, 48px); color: var(--home-muted); margin-top: 12px; }
+.hero-description { margin: 24px 0 0; font-size: 15px; line-height: 1.9; max-width: 500px; }
+.hero-actions { justify-content: flex-start; gap: 12px; margin-top: 28px; }
+.hero-grid { opacity: .35; background-size: 56px 56px; }
+.model-announcement { min-height: 30px; padding: 4px 8px 4px 5px; font-size: 11px; gap: 8px; }
+.featured-model-announcement .announcement-model { font-size: 13px; }
+.model-announcement .announcement-label { padding: 4px 9px; font-size: 10px; }
+.model-announcement .announcement-arrow { width: 15px; height: 15px; margin-left: 2px; }
+.hero-preview { min-width: 0; overflow: hidden; text-align: left; background: hsl(var(--card)); box-shadow: 0 12px 40px #00000006; transform: rotate(-1deg); }
+.hero-preview-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--home-border); font-size: 12px; }
+.hero-preview-header > span { display: flex; align-items: center; gap: 8px; }
+.hero-preview-body { padding: 26px 24px; font: 11px/1.8 ui-monospace, monospace; }
+.hero-preview-body p { color: var(--home-muted); margin-bottom: 24px; }
+.hero-preview-body p span { color: var(--home-text); margin-left: 8px; }
+.hero-preview-body pre { overflow-x: auto; max-height: 250px; color: var(--home-text); white-space: pre; }
+.hero-preview-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--home-border); background: var(--home-surface); font-size: 10px; color: var(--home-muted); }
+.hero-preview-footer code { overflow-wrap: anywhere; }
+.service-card { padding: 26px; border-radius: 12px; }
+.service-icon { border-radius: 10px; box-shadow: none; width: 38px; height: 38px; margin-bottom: 24px; }
+.section-heading h2 { font-weight: 600; letter-spacing: -.04em; }
+.code-panel, .step-card, .application-card { border-radius: 12px; }
+@media (max-width: 900px) { .hero-shell { grid-template-columns: minmax(0,1fr); gap: 36px; padding: 56px 0; max-width: 600px; } .hero-preview { transform: none; } }
+@media (max-width: 600px) { .hero-shell { width: calc(100% - 40px); } .hero-title span { font-size: 36px; } .hero-title span + span { font-size: 30px; } .hero-preview-body { padding: 20px 16px; } }
+@media (prefers-reduced-motion: reduce) { .hero-preview { transform: none; } }
+
 </style>

@@ -37,7 +37,14 @@ FRONTEND_CRITICAL_VITEST := \
 	src/views/user/__tests__/ChannelStatusV2View.availability.spec.ts \
 	src/views/admin/ops/components/__tests__/OpsAlertRulesCard.channelMonitor.spec.ts \
 	src/views/admin/ops/components/__tests__/OpsAlertRulesCard.duration.spec.ts \
-	src/components/admin/channel/__tests__/PricingEntryCard.modelDefaultPrice.spec.ts
+	src/components/admin/channel/__tests__/PricingEntryCard.modelDefaultPrice.spec.ts \
+	src/components/admin/cluster/__tests__/ClusterNodeTelemetry.spec.ts \
+	src/components/admin/cluster/__tests__/clusterText.spec.ts \
+	src/views/admin/__tests__/ClusterView.spec.ts \
+	src/components/common/__tests__/UiDialog.spec.ts \
+	src/components/modelPlaza/__tests__/PlazaCatalog.spec.ts \
+	src/views/__tests__/HomeView.compact.spec.ts \
+	src/views/auth/__tests__/TencentCaptchaActionGate.spec.ts
 
 # 一键编译前后端
 build: build-backend build-frontend

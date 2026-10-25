@@ -2,33 +2,51 @@
   <div class="auth-page">
     <header class="auth-header">
       <router-link to="/home" class="auth-brand" :aria-label="siteName">
-        <img :src="siteLogo || '/logo.svg'" :alt="siteName" />
+        <img :src="siteLogo || '/logo.svg'" :alt="siteName" /><span>{{ siteName }}</span>
       </router-link>
-      <button
-        type="button"
+      <Button
+        variant="ghost" size="icon" type="button"
         class="auth-theme-button"
         :aria-label="isDark ? t('nav.lightMode') : t('nav.darkMode')"
         :title="isDark ? t('nav.lightMode') : t('nav.darkMode')"
         @click="toggleTheme"
       >
         <Icon :name="isDark ? 'moon' : 'sun'" size="md" />
-      </button>
+      </Button>
     </header>
 
-    <main class="auth-main">
-      <section class="auth-card" :class="`auth-card--${variant}`">
+    <div class="auth-layout">
+      <aside class="auth-story" aria-labelledby="auth-story-title">
+        <div class="auth-story-copy">
+          <span class="auth-story-eyebrow"><span></span>{{ t('design.authEyebrow') }}</span>
+          <h1 id="auth-story-title">{{ t('design.allSystems') }}</h1>
+          <p>{{ t('design.authDescription') }}</p>
+          <div class="auth-stack" aria-hidden="true">
+            <div><Layers :size="18" /><span>{{ t('nav.modelPlaza') }}</span><code>01</code></div>
+            <div><KeyRound :size="18" /><span>{{ t('nav.apiKeys') }}</span><code>02</code></div>
+            <div><Terminal :size="18" /><span>{{ t('design.workspace') }}</span><code>03</code></div>
+          </div>
+        </div>
+        <router-link to="/home" class="auth-story-link">{{ t('design.backHome') }}<ArrowUpRight :size="16" /></router-link>
+      </aside>
+      <main class="auth-main">
+      <Card class="auth-card" :class="`auth-card--${variant}`">
         <slot />
         <div v-if="$slots.footer" class="auth-footer">
           <slot name="footer" />
         </div>
-      </section>
+      </Card>
     </main>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { ArrowUpRight, Terminal, Layers, KeyRound } from '@lucide/vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useAppStore } from '@/stores'
 import { sanitizeUrl } from '@/utils/url'
@@ -57,111 +75,29 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.auth-page {
-  --auth-background: #fff;
-  --auth-card-background: #fefefe;
-  --auth-text: #171717;
-  --auth-muted: #8a8a8a;
-  --auth-border: #ededed;
-  --auth-input-background: #fff;
-  min-height: 100dvh;
-  background: var(--auth-background);
-  color: var(--auth-text);
-}
-
-.dark .auth-page {
-  --auth-background: #111;
-  --auth-card-background: #171717;
-  --auth-text: #f5f5f5;
-  --auth-muted: #939393;
-  --auth-border: #303030;
-  --auth-input-background: #1b1b1b;
-}
-
-.auth-header {
-  position: absolute;
-  z-index: 10;
-  inset: 20px 32px auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-.auth-brand,
-.auth-theme-button {
-  pointer-events: auto;
-}
-
-.auth-brand {
-  display: inline-flex;
-  align-items: center;
-  height: 30px;
-  max-width: 140px;
-}
-
-.auth-brand img {
-  width: auto;
-  height: 30px;
-  max-width: 140px;
-  object-fit: contain;
-}
-
-.auth-theme-button {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: var(--auth-text);
-  transition: background-color 0.15s;
-}
-
-.auth-theme-button:hover {
-  background: var(--auth-border);
-}
-
-.auth-theme-button:focus-visible,
-.auth-brand:focus-visible {
-  outline: 2px solid var(--auth-text);
-  outline-offset: 4px;
-}
-
-.auth-main {
-  display: flex;
-  min-height: 100dvh;
-  align-items: center;
-  justify-content: center;
-  padding: 54px 24px;
-}
-
-.auth-card {
-  display: flex;
-  width: 100%;
-  max-width: 506px;
-  flex-direction: column;
-  padding: 39px 39px 30px;
-  border: 1px solid var(--auth-border);
-  border-radius: 24px;
-  background: var(--auth-card-background);
-}
-
-.auth-card--login {
-  min-height: 608px;
-}
-
-.auth-card--register {
-  min-height: 592px;
-}
-
-.auth-card--recovery {
-  min-height: 364px;
-  padding-top: 41px;
-}
+.auth-page { --auth-background: hsl(var(--background)); --auth-card-background: hsl(var(--card)); --auth-text: hsl(var(--foreground)); --auth-muted: hsl(var(--muted-foreground)); --auth-border: hsl(var(--border)); --auth-input-background: hsl(var(--background)); min-height: 100dvh; background: var(--auth-background); color: var(--auth-text); }
+.auth-header { position: absolute; z-index: 10; inset: 28px 36px auto; display: flex; align-items: center; justify-content: space-between; pointer-events: none; }
+.auth-brand, .auth-theme-button { pointer-events: auto; }
+.auth-brand { display: inline-flex; gap: 10px; align-items: center; font-size: 17px; font-weight: 650; letter-spacing: -.4px; }
+.auth-brand img { width: 30px; height: 30px; object-fit: contain; }
+.auth-layout { display: grid; min-height: 100dvh; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.auth-story { display: flex; flex-direction: column; justify-content: center; padding: 120px clamp(36px, 7vw, 110px) 40px; border-right: 1px solid var(--auth-border); background: hsl(var(--muted) / .55); }
+.auth-story-copy { margin: auto 0; max-width: 500px; }
+.auth-story-eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--auth-muted); font-size: 12px; font-weight: 500; }
+.auth-story-eyebrow span { width: 6px; height: 6px; border-radius: 50%; background: var(--auth-text); }
+.auth-story h1 { margin-top: 22px; font-size: clamp(30px, 3.4vw, 52px); line-height: 1.2; letter-spacing: -.055em; font-weight: 600; text-wrap: balance; }
+.auth-story p { margin-top: 24px; max-width: 390px; font-size: 15px; line-height: 1.9; color: var(--auth-muted); }
+.auth-stack { display: grid; gap: 8px; margin-top: 48px; max-width: 360px; }
+.auth-stack > div { display: flex; align-items: center; gap: 14px; border: 1px solid var(--auth-border); border-radius: 10px; background: var(--auth-background); padding: 16px 20px; font-size: 13px; box-shadow: 0 2px 5px #00000003; }
+.auth-stack code { margin-left: auto; color: var(--auth-muted); font-size: 11px; }
+.auth-story-link { display: inline-flex; align-items: center; gap: 8px; width: fit-content; margin-top: 48px; font-size: 13px; color: var(--auth-muted); }
+.auth-main { display: flex; align-items: center; justify-content: center; padding: 100px 32px 48px; }
+.auth-card { width: 100%; max-width: 430px; display: flex; flex-direction: column; padding: 32px; border: 0; border-radius: 14px; background: var(--auth-card-background); box-shadow: none; }
+.auth-card--recovery { padding-top: 32px; }
+@media (max-width: 900px) { .auth-layout { grid-template-columns: minmax(0,1fr); } .auth-story { display: none; } .auth-header { inset: 24px; } .auth-card { border: 1px solid var(--auth-border); } }
 
 .auth-card :deep(.auth-heading) {
-  text-align: center;
+  text-align: left;
 }
 
 .auth-card :deep(.auth-eyebrow) {
@@ -170,7 +106,7 @@ onMounted(() => {
   min-height: 22px;
   padding: 2px 11px;
   border: 1px solid var(--auth-border);
-  border-radius: 999px;
+  border-radius: 6px;
   color: var(--auth-muted);
   font-size: 11px;
   font-weight: 500;
@@ -202,17 +138,17 @@ onMounted(() => {
   line-height: 20px;
 }
 
-.auth-card :deep(.input) {
-  min-height: 36px;
-  height: 36px;
+.auth-card :deep(:is(.input, [data-slot="input"])) {
+  min-height: 42px;
+  height: 42px;
   padding: 7px 15px;
   border: 1px solid var(--auth-border);
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--auth-input-background);
   color: var(--auth-text);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 20px;
-  box-shadow: none;
+  box-shadow: 0 1px 2px #00000004;
 }
 
 .auth-card :deep(.input.pr-11),
@@ -249,11 +185,11 @@ onMounted(() => {
   line-height: 18px;
 }
 
-.auth-card :deep(.btn) {
+.auth-card :deep(:is(.btn, [data-slot="button"])) {
   min-height: 36px;
   height: auto;
   padding: 7px 15px;
-  border-radius: 999px;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;

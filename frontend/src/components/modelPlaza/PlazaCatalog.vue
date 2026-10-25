@@ -4,7 +4,7 @@
     '--catalog-output-label': JSON.stringify(t('publicSite.models.outputLabel'))
   }">
     <div class="catalog-toolbar">
-      <button
+      <Button variant="outline" size="sm"
         type="button"
         class="catalog-button filter-button"
         :disabled="loading || error"
@@ -14,7 +14,7 @@
         <Icon name="filter" size="sm" />
         <span>{{ t('publicSite.models.filter') }}</span>
         <span v-if="activeFilterCount" class="filter-count">{{ activeFilterCount }}</span>
-      </button>
+      </Button>
       <div class="catalog-search">
         <Icon name="search" size="sm" />
         <label for="public-model-search" class="sr-only">{{ t('publicSite.models.searchLabel') }}</label>
@@ -32,9 +32,15 @@
 
     <div class="catalog-page">
       <header class="catalog-hero">
+        <Badge variant="outline" class="mb-5">{{ t('design.modelsEyebrow') }}</Badge>
         <h1>{{ t('publicSite.models.title') }}</h1>
         <p>{{ t('publicSite.models.subtitle') }}</p>
       </header>
+
+      <nav v-if="!loading && !error" class="mb-6 flex flex-wrap gap-2" :aria-label="t('publicSite.models.provider')">
+        <Button :variant="selectedPlatform === 'all' ? 'default' : 'outline'" size="sm" :aria-pressed="selectedPlatform === 'all'" @click="selectedPlatform = 'all'">{{ t('publicSite.models.allProviders') }}</Button>
+        <Button v-for="platform in platforms" :key="platform" :variant="selectedPlatform === platform ? 'default' : 'outline'" size="sm" :aria-pressed="selectedPlatform === platform" :disabled="!platformEnabled(platform)" @click="selectedPlatform = platform"><PlatformIcon :platform="platform as GroupPlatform" size="sm" />{{ platformLabel(platform) }}</Button>
+      </nav>
 
       <details v-if="descriptionHtml" class="catalog-description">
         <summary>{{ t('publicSite.models.priceDescription') }} <Icon name="chevronDown" size="sm" /></summary>
@@ -62,12 +68,12 @@
             </div>
           </div>
           <div class="summary-actions">
-            <button type="button" class="catalog-icon-button" :title="t('publicSite.models.exportCsv')" :aria-label="t('publicSite.models.exportCsvLabel')" :disabled="!entries.length" @click="exportCsv">
+            <Button variant="outline" size="sm" type="button" class="catalog-icon-button" :title="t('publicSite.models.exportCsv')" :aria-label="t('publicSite.models.exportCsvLabel')" :disabled="!entries.length" @click="exportCsv">
               <Icon name="download" size="sm" />
-            </button>
-            <button type="button" class="catalog-button rate-toggle" :class="{ active: showRate }" :aria-pressed="showRate" @click="showRate = !showRate">
+            </Button>
+            <Button variant="outline" size="sm" type="button" class="catalog-button rate-toggle" :class="{ active: showRate }" :aria-pressed="showRate" @click="showRate = !showRate">
               <span class="rate-switch" aria-hidden="true"><span></span></span> {{ t('publicSite.models.rate') }}
-            </button>
+            </Button>
             <div class="catalog-view-switch" role="group" :aria-label="t('publicSite.models.viewMode')">
               <button type="button" :class="{ active: viewMode === 'cards' }" :aria-pressed="viewMode === 'cards'" :aria-label="t('publicSite.models.cardView')" @click="viewMode = 'cards'">
                 <Icon name="grid" size="sm" />
@@ -84,10 +90,10 @@
         <div v-if="!entries.length" class="catalog-state catalog-empty">
           <Icon name="search" size="lg" />
           <p>{{ searchQuery.trim() || activeFilterCount ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}</p>
-          <button v-if="searchQuery.trim() || activeFilterCount" type="button" class="catalog-button" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</button>
+          <Button variant="outline" size="sm" v-if="searchQuery.trim() || activeFilterCount" type="button" class="catalog-button" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</Button>
         </div>
         <div v-else-if="viewMode === 'cards'" class="catalog-grid">
-          <article v-for="entry in entries" :key="entry.key" class="catalog-card">
+          <Card v-for="entry in entries" :key="entry.key" class="catalog-card">
             <div class="card-actions">
               <button type="button" :title="t('publicSite.models.copyName')" :aria-label="t('publicSite.models.copyNameLabel', { model: entry.model.name })" @click="copyToClipboard(entry.model.name)">
                 <Icon name="copy" size="sm" />
@@ -117,7 +123,7 @@
               </div>
               <span class="card-group" :title="entry.group.name">{{ entry.group.name }}<template v-if="showRate"> · {{ entryRate(entry) }}x</template></span>
             </footer>
-          </article>
+          </Card>
         </div>
         <div v-else class="catalog-tables">
           <PlazaGroupSection v-for="group in filteredGroups" :key="group.id" :group="group" />
@@ -137,7 +143,7 @@
     >
       <header class="catalog-dialog-header">
         <h2 id="catalog-filter-title">{{ t('publicSite.models.filterModels') }}</h2>
-        <button type="button" class="catalog-icon-button" :aria-label="t('publicSite.models.closeFilters')" @click="filterOpen = false"><Icon name="x" size="md" /></button>
+        <Button variant="outline" size="sm" type="button" class="catalog-icon-button" :aria-label="t('publicSite.models.closeFilters')" @click="filterOpen = false"><Icon name="x" size="md" /></Button>
       </header>
       <div class="catalog-dialog-body">
         <div class="catalog-filter-content">
@@ -172,8 +178,8 @@
       </div>
       <footer class="catalog-dialog-footer">
         <div class="filter-footer">
-          <button type="button" class="catalog-button" @click="resetFilters">{{ t('publicSite.models.resetFilters') }}</button>
-          <button type="button" class="catalog-button catalog-button-dark" @click="filterOpen = false">{{ t('publicSite.models.showModels', { count: uniqueModelCount }) }}</button>
+          <Button variant="outline" size="sm" type="button" class="catalog-button" @click="resetFilters">{{ t('publicSite.models.resetFilters') }}</Button>
+          <Button variant="outline" size="sm" type="button" class="catalog-button catalog-button-dark" @click="filterOpen = false">{{ t('publicSite.models.showModels', { count: uniqueModelCount }) }}</Button>
         </div>
       </footer>
     </dialog>
@@ -188,19 +194,22 @@
     >
       <header class="catalog-dialog-header">
         <h2 id="catalog-detail-title">{{ selectedEntry?.model.name || t('publicSite.models.modelDetails') }}</h2>
-        <button type="button" class="catalog-icon-button" :aria-label="t('publicSite.models.closeDetails')" @click="selectedEntry = null"><Icon name="x" size="md" /></button>
+        <Button variant="outline" size="sm" type="button" class="catalog-icon-button" :aria-label="t('publicSite.models.closeDetails')" @click="selectedEntry = null"><Icon name="x" size="md" /></Button>
       </header>
       <div class="catalog-dialog-body">
         <PlazaGroupSection v-if="selectedEntry" :group="{ ...selectedEntry.group, models: [selectedEntry.model] }" />
       </div>
       <footer class="catalog-dialog-footer">
-        <button v-if="selectedEntry" type="button" class="catalog-button" @click="copyToClipboard(selectedEntry.model.name)"><Icon name="copy" size="sm" /> {{ t('publicSite.models.copyName') }}</button>
+        <Button variant="outline" size="sm" v-if="selectedEntry" type="button" class="catalog-button" @click="copyToClipboard(selectedEntry.model.name)"><Icon name="copy" size="sm" /> {{ t('publicSite.models.copyName') }}</Button>
       </footer>
     </dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -511,4 +520,19 @@ onUnmounted(() => {
   .catalog-detail-dialog .catalog-dialog-body { padding: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .catalog-spinner { animation: none; } .catalog-card, .card-actions, .rate-switch > span { transition: none; } }
+
+.model-catalog { --catalog-bg: hsl(var(--background)); --catalog-text: hsl(var(--foreground)); --catalog-muted: hsl(var(--muted-foreground)); --catalog-border: hsl(var(--border)); --catalog-soft: hsl(var(--muted)); }
+.catalog-toolbar { height: auto; min-height: 72px; max-width: 1200px; margin: 0 auto; padding: 16px 24px; border-bottom: 0; }
+.catalog-page { max-width: 1200px; padding: 0 24px 60px; }
+.catalog-hero { padding: 36px 0 48px; text-align: left; }
+.catalog-hero h1 { font-weight: 600; font-size: 42px; letter-spacing: -.045em; }
+.catalog-hero p { font-size: 15px; margin-top: 12px; }
+.catalog-search { width: min(400px, 60vw); border-radius: 7px; border-color: var(--catalog-border); background: var(--catalog-bg); }
+.catalog-summary { border-radius: 10px; background: var(--catalog-soft); box-shadow: none; }
+.catalog-grid { gap: 16px; }
+.catalog-card { border-radius: 12px; min-height: 260px; box-shadow: 0 1px 3px #00000004; }
+.catalog-card:hover { transform: none; border-color: hsl(var(--ring)); box-shadow: 0 4px 14px #00000005; }
+.card-main { padding-top: 26px; }
+.card-description { font-size: 12px; }
+@media (max-width: 640px) { .catalog-toolbar { padding: 16px; } .catalog-page { padding: 0 16px 40px; } .catalog-hero { padding: 24px 0 32px; } .catalog-hero h1 { font-size: 32px; } }
 </style>

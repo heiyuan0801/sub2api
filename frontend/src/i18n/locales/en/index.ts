@@ -1,3 +1,4 @@
+import design from './design'
 import landing from './landing'
 import common from './common'
 import dashboard from './dashboard'
@@ -11,6 +12,7 @@ import publicHome from './publicHome'
 import cluster from './cluster'
 
 export default {
+  ...design,
   ...cluster,
   ...landing,
   ...common,

@@ -74,7 +74,7 @@
             {{ t('auth.emailLabel') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="email"
               v-model="formData.email"
               type="email"
@@ -95,7 +95,7 @@
             {{ t('auth.passwordLabel') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="password"
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
@@ -129,7 +129,7 @@
             {{ t('auth.confirmPassword') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="confirmPassword"
               v-model="confirmPassword"
               :type="showConfirmPassword ? 'text' : 'password'"
@@ -160,7 +160,7 @@
             {{ t('auth.invitationCodeLabel') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="invitation_code"
               v-model="formData.invitation_code"
               type="text"
@@ -205,7 +205,7 @@
             <span class="ml-1 text-xs font-normal text-gray-400 dark:text-dark-500">({{ t('common.optional') }})</span>
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="affiliate_code"
               v-model="formData.aff_code"
               type="text"
@@ -223,7 +223,7 @@
             <span class="ml-1 text-xs font-normal text-gray-400 dark:text-dark-500">({{ t('common.optional') }})</span>
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="promo_code"
               v-model="formData.promo_code"
               type="text"
@@ -293,10 +293,10 @@
         />
 
         <!-- Submit Button -->
-        <button
+        <Button variant="default"
           type="submit"
           :disabled="registrationActionDisabled || (turnstileEnabled && !turnstileToken)"
-          class="btn btn-primary w-full"
+          class=" w-full"
         >
           <svg
             v-if="isLoading"
@@ -322,7 +322,7 @@
           {{
             isLoading ? t('auth.processing') : pageCopy.submit
           }}
-        </button>
+        </Button>
       </form>
     </div>
 
@@ -342,6 +342,9 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input as UiInput } from '@/components/ui/input'
+
 import { computed, ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'

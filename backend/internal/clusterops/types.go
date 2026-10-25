@@ -36,27 +36,31 @@ type Control struct {
 }
 
 type Stats struct {
-	DiskTotal           uint64 `json:"disk_total_bytes"`
-	DiskFree            uint64 `json:"disk_free_bytes"`
-	Active              int64  `json:"active_requests"`
-	Requests            uint64 `json:"requests"`
-	Errors              uint64 `json:"errors"`
-	Rejected            uint64 `json:"rejected"`
-	Goroutines          int    `json:"goroutines"`
-	HeapBytes           uint64 `json:"heap_bytes"`
-	SettingsVersion     string `json:"settings_version"`
-	DatabaseOK          bool   `json:"database_ok"`
-	RedisOK             bool   `json:"redis_ok"`
-	LeaseOK             bool   `json:"lease_ok"`
-	ControlRevision     int64  `json:"control_revision"`
-	IngressRevision     int64  `json:"ingress_revision"`
-	ReplicationPeers    int    `json:"replication_peers"`
-	SyncReplicas        int    `json:"sync_replicas"`
-	ReplicationLagBytes int64  `json:"replication_lag_bytes"`
-	ReplicationKnown    bool   `json:"replication_known"`
-	RedisRole           string `json:"redis_role"`
-	RedisReplicas       int    `json:"redis_replicas"`
-	RedisLinkOK         bool   `json:"redis_link_ok"`
+	Resources           *Resources `json:"resources,omitempty"`
+	DatabaseLatencyMS   *float64   `json:"database_latency_ms,omitempty"`
+	RedisLatencyMS      *float64   `json:"redis_latency_ms,omitempty"`
+	IngressOK           *bool      `json:"ingress_ok,omitempty"`
+	DiskTotal           uint64     `json:"disk_total_bytes"`
+	DiskFree            uint64     `json:"disk_free_bytes"`
+	Active              int64      `json:"active_requests"`
+	Requests            uint64     `json:"requests"`
+	Errors              uint64     `json:"errors"`
+	Rejected            uint64     `json:"rejected"`
+	Goroutines          int        `json:"goroutines"`
+	HeapBytes           uint64     `json:"heap_bytes"`
+	SettingsVersion     string     `json:"settings_version"`
+	DatabaseOK          bool       `json:"database_ok"`
+	RedisOK             bool       `json:"redis_ok"`
+	LeaseOK             bool       `json:"lease_ok"`
+	ControlRevision     int64      `json:"control_revision"`
+	IngressRevision     int64      `json:"ingress_revision"`
+	ReplicationPeers    int        `json:"replication_peers"`
+	SyncReplicas        int        `json:"sync_replicas"`
+	ReplicationLagBytes int64      `json:"replication_lag_bytes"`
+	ReplicationKnown    bool       `json:"replication_known"`
+	RedisRole           string     `json:"redis_role"`
+	RedisReplicas       int        `json:"redis_replicas"`
+	RedisLinkOK         bool       `json:"redis_link_ok"`
 }
 type Node struct {
 	ID          string    `json:"id"`

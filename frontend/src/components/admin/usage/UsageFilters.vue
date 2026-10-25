@@ -1,9 +1,9 @@
 <template>
   <div :class="flat ? 'p-4 sm:p-6' : 'card p-6'">
     <!-- Toolbar: left filters (multi-line) + right actions -->
-    <div class="flex flex-wrap items-end justify-between gap-4">
+    <div class="flex flex-col gap-4">
       <!-- Left: filters (allowed to wrap to multiple rows) -->
-      <div class="flex flex-1 flex-wrap items-end gap-4">
+      <div class="usage-filter-fields grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <!-- User Search -->
         <div ref="userSearchRef" class="usage-filter-dropdown relative w-full sm:w-auto sm:min-w-[240px]">
           <label class="input-label">{{ t('admin.usage.userFilter') }}</label>
@@ -178,20 +178,20 @@
 
       <!-- Right: actions -->
       <div v-if="showActions" class="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
-        <button type="button" @click="$emit('refresh')" class="btn btn-secondary">
+        <Button variant="outline" type="button" @click="$emit('refresh')" class="">
           {{ t('common.refresh') }}
-        </button>
-        <button type="button" @click="$emit('reset')" class="btn btn-secondary">
+        </Button>
+        <Button variant="outline" type="button" @click="$emit('reset')" class="">
           {{ t('common.reset') }}
-        </button>
+        </Button>
         <slot name="after-reset" />
         <template v-if="mode === 'usage'">
-          <button type="button" @click="$emit('cleanup')" class="btn btn-danger">
+          <Button variant="destructive" type="button" @click="$emit('cleanup')" class="">
             {{ t('admin.usage.cleanup.button') }}
-          </button>
-          <button type="button" @click="$emit('export')" :disabled="exporting" class="btn btn-primary">
+          </Button>
+          <Button variant="default" type="button" @click="$emit('export')" :disabled="exporting" class="">
             {{ t('usage.exportExcel') }}
-          </button>
+          </Button>
         </template>
       </div>
     </div>
@@ -199,6 +199,7 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
 import { ref, onMounted, onUnmounted, toRef, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api/admin'
@@ -549,3 +550,7 @@ const getUserSearchRevision = () => userSearchSequence
 
 defineExpose({ getUserSearchRevision, setUserKeyword })
 </script>
+
+<style scoped>
+.usage-filter-fields > div { width: 100%; min-width: 0; }
+</style>

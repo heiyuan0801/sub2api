@@ -58,7 +58,7 @@
             {{ t('auth.emailLabel') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="email"
               v-model="formData.email"
               type="email"
@@ -79,7 +79,7 @@
             {{ t('auth.passwordLabel') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="password"
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
@@ -124,10 +124,10 @@
         </div>
 
         <!-- Submit Button -->
-        <button
+        <Button variant="default"
           type="submit"
           :disabled="authActionDisabled || (turnstileEnabled && !turnstileToken)"
-          class="btn btn-primary w-full"
+          class=" w-full"
         >
           <svg
             v-if="isLoading"
@@ -151,7 +151,7 @@
           </svg>
           <Icon v-else name="login" size="md" class="mr-2" />
           {{ isLoading ? t('auth.signingIn') : pageCopy.submit }}
-        </button>
+        </Button>
 
         <LoginAgreementPrompt
           v-if="loginAgreementEnabled"
@@ -165,16 +165,16 @@
           @open="showAgreementModal = true"
         />
 
-        <button
+        <Button variant="outline"
           v-if="showPasskeyLogin"
           type="button"
-          class="auth-passkey btn btn-secondary w-full"
+          class="auth-passkey  w-full"
           :disabled="authActionDisabled"
           @click="handlePasskeyLogin"
         >
           <Icon name="key" size="md" />
           {{ passkeyLoading ? t('auth.passkeySigningIn') : t('auth.passkeySignIn') }}
-        </button>
+        </Button>
       </form>
     </div>
 
@@ -204,6 +204,9 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input as UiInput } from '@/components/ui/input'
+
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'

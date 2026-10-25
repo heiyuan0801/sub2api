@@ -94,7 +94,7 @@
             {{ t('auth.newPassword') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="password"
               v-model="formData.password"
               :type="showPassword ? 'text' : 'password'"
@@ -124,7 +124,7 @@
             {{ t('auth.confirmPassword') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="confirmPassword"
               v-model="formData.confirmPassword"
               :type="showConfirmPassword ? 'text' : 'password'"
@@ -149,10 +149,10 @@
         </div>
 
         <!-- Submit Button -->
-        <button
+        <Button variant="default"
           type="submit"
           :disabled="isLoading"
-          class="btn btn-primary w-full"
+          class=" w-full"
         >
           <svg
             v-if="isLoading"
@@ -176,7 +176,7 @@
           </svg>
           <Icon v-else name="checkCircle" size="md" class="mr-2" />
           {{ isLoading ? t('auth.resettingPassword') : t('auth.resetPassword') }}
-        </button>
+        </Button>
       </form>
     </div>
 
@@ -196,6 +196,9 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input as UiInput } from '@/components/ui/input'
+
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'

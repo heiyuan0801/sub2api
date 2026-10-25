@@ -119,4 +119,25 @@ func TestClusterOperationsPostgres(t *testing.T) {
 	require.ErrorIs(t, rdb.Get(ctx, "billing:balance:1").Err(), redis.Nil)
 	require.Equal(t, int64(1), rdb.ZCard(ctx, "billing:inflight:{1}").Val())
 
+	// Resource telemetry travels through the existing JSON snapshot, without a
+	// schema migration. Missing resources remain valid during mixed versions.
+	sampledAt := time.Now().UTC().Truncate(time.Second)
+	usage := 25.0
+	m.resources.Store(&Resources{SampledAt: sampledAt, CPUCores: 40, CPUPercent: &usage, MemoryTotal: 128 << 30, MemoryUsed: 32 << 30})
+	require.NoError(t, m.Heartbeat(ctx))
+	nodes, err := m.Nodes(ctx)
+	require.NoError(t, err)
+	var own *Node
+	for i := range nodes {
+		if nodes[i].ID == "a" {
+			own = &nodes[i]
+		}
+	}
+	require.NotNil(t, own)
+	require.NotNil(t, own.Stats.Resources)
+	require.Equal(t, sampledAt, own.Stats.Resources.SampledAt)
+	require.Equal(t, usage, *own.Stats.Resources.CPUPercent)
+	require.NotNil(t, own.Stats.DatabaseLatencyMS)
+	require.GreaterOrEqual(t, *own.Stats.DatabaseLatencyMS, 0.0)
+	require.Nil(t, own.Stats.IngressOK, "ingress sync is not applicable outside HA")
 }

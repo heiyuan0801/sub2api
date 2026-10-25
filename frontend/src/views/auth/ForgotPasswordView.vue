@@ -49,7 +49,7 @@
             {{ t('auth.emailLabel') }}
           </label>
           <div class="relative">
-            <input
+            <UiInput
               id="email"
               v-model="formData.email"
               type="email"
@@ -84,10 +84,10 @@
         </div>
 
         <!-- Submit Button -->
-        <button
+        <Button variant="default"
           type="submit"
           :disabled="isLoading || (turnstileEnabled && !turnstileToken)"
-          class="btn btn-primary w-full"
+          class=" w-full"
         >
           <svg
             v-if="isLoading"
@@ -111,7 +111,7 @@
           </svg>
           <Icon v-else name="mail" size="md" class="mr-2" />
           {{ isLoading ? t('auth.sendingResetLink') : pageCopy.submit }}
-        </button>
+        </Button>
       </form>
     </div>
 
@@ -129,6 +129,9 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input as UiInput } from '@/components/ui/input'
+
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AuthLayout } from '@/components/layout'

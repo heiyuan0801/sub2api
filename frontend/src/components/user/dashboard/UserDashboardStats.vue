@@ -2,7 +2,7 @@
   <!-- Row 1: Core Stats -->
   <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
     <!-- Balance -->
-    <div v-if="!isSimple" class="card p-4">
+    <Card v-if="!isSimple" class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <svg class="h-5 w-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,10 +15,10 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('common.available') }}</p>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- API Keys -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="key" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -29,10 +29,10 @@
           <p class="text-xs text-green-600 dark:text-green-400">{{ stats?.active_api_keys || 0 }} {{ t('common.active') }}</p>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Today Requests -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="chart" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -43,10 +43,10 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('common.total') }}: {{ formatNumber(stats?.total_requests || 0) }}</p>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Today Cost -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="dollar" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -64,13 +64,13 @@
           </p>
         </div>
       </div>
-    </div>
+    </Card>
   </div>
 
   <!-- Row 2: Token Stats -->
   <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
     <!-- Today Tokens -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="cube" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -81,10 +81,10 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.input') }}: {{ formatTokens(stats?.today_input_tokens || 0) }} / {{ t('dashboard.output') }}: {{ formatTokens(stats?.today_output_tokens || 0) }} / {{ t('dashboard.cache') }}: {{ formatTokens((stats?.today_cache_creation_tokens || 0) + (stats?.today_cache_read_tokens || 0)) }}</p>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Total Tokens -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="database" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -95,10 +95,10 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.input') }}: {{ formatTokens(stats?.total_input_tokens || 0) }} / {{ t('dashboard.output') }}: {{ formatTokens(stats?.total_output_tokens || 0) }} / {{ t('dashboard.cache') }}: {{ formatTokens((stats?.total_cache_creation_tokens || 0) + (stats?.total_cache_read_tokens || 0)) }}</p>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Performance (RPM/TPM) -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="bolt" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -115,10 +115,10 @@
           </div>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- Avg Response Time -->
-    <div class="card p-4">
+    <Card class="card p-4">
       <div class="flex items-center gap-3">
         <div class="rounded-lg bg-gray-100 p-2 dark:bg-dark-800">
           <Icon name="clock" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
@@ -129,11 +129,11 @@
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.averageTime') }}</p>
         </div>
       </div>
-    </div>
+    </Card>
   </div>
 
   <!-- Row 3: Per-platform breakdown -->
-  <div v-if="!isSimple && platformCards.length > 0" class="card p-4">
+  <Card v-if="!isSimple && platformCards.length > 0" class="card p-4">
     <div class="mb-3 flex items-center justify-between">
       <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('dashboard.platformBreakdown') }}</h3>
       <span class="text-xs text-gray-500 dark:text-gray-400">
@@ -221,10 +221,11 @@
         </div>
       </div>
     </div>
-  </div>
+  </Card>
 </template>
 
 <script setup lang="ts">
+import { Card } from '@/components/ui/card'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'

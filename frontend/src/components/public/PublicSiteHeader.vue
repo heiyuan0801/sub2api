@@ -23,10 +23,10 @@
         <button type="button" class="public-icon-button" :aria-label="isDark ? t('publicSite.nav.lightMode') : t('publicSite.nav.darkMode')" @click="toggleTheme">
           <Icon :name="isDark ? 'moon' : 'sun'" size="sm" />
         </button>
-        <RouterLink v-if="authStore.isAuthenticated" :to="dashboardTarget" class="public-auth-button is-primary">{{ t('publicSite.nav.enterConsole') }}</RouterLink>
+        <Button v-if="authStore.isAuthenticated" as-child variant="default" size="sm"><RouterLink :to="dashboardTarget">{{ t('publicSite.nav.enterConsole') }}</RouterLink></Button>
         <template v-else>
-          <RouterLink :to="loginTarget" class="public-auth-button">{{ t('publicSite.nav.login') }}</RouterLink>
-          <RouterLink v-if="registrationEnabled" to="/register" class="public-auth-button is-primary">{{ t('publicSite.nav.register') }}</RouterLink>
+          <Button as-child variant="ghost" size="sm"><RouterLink :to="loginTarget">{{ t('publicSite.nav.login') }}</RouterLink></Button>
+          <Button v-if="registrationEnabled" as-child variant="default" size="sm"><RouterLink to="/register">{{ t('publicSite.nav.register') }}</RouterLink></Button>
         </template>
         <button type="button" class="public-icon-button public-menu-toggle" :aria-expanded="mobileOpen" aria-controls="public-navigation" :aria-label="mobileOpen ? t('publicSite.nav.closeNavigation') : t('publicSite.nav.openNavigation')" @click="mobileOpen = !mobileOpen">
           <Icon :name="mobileOpen ? 'x' : 'menu'" size="sm" />
@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -107,4 +108,9 @@ onMounted(() => {
 @media (max-width: 900px) { .public-header-inner { padding: 0 20px; } .public-menu-toggle { display: inline-flex; } .public-navigation { position: absolute; top: 63px; right: 0; left: 0; display: none; align-items: stretch; gap: 6px; padding: 16px 20px; border-bottom: 1px solid #eee; background: #fff; } .public-navigation.is-open { display: flex; flex-direction: column; } .public-navigation a { justify-content: flex-start; padding: 10px 12px; border-radius: 8px; } .dark .public-navigation { border-color: #262626; background: #111; } }
 @media (max-width: 480px) { .public-header-inner { gap: 8px; padding: 0 16px; } .public-brand { flex: 1 1 0; gap: 7px; } .public-brand img { flex-shrink: 0; width: 24px; height: 24px; } .public-brand > span { min-width: 0; max-width: 100px; font-size: 19px; } .public-brand small, .public-notifications { display: none; } .public-header-actions { flex-shrink: 0; gap: 2px; margin-left: 0; } .public-auth-button { padding: 5px 8px; } }
 @media (prefers-reduced-motion: reduce) { .public-navigation a { transition: none; } }
+.public-header { height: 68px; border-color: hsl(var(--border)); background: hsl(var(--background) / .94); }
+.public-header-inner { max-width: 1264px; }
+.public-brand > span { font-size: 18px; letter-spacing: -.5px; }
+.public-navigation a { border-radius: 6px; font-weight: 500; font-size: 13px; }
+@media (max-width: 640px) { .public-header-inner { padding: 0 16px; gap: 12px; } .public-brand > span { max-width: 110px; font-size: 16px; } .public-header-actions { gap: 5px; } }
 </style>

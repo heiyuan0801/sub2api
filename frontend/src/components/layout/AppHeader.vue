@@ -1,5 +1,5 @@
 <template>
-  <header class="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur-xl dark:border-dark-800 dark:bg-dark-900/95">
+  <header class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-xl lg:rounded-t-xl">
     <div class="flex h-16 items-center justify-between gap-2 px-2 sm:px-4 md:px-6">
       <!-- Left: Mobile Menu Toggle + Page Title -->
       <div class="flex shrink-0 items-center gap-2 sm:gap-4">
@@ -11,11 +11,14 @@
           <Icon name="menu" size="md" />
         </button>
 
+        <Button type="button" variant="ghost" size="icon-sm" class="hidden lg:inline-flex" :aria-label="t('common.toggleMenu')" @click="appStore.toggleSidebar()"><PanelLeft :size="17" /></Button>
+        <span class="hidden h-4 w-px bg-border lg:block" aria-hidden="true"></span>
+        <span class="hidden text-xs text-muted-foreground xl:block">{{ t('design.workspace') }}</span><ChevronRight :size="13" class="hidden text-muted-foreground xl:block" />
         <div class="hidden lg:block">
-          <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h1 class="text-sm font-medium text-foreground">
             {{ pageTitle }}
           </h1>
-          <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-dark-400">
+          <p v-if="pageDescription" class="sr-only">
             {{ pageDescription }}
           </p>
         </div>
@@ -252,6 +255,9 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { PanelLeft, ChevronRight } from '@lucide/vue'
+
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'

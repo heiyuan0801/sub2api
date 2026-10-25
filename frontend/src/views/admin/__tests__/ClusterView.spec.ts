@@ -1,7 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ClusterView from '../ClusterView.vue'
-const mocks = vi.hoisted(() => ({ snapshot: vi.fn(), update: vi.fn(), showSuccess: vi.fn(), showError: vi.fn() }))
+const mocks = vi.hoisted(() => ({ snapshot: vi.fn(), preflight: vi.fn(), requests: vi.fn(), update: vi.fn(), showSuccess: vi.fn(), showError: vi.fn() }))
 vi.mock('@/api/admin/cluster', () => ({ clusterApi: mocks }))
 vi.mock('@/stores/app', () => ({ useAppStore: () => mocks }))
 vi.mock('@/components/layout/AppLayout.vue', () => ({ default: { template: '<div><slot /></div>' } }))
@@ -31,4 +31,27 @@ describe('Cluster controls', () => {
   wrapper.unmount(); await vi.advanceTimersByTimeAsync(20000)
   expect(mocks.snapshot).toHaveBeenCalledTimes(calls)
  })
+ it('explains historical events and keeps raw text in collapsed details without rendering HTML', async () => {
+  mocks.snapshot.mockResolvedValue({ ...snapshot, events: [{ id: 1, node_id: 'hk', kind: 'control_changed', message: 'maintenance=false capacity=100 weight=50: <script>alert(1)</script>', created_at: snapshot.now }] })
+  const wrapper = render(); await flushPromises()
+  await wrapper.findAll('button').find(b => b.text() === 'cluster.events')!.trigger('mousedown', { button: 0, ctrlKey: false })
+  await flushPromises()
+  expect(wrapper.text()).toContain('cluster.log.kinds.control_changed')
+  expect(wrapper.text()).toContain('cluster.log.messages.controlChanged')
+  expect(wrapper.get('details').attributes('open')).toBeUndefined()
+  expect(wrapper.get('details pre').text()).toContain('<script>alert(1)</script>')
+  expect(wrapper.find('script').exists()).toBe(false)
+  wrapper.unmount()
+ })
+ it('renders deployment check labels and manual status without claiming success', async () => {
+  mocks.preflight.mockResolvedValue({ checks: [{ code: 'independent_witness', status: 'manual', detail: 'verify the third quorum member is in an independent fault domain' }] })
+  const wrapper = render(); await flushPromises()
+  await wrapper.findAll('button').find(b => b.text() === 'cluster.preflight')!.trigger('mousedown', { button: 0, ctrlKey: false })
+  await flushPromises()
+  expect(wrapper.text()).toContain('cluster.log.checks.independent_witness')
+  expect(wrapper.text()).toContain('cluster.log.statuses.manual')
+  expect(wrapper.text()).toContain('cluster.log.messages.witness')
+  wrapper.unmount()
+ })
+
 })
