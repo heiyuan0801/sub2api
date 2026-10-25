@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -216,7 +217,7 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 			Revisions map[string]int64 `json:"revisions"`
 			UpdatedAt time.Time        `json:"updated_at"`
 		}
-		if b, e := os.ReadFile(m.cfg.Cluster.LeaseFile + ".proxy-ack"); e == nil && json.Unmarshal(b, &ack) == nil && time.Since(ack.UpdatedAt) < 15*time.Second {
+		if b, e := readPrivateFile(m.cfg.Cluster.LeaseFile + ".proxy-ack"); e == nil && json.Unmarshal(b, &ack) == nil && time.Since(ack.UpdatedAt) < 15*time.Second {
 			if revision, exists := ack.Revisions[m.cfg.Cluster.NodeID]; exists {
 				s.IngressRevision = revision
 				ingressOK = revision >= c.Revision
@@ -277,15 +278,32 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 	return nil
 }
 
+// Local IPC is confined to the configured supervisor directory, including
+// symlink resolution. Files are still replaced atomically for the supervisor.
+func readPrivateFile(path string) ([]byte, error) {
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+	return root.ReadFile(filepath.Base(path))
+}
+
 func writePrivateJSON(path string, value any) error {
 	b, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	if err = os.WriteFile(path+".tmp", b, 0600); err != nil {
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
 		return err
 	}
-	return os.Rename(path+".tmp", path)
+	defer func() { _ = root.Close() }()
+	name := filepath.Base(path)
+	if err = root.WriteFile(name+".tmp", b, 0600); err != nil {
+		return err
+	}
+	return root.Rename(name+".tmp", name)
 }
 
 func (m *Manager) Nodes(ctx context.Context) ([]Node, error) {
