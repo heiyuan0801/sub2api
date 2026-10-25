@@ -32,8 +32,9 @@ type Node struct {
 }
 
 type Config struct {
-	Listen string `json:"listen"`
-	Nodes  []Node `json:"nodes"`
+	LocalNodeID string `json:"local_node_id,omitempty"`
+	Listen      string `json:"listen"`
+	Nodes       []Node `json:"nodes"`
 	// HA routes the management backend by the current leased role, not a fixed host.
 	HA bool `json:"ha,omitempty"`
 }
@@ -96,6 +97,9 @@ func (c Config) Validate() error {
 	}
 	if (!c.HA && primaries != 1) || enabled == 0 {
 		return fmt.Errorf("exactly one enabled primary is required")
+	}
+	if c.LocalNodeID != "" && !ids[c.LocalNodeID] {
+		return fmt.Errorf("local_node_id must identify a configured node")
 	}
 	return nil
 }
@@ -170,11 +174,17 @@ frontend sub2api
 			if n.Disabled {
 				disabled = " disabled"
 			}
+			recovery := ""
+			// Only leastconn traffic ramps. Consistent session hashes must not
+			// move on every warm-up step.
+			if backend == "gateway" {
+				recovery = " slowstart 30s"
+			}
 			limit := ""
 			if n.MaxConnections > 0 {
 				limit = fmt.Sprintf(" maxconn %d maxqueue %d", n.MaxConnections, n.MaxConnections)
 			}
-			fmt.Fprintf(&b, "    server %s %s weight %d%s%s\n", n.ID, n.Address, n.Weight, disabled, limit)
+			fmt.Fprintf(&b, "    server %s %s weight %d%s%s%s\n", n.ID, n.Address, n.Weight, disabled, limit, recovery)
 		}
 	}
 	return b.String(), nil

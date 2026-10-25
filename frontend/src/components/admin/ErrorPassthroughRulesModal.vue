@@ -430,7 +430,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { useModalVisibility } from '@/composables/useModalVisibility'
+import { ref, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
@@ -489,7 +490,7 @@ const matchModeOptions = computed(() => [
 const platformOptions = CONCRETE_PLATFORM_OPTIONS
 
 // Load rules when dialog opens
-watch(() => props.show, (newVal) => {
+useModalVisibility(() => props.show, (newVal) => {
   if (newVal) {
     loadRules()
   }

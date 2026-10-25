@@ -2,7 +2,6 @@ package clusterops
 
 import (
 	"context"
-	"database/sql"
 	"time"
 )
 
@@ -31,7 +30,7 @@ func (m *Manager) Preflight(ctx context.Context) (Preflight, error) {
 	healthy := 0
 	versions := map[string]bool{}
 	for _, n := range nodes {
-		if n.Online && n.Stats.DatabaseOK && n.Stats.RedisOK && n.Stats.LeaseOK && !n.Control.Maintenance {
+		if n.Online && n.Stats.DatabaseOK && n.Stats.RedisOK && n.Stats.LeaseOK && n.Stats.RuntimeConfigOK != nil && *n.Stats.RuntimeConfigOK && !n.Control.Maintenance {
 			healthy++
 		}
 		versions[n.Version] = true
@@ -51,6 +50,25 @@ func (m *Manager) Preflight(ctx context.Context) (Preflight, error) {
 	} else {
 		add("quorum", "fail", "HA lease proof is unavailable")
 	}
+	var dbMaximum int
+	known, configured := true, 0
+	for _, node := range nodes {
+		if !node.Online {
+			continue
+		}
+		if node.Stats.Performance == nil || node.Stats.Performance.DBLimit <= 0 {
+			known = false
+			continue
+		}
+		configured += node.Stats.Performance.DBLimit
+	}
+	if e := m.db.QueryRowContext(ctx, `SELECT current_setting('max_connections')::int`).Scan(&dbMaximum); e != nil || !known || configured == 0 {
+		add("connection_budget", "unknown", "database connection budget cannot be confirmed")
+	} else if configured > dbMaximum*80/100 {
+		add("connection_budget", "warning", "application pools consume over 80 percent of database connection capacity")
+	} else {
+		add("connection_budget", "pass", "application pools leave at least 20 percent database connection headroom")
+	}
 	var archiveMode, archiveCommand string
 	if err = m.db.QueryRowContext(ctx, `SELECT current_setting('archive_mode'),current_setting('archive_command')`).Scan(&archiveMode, &archiveCommand); err == nil {
 		if archiveMode != "off" && archiveCommand != "" {
@@ -61,16 +79,16 @@ func (m *Manager) Preflight(ctx context.Context) (Preflight, error) {
 	} else {
 		add("wal_archive", "unknown", "database role cannot inspect archiving")
 	}
-	var archived, failed sql.NullTime
-	if e := m.db.QueryRowContext(ctx, `SELECT last_archived_time,last_failed_time FROM pg_stat_archiver`).Scan(&archived, &failed); e == nil {
-		if failed.Valid && (!archived.Valid || failed.Time.After(archived.Time)) {
-			add("archive_delivery", "fail", "most recent WAL archive attempt failed")
-		} else if archived.Valid {
-			add("archive_delivery", "pass", "database reports a successful WAL archive")
-		} else {
-			add("archive_delivery", "unknown", "no successful WAL archive has been observed")
+	archiveState, archiveReason := archiveStatus(m.sampleArchive(ctx), time.Now())
+	add("archive_delivery", archiveState, archiveReason)
+	contractStatus := "pass"
+	for _, n := range nodes {
+		if n.Stats.RuntimeConfigOK == nil || !*n.Stats.RuntimeConfigOK {
+			contractStatus = "fail"
 		}
 	}
+	add("runtime_contract", contractStatus, "runtime_contract_check")
+
 	add("shared_storage", "manual", "verify configured image/object storage and batch provider files from both nodes; configuration alone does not prove availability")
 	add("fencing", "manual", "verify Linux watchdog and physical/network failure fencing on both hosts")
 	add("independent_witness", "manual", "verify the third quorum member is in an independent fault domain")

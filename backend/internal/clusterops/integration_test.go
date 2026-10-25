@@ -37,17 +37,19 @@ func TestClusterOperationsPostgres(t *testing.T) {
 	require.NoError(t, err)
 	_, err = db.Exec(string(migration))
 	require.NoError(t, err)
-	_, err = db.Exec(`CREATE TABLE users(id bigint primary key,balance numeric(20,10),deleted_at timestamptz);CREATE TABLE usage_billing_dedup(request_id text,api_key_id bigint);CREATE TABLE usage_billing_dedup_archive(request_id text,api_key_id bigint);CREATE TABLE usage_logs(id bigserial,request_id text,api_key_id bigint,actual_cost numeric(20,10));`)
+	_, err = db.Exec(`CREATE TABLE settings(key text PRIMARY KEY,value text,updated_at timestamptz);CREATE TABLE users(id bigint primary key,balance numeric(20,10),deleted_at timestamptz);CREATE TABLE usage_billing_dedup(request_id text,api_key_id bigint);CREATE TABLE usage_billing_dedup_archive(request_id text,api_key_id bigint);CREATE TABLE usage_logs(id bigserial,request_id text,api_key_id bigint,actual_cost numeric(20,10));`)
 	require.NoError(t, err)
 	_, err = db.Exec(`INSERT INTO users VALUES(1,100,NULL)`)
 	require.NoError(t, err)
 	cfg := &config.Config{}
+	cfg.JWT.Secret = "test-shared-jwt"
+	cfg.Totp.EncryptionKey = "test-shared-totp"
 	cfg.Cluster.Enabled = true
 	cfg.Cluster.NodeID = "a"
 	cfg.Cluster.Role = "primary"
 	m := NewManager(db, nil, cfg, "test")
 	ctx := context.Background()
-	_, err = db.Exec(`INSERT INTO cluster_nodes(node_id,instance_id,role,snapshot) VALUES('a','a','primary','{"database_ok":true,"redis_ok":true,"lease_ok":true}'),('b','b','worker','{"database_ok":true,"redis_ok":true,"lease_ok":true}');INSERT INTO cluster_node_controls(node_id) VALUES('a'),('b')`)
+	_, err = db.Exec(`INSERT INTO cluster_nodes(node_id,instance_id,role,snapshot) VALUES('a','a','primary','{"database_ok":true,"redis_ok":true,"lease_ok":true,"runtime_config_ok":true}'),('b','b','worker','{"database_ok":true,"redis_ok":true,"lease_ok":true,"runtime_config_ok":true}');INSERT INTO cluster_node_controls(node_id) VALUES('a'),('b')`)
 	require.NoError(t, err)
 	c := Control{Maintenance: true, MaxConcurrency: 50, Weight: 20, Revision: 1, Reason: "test drain"}
 	require.ErrorIs(t, m.UpdateControl(ctx, "a", c, 1), ErrConflict)
@@ -65,6 +67,19 @@ func TestClusterOperationsPostgres(t *testing.T) {
 	_, err = db.Exec(`INSERT INTO cluster_image_tasks(task_id,node_id,instance_id,status,payload,expires_at,updated_at) VALUES('image','a','dead','processing','{"status":"processing"}',NOW()+INTERVAL '1 day',NOW()-INTERVAL '2 minutes')`)
 	require.NoError(t, err)
 	require.NoError(t, m.Reconcile(ctx))
+	// A recovered dependency must clear its active alert and persist a recovery
+	// event in the same transaction; otherwise all subsequent reconciliation
+	// work rolls back and the dashboard keeps stale warnings indefinitely.
+	var alerts int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM cluster_alerts WHERE active`).Scan(&alerts))
+	require.Equal(t, 2, alerts)
+	_, err = db.Exec(`UPDATE cluster_nodes SET snapshot=snapshot || '{"redis_link_ok":true}'::jsonb`)
+	require.NoError(t, err)
+	require.NoError(t, m.Reconcile(ctx))
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM cluster_alerts WHERE active`).Scan(&alerts))
+	require.Zero(t, alerts)
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM cluster_events WHERE kind='alert_resolved' AND message IN ('a:redis','b:redis')`).Scan(&alerts))
+	require.Equal(t, 2, alerts)
 	requests, err := m.Requests(ctx, true, time.Time{})
 	require.NoError(t, err)
 	require.Len(t, requests, 1)
@@ -140,4 +155,24 @@ func TestClusterOperationsPostgres(t *testing.T) {
 	require.NotNil(t, own.Stats.DatabaseLatencyMS)
 	require.GreaterOrEqual(t, *own.Stats.DatabaseLatencyMS, 0.0)
 	require.Nil(t, own.Stats.IngressOK, "ingress sync is not applicable outside HA")
+	require.True(t, m.sampleArchive(ctx).Known)
+	require.True(t, m.Fresh())
+	original := cfg.JWT.Secret
+	cfg.JWT.Secret = "mismatched-node"
+	require.NoError(t, m.Heartbeat(ctx))
+	require.False(t, m.Fresh())
+	require.False(t, m.Begin())
+	restarted := NewManager(db, rdb, cfg, "test")
+	require.NoError(t, restarted.Heartbeat(ctx))
+	require.False(t, restarted.Fresh(), "restart cannot overwrite the durable contract")
+	cfg.JWT.Secret = original
+	require.NoError(t, m.Heartbeat(ctx))
+	require.True(t, m.Fresh())
+	require.NoError(t, m.recordHistory(ctx, *m.latest.Load()))
+	history, err := m.History(ctx, "a", "24h")
+	require.NoError(t, err)
+	require.NotEmpty(t, history.Points)
+	_, err = m.History(ctx, "not-registered", "24h")
+	require.ErrorIs(t, err, ErrInvalidHistory)
+
 }

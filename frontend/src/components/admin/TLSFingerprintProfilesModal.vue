@@ -327,7 +327,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { useModalVisibility } from '@/composables/useModalVisibility'
+import { ref, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { adminAPI } from '@/api/admin'
@@ -380,7 +381,7 @@ const form = reactive({
 })
 
 // Load profiles when dialog opens
-watch(() => props.show, (newVal) => {
+useModalVisibility(() => props.show, (newVal) => {
   if (newVal) {
     loadProfiles()
   }

@@ -20,6 +20,7 @@ func EvaluateAlerts(nodes []Node, ha bool) []Alert {
 			add(n, "offline", "critical", "node heartbeat expired")
 			continue
 		}
+		alerts = append(alerts, operationalAlerts(n, ha, time.Now())...)
 		if n.Role == "primary" {
 			primaries++
 		}
@@ -48,8 +49,11 @@ func EvaluateAlerts(nodes []Node, ha bool) []Alert {
 		if n.Stats.Active >= n.Control.MaxConcurrency {
 			add(n, "capacity", "warning", "node request capacity reached")
 		}
-		if ha && n.Stats.IngressRevision < n.Control.Revision {
+		if ha && (n.Stats.IngressRevision < n.Control.Revision || (n.Stats.IngressOK != nil && !*n.Stats.IngressOK)) {
 			add(n, "ingress_pending", "warning", "ingress has not acknowledged the latest weight and capacity")
+		}
+		if p := n.Stats.Performance; p != nil && time.Since(p.SampledAt) < 20*time.Second && p.DBWaits > 0 && p.DBWaitMeanMS != nil && *p.DBWaitMeanMS > 100 {
+			add(n, "db_pool_wait", "warning", "database connection pool wait exceeds 100 ms")
 		}
 	}
 	if primaries != 1 {
@@ -188,7 +192,7 @@ func (m *Manager) Reconcile(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		_, err = tx.ExecContext(ctx, `INSERT INTO cluster_events(node_id,kind,severity,message) SELECT node_id,'alert_resolved',severity,$1 FROM cluster_alerts WHERE alert_key=$1`, key)
+		_, err = tx.ExecContext(ctx, `INSERT INTO cluster_events(node_id,kind,severity,message) SELECT node_id,'alert_resolved',severity,alert_key FROM cluster_alerts WHERE alert_key=$1`, key)
 		if err != nil {
 			return err
 		}

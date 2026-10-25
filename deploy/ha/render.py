@@ -13,6 +13,8 @@ import pathlib
 import re
 import subprocess
 
+import verify
+
 
 def validate(inv):
     valid = lambda s: (
@@ -37,6 +39,19 @@ def validate(inv):
             raise ValueError("use distinct private IPv4 tunnel addresses")
     if not pathlib.Path(inv.get("postgres_bin_dir", "")).is_absolute():
         raise ValueError("postgres_bin_dir must be absolute")
+    budget = inv.get("capacity", {})
+    for key, default in (("database_max_connections", 300), ("database_reserved_connections", 60), ("database_per_node", 80), ("redis_max_clients", 4096), ("redis_pool_per_node", 256), ("requests_per_node", 1000)):
+        value = budget.get(key, default)
+        if type(value) is not int or not 1 <= value <= 20000:
+            raise ValueError("invalid capacity budget: " + key)
+    if budget.get("database_per_node", 80)*2 + budget.get("database_reserved_connections", 60) > budget.get("database_max_connections", 300):
+        raise ValueError("database pools exceed cluster connection budget")
+    if budget.get("redis_pool_per_node", 256)*2 + 128 > budget.get("redis_max_clients", 4096):
+        raise ValueError("Redis pools leave insufficient failover/operations headroom")
+    if "ingress" in inv:
+        entries = verify.validate(inv["ingress"])
+        if {e["id"] for e in entries} != {n["id"] for n in nodes if n["kind"] == "application"}:
+            raise ValueError("each application host needs one public ingress")
     return nodes
 
 
@@ -44,6 +59,7 @@ def render(inv, out, generator, secrets):
     nodes = validate(inv)
     apps = [n for n in nodes if n["kind"] == "application"]
     cluster = inv["cluster"]
+    budget = inv.get("capacity", {})
     for v in secrets.values():
         if not re.fullmatch(r"[A-Za-z0-9_-]{32,}", v):
             raise ValueError(
@@ -127,7 +143,7 @@ def render(inv, out, generator, secrets):
                         "parameters": {
                             "wal_log_hints": "on",
                             "synchronous_commit": "on",
-                            "max_connections": 300,
+                            "max_connections": budget.get("database_max_connections", 300),
                             "max_wal_senders": 10,
                             "max_replication_slots": 10,
                         },
@@ -161,10 +177,11 @@ def render(inv, out, generator, secrets):
         write(
             ident,
             "redis.conf",
-            f"bind {ip}\nport 6379\nprotected-mode yes\nrequirepass {secrets['redis']}\nmasterauth {secrets['redis']}\ndir /var/lib/sub2api-ha/redis\nappendonly yes\nappendfsync everysec\n{follower}",
+            f"bind {ip}\nport 6379\nprotected-mode yes\nrequirepass {secrets['redis']}\nmasterauth {secrets['redis']}\ndir /var/lib/sub2api-ha/redis\nappendonly yes\nappendfsync everysec\nmaxclients {budget.get('redis_max_clients', 4096)}\n{follower}",
         )
         inventory = {
             "listen": "127.0.0.1:8088",
+            "local_node_id": ident,
             "ha": True,
             "nodes": [
                 {
@@ -172,7 +189,7 @@ def render(inv, out, generator, secrets):
                     "address": a["private_ip"] + ":8080",
                     "role": "candidate",
                     "weight": 100,
-                    "max_connections": 1000,
+                    "max_connections": budget.get("requests_per_node", 1000),
                 }
                 for a in apps
             ],
@@ -215,22 +232,66 @@ def render(inv, out, generator, secrets):
                 "database": {
                     "host": "127.0.0.1",
                     "port": 15432,
-                    "max_open_conns": 80,
-                    "max_idle_conns": 20,
+                    "max_open_conns": budget.get("database_per_node", 80),
+                    "max_idle_conns": min(20, budget.get("database_per_node", 80)),
                 },
                 "redis": {
                     "sentinel_master_name": cluster,
                     "sentinel_addrs": [x["private_ip"] + ":26379" for x in nodes],
                     "sentinel_password": secrets["sentinel"],
                     "password": secrets["redis"],
-                    "pool_size": 256,
-                    "min_idle_conns": 16,
+                    "pool_size": budget.get("redis_pool_per_node", 256),
+                    "min_idle_conns": min(16, budget.get("redis_pool_per_node", 256)),
                 },
                 "security": {"trust_forwarded_ip_for_api_key_acl": False},
-                "cluster": {"enabled": True, "billing_failure_mode": "closed"},
+                "cluster": {"enabled": True, "billing_failure_mode": "closed", "max_concurrency": budget.get("requests_per_node", 1000)},
             },
         )
+    if "ingress" in inv:
+        ingress = inv["ingress"]
+        domain = ingress["domain"]
+        write("ingress", "inventory.json", ingress)
+        write("ingress", "dns-records.json", [{"type": "AAAA" if ":" in e["ip"] else "A", "name": domain, "content": e["ip"], "ttl": 60, "proxied": False} for e in ingress["endpoints"]])
+        lb = json.loads(pathlib.Path(__file__).with_name("cloudflare-balancer.example.json").read_text())
+        lb["name"] = domain
+        write("ingress", "cloudflare-balancer.json", lb)
+        for e in ingress["endpoints"]:
+            write(e["id"], "nginx-https.conf", nginx(domain))
     print("Rendered private review bundle:", out)
+
+
+def nginx(domain):
+    # Host validated before interpolation. Certificate provisioning is explicit.
+    return f"""# Place map in nginx http scope. Review alongside existing sites.
+map $http_upgrade $sub2api_connection_upgrade {{ default upgrade; '' close; }}
+server {{
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name {domain};
+    ssl_certificate /etc/letsencrypt/live/{domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{domain}/privkey.pem;
+    underscores_in_headers on;
+    location / {{
+        client_max_body_size 256m;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header CF-Connecting-IP "";
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $sub2api_connection_upgrade;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_cache off;
+        gzip off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_next_upstream off;
+        proxy_pass http://127.0.0.1:8088;
+    }}
+}}
+"""
 
 
 if __name__ == "__main__":

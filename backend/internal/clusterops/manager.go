@@ -22,28 +22,33 @@ import (
 )
 
 type Manager struct {
-	db            *sql.DB
-	rdb           *redis.Client
-	cfg           *config.Config
-	version       string
-	instance      string
-	started       time.Time
-	control       atomic.Pointer[Control]
-	lastOK        atomic.Int64
-	requests      atomic.Uint64
-	errors        atomic.Uint64
-	rejected      atomic.Uint64
-	active        atomic.Int64
-	background    atomic.Int64
-	cancel        context.CancelFunc
-	done          chan struct{}
-	once          sync.Once
-	stopOnce      sync.Once
-	probe         func() Stats
-	notify        func(context.Context, Event) error
-	notifyDone    chan struct{}
-	resources     atomic.Pointer[Resources]
-	resourcesDone chan struct{}
+	db                 *sql.DB
+	rdb                *redis.Client
+	cfg                *config.Config
+	version            string
+	instance           string
+	started            time.Time
+	control            atomic.Pointer[Control]
+	lastOK             atomic.Int64
+	requests           atomic.Uint64
+	errors             atomic.Uint64
+	rejected           atomic.Uint64
+	active             atomic.Int64
+	background         atomic.Int64
+	cancel             context.CancelFunc
+	done               chan struct{}
+	once               sync.Once
+	stopOnce           sync.Once
+	probe              func() Stats
+	notify             func(context.Context, Event) error
+	notifyDone         chan struct{}
+	resources          atomic.Pointer[Resources]
+	resourcesDone      chan struct{}
+	performance        performanceMeter
+	latest             atomic.Pointer[Stats]
+	archive            atomic.Pointer[ArchiveHealth]
+	observationsDone   chan struct{}
+	contractRegistered atomic.Bool
 }
 
 func NewManager(db *sql.DB, rdb *redis.Client, cfg *config.Config, version string) *Manager {
@@ -53,6 +58,7 @@ func NewManager(db *sql.DB, rdb *redis.Client, cfg *config.Config, version strin
 		limit = cfg.Cluster.MaxConcurrency
 	}
 	m.control.Store(&Control{MaxConcurrency: limit, Weight: 100})
+	m.observationsDone = make(chan struct{})
 	return m
 }
 func (m *Manager) Enabled() bool      { return m != nil && m.cfg != nil && m.cfg.Cluster.Enabled }
@@ -119,6 +125,7 @@ func (m *Manager) Start(probe func() Stats) {
 		m.probe = probe
 		go m.collectResources(ctx)
 		go m.notifyLoop(ctx)
+		go m.collectOperations(ctx)
 		go func() {
 			defer close(m.done)
 			ticker := time.NewTicker(3 * time.Second)
@@ -154,6 +161,7 @@ func (m *Manager) Stop() {
 			<-m.done
 			<-m.notifyDone
 			<-m.resourcesDone
+			<-m.observationsDone
 		})
 	}
 }
@@ -173,10 +181,18 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 	runtime.ReadMemStats(&mem)
 	s.HeapBytes = mem.HeapAlloc
 	s.Resources = m.resources.Load()
+	s.Performance = m.performance.sample(time.Now(), s.Requests, m.db.Stats())
+	if m.rdb != nil {
+		pool := m.rdb.PoolStats()
+		s.Performance.RedisConnections, s.Performance.RedisIdle, s.Performance.RedisPoolTimeouts = pool.TotalConns, pool.IdleConns, pool.Timeouts
+	}
 	s.LeaseOK = m.leaseOK()
-	var readOnly bool
+	var readOnly, statsVisible bool
 	started := time.Now()
-	err := m.db.QueryRowContext(ctx, "SELECT pg_is_in_recovery() OR current_setting('transaction_read_only')::boolean").Scan(&readOnly)
+	// One database round trip per probe; avoid serial WAN latency for role
+	// and replication measurements. Permission remains explicitly reported.
+	err := m.db.QueryRowContext(ctx, `SELECT pg_is_in_recovery() OR current_setting('transaction_read_only')::boolean, count(*), count(*) FILTER (WHERE sync_state IN ('sync','quorum')), COALESCE(MAX(pg_wal_lsn_diff(pg_current_wal_lsn(),replay_lsn)),0)::bigint, pg_has_role(current_user,'pg_read_all_stats','MEMBER') FROM pg_stat_replication`).Scan(&readOnly, &s.ReplicationPeers, &s.SyncReplicas, &s.ReplicationLagBytes, &statsVisible)
+	s.ReplicationKnown = err == nil && statsVisible
 	s.DatabaseOK = err == nil && !readOnly
 	if !s.DatabaseOK {
 		return ErrUnavailable
@@ -205,9 +221,6 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 		}
 	}
 	s.DiskTotal, s.DiskFree = diskSpace()
-	var statsVisible bool
-	replicationErr := m.db.QueryRowContext(ctx, `SELECT count(*), count(*) FILTER (WHERE sync_state IN ('sync','quorum')), COALESCE(MAX(pg_wal_lsn_diff(pg_current_wal_lsn(),replay_lsn)),0)::bigint, pg_has_role(current_user,'pg_read_all_stats','MEMBER') FROM pg_stat_replication`).Scan(&s.ReplicationPeers, &s.SyncReplicas, &s.ReplicationLagBytes, &statsVisible)
-	s.ReplicationKnown = replicationErr == nil && statsVisible
 	c := m.Control()
 	s.ControlRevision = c.Revision
 	if m.HAEnabled() {
@@ -216,14 +229,20 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 		var ack struct {
 			Revisions map[string]int64 `json:"revisions"`
 			UpdatedAt time.Time        `json:"updated_at"`
+			Traffic   *IngressTraffic  `json:"traffic"`
 		}
-		if b, e := readPrivateFile(m.cfg.Cluster.LeaseFile + ".proxy-ack"); e == nil && json.Unmarshal(b, &ack) == nil && time.Since(ack.UpdatedAt) < 15*time.Second {
+		if b, e := readPrivateFile(m.cfg.Cluster.LeaseFile + ".proxy-ack"); e == nil && json.Unmarshal(b, &ack) == nil && time.Since(ack.UpdatedAt) >= -5*time.Second && time.Since(ack.UpdatedAt) < 15*time.Second {
+			s.IngressTraffic = ack.Traffic
 			if revision, exists := ack.Revisions[m.cfg.Cluster.NodeID]; exists {
 				s.IngressRevision = revision
 				ingressOK = revision >= c.Revision
 			}
 		}
 	}
+	s.Verification = m.readVerification()
+	contractOK := m.verifyContract(ctx)
+	s.RuntimeConfigOK = &contractOK
+	s.Archive = m.archive.Load()
 	payload, err := json.Marshal(s)
 	if err != nil {
 		return err
@@ -259,11 +278,16 @@ func (m *Manager) Heartbeat(ctx context.Context) error {
 		return err
 	}
 	m.control.Store(&c)
-	m.lastOK.Store(time.Now().Unix())
+	m.latest.Store(&s)
+	if contractOK {
+		m.lastOK.Store(time.Now().Unix())
+	} else {
+		m.lastOK.Store(0)
+	}
 	if m.HAEnabled() {
 		// Private local IPC survives a role restart, so a drained node cannot
 		// immediately reclaim primary before it reads the shared control state.
-		v := clusterha.MaintenanceControl{NodeID: m.cfg.Cluster.NodeID, Maintenance: c.Maintenance, Drained: s.Active == 0}
+		v := clusterha.MaintenanceControl{NodeID: m.cfg.Cluster.NodeID, Maintenance: c.Maintenance || !contractOK, Drained: s.Active == 0}
 		if err = writePrivateJSON(m.cfg.Cluster.LeaseFile+".control", v); err != nil {
 			return err
 		}
@@ -354,7 +378,7 @@ func (m *Manager) UpdateControl(ctx context.Context, id string, next Control, ac
 			}
 		}
 		var available int
-		err = tx.QueryRowContext(ctx, `SELECT count(*) FROM cluster_nodes n JOIN cluster_node_controls c USING(node_id) WHERE n.node_id<>$1 AND n.heartbeat_at>NOW()-INTERVAL '20 seconds' AND NOT c.maintenance AND (n.snapshot->>'database_ok')::boolean AND (n.snapshot->>'redis_ok')::boolean AND (n.snapshot->>'lease_ok')::boolean`, id).Scan(&available)
+		err = tx.QueryRowContext(ctx, `SELECT count(*) FROM cluster_nodes n JOIN cluster_node_controls c USING(node_id) WHERE n.node_id<>$1 AND n.heartbeat_at>NOW()-INTERVAL '20 seconds' AND NOT c.maintenance AND (n.snapshot->>'database_ok')::boolean AND (n.snapshot->>'redis_ok')::boolean AND (n.snapshot->>'lease_ok')::boolean AND COALESCE((n.snapshot->>'runtime_config_ok')::boolean,false)`, id).Scan(&available)
 		if err != nil {
 			return err
 		}

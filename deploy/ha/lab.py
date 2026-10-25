@@ -130,7 +130,7 @@ def wait(fn, timeout=90):
     )
 
 
-def http(path, data=None, token=None, base=BASE, method=None, headers=None):
+def http(path, data=None, token=None, base=BASE, method=None, headers=None, timeout=4):
     h = {"Content-Type": "application/json", **(headers or {})}
     if token:
         h["Authorization"] = "Bearer " + token
@@ -141,7 +141,7 @@ def http(path, data=None, token=None, base=BASE, method=None, headers=None):
         method=method,
     )
     try:
-        r = OP.open(req, timeout=4)
+        r = OP.open(req, timeout=timeout)
     except urllib.error.HTTPError as e:
         r = e
     with r:
@@ -384,6 +384,7 @@ def start():
         (d / "redis.conf").chmod(0o600)
         inv = {
             "listen": f"127.0.0.1:{28181 + i}",
+            "local_node_id": h,
             "ha": True,
             "nodes": [
                 {
@@ -434,7 +435,7 @@ backend regional_ingress
     http-check expect status 200
     default-server inter 1s fall 2 rise 1
     server hk 127.0.0.1:28182 check
-    server us 127.0.0.1:28181 check backup
+    server us 127.0.0.1:28181 check
 """
     (ROOT / "edge.cfg").write_text(edge)
     for h in ("us", "hk", "witness"):

@@ -448,7 +448,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { useModalVisibility } from '@/composables/useModalVisibility'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Chart as ChartJS,
@@ -643,7 +644,7 @@ const lineChartOptions = computed(() => ({
 }))
 
 // Load stats when modal opens
-watch(
+useModalVisibility(
   () => props.show,
   async (newVal) => {
     if (newVal && props.account) {

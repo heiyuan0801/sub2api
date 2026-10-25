@@ -39,11 +39,15 @@ func TestClusterInventoryValidation(t *testing.T) {
 		func(c *Config) { c.Nodes[1].Weight = 0 },
 		func(c *Config) { c.Nodes[1].Role = "primary" },
 		func(c *Config) { c.Nodes[0].Disabled = true },
+		func(c *Config) { c.LocalNodeID = "missing-node" },
 	} {
 		cfg := exampleConfig()
 		mutate(&cfg)
 		require.Error(t, cfg.Validate())
 	}
+	local := exampleConfig()
+	local.LocalNodeID = local.Nodes[0].ID
+	require.NoError(t, local.Validate())
 	_, err := Read(strings.NewReader(`{"listen":"127.0.0.1:8088","typo":true}`))
 	require.Error(t, err)
 }
@@ -175,6 +179,21 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 	cmd.Stdout, cmd.Stderr = logFile, logFile
 	require.NoError(t, cmd.Start())
 	defer func() { _ = cmd.Process.Kill(); _ = cmd.Wait() }()
+	// A second independent ingress must compute the same session owner.
+	secondListener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	secondAddr := secondListener.Addr().String()
+	require.NoError(t, secondListener.Close())
+	secondConfig := cfg
+	secondConfig.Listen = secondAddr
+	secondRendered, err := secondConfig.Render()
+	require.NoError(t, err)
+	secondFile := filepath.Join(t.TempDir(), "second.cfg")
+	require.NoError(t, os.WriteFile(secondFile, []byte(secondRendered), 0600))
+	secondCmd := exec.Command(binary, "-db", "-f", secondFile) //nolint:gosec // Trusted opt-in local test binary.
+	secondCmd.Stdout, secondCmd.Stderr = logFile, logFile
+	require.NoError(t, secondCmd.Start())
+	defer func() { _ = secondCmd.Process.Kill(); _ = secondCmd.Wait() }()
 	client := &http.Client{Timeout: 15 * time.Second}
 	base := "http://" + addr
 	request := func(path, key string) (int, string, error) {
@@ -254,12 +273,38 @@ func TestClusterHAProxyEndToEnd(t *testing.T) {
 		}
 	}
 	require.Len(t, seen, 2, "API keys should distribute across both nodes")
+	// Wait for each gateway's independent health state to converge.
+	require.Eventually(t, func() bool {
+		for i := 0; i < 40; i++ {
+			key := fmt.Sprintf("key-%d", i)
+			_, expected, err := request("/v1/responses", key)
+			if err != nil {
+				return false
+			}
+			req, _ := http.NewRequest("POST", "http://"+secondAddr+"/v1/responses", nil)
+			req.Header.Set("Authorization", "Bearer "+key)
+			resp, e := client.Do(req)
+			if e != nil {
+				return false
+			}
+			_, _ = io.Copy(io.Discard, resp.Body)
+			_ = resp.Body.Close()
+			if resp.StatusCode != 200 || resp.Header.Get("X-Test-Node") != expected {
+				return false
+			}
+		}
+		return true
+	}, 15*time.Second, 100*time.Millisecond)
 	// One busy API key can use both nodes without moving an individual session.
 	sessionNodes := map[string]bool{}
 	for i := 0; i < 40; i++ {
 		var previous string
 		for j := 0; j < 2; j++ {
-			req, _ := http.NewRequest("POST", base+"/v1/responses", nil)
+			entry := base
+			if j == 1 {
+				entry = "http://" + secondAddr
+			}
+			req, _ := http.NewRequest("POST", entry+"/v1/responses", nil)
 			req.Header.Set("Authorization", "Bearer one-large-customer")
 			req.Header.Set("X-Sub2API-Session-ID", fmt.Sprintf("conversation-%d", i))
 			resp, err := client.Do(req)

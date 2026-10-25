@@ -5,7 +5,7 @@
 ## 拓扑与承诺边界
 
 ```text
-用户 → 独立托管的全局负载均衡（优先香港，失败后美国）
+用户 → 同一域名的两个地址 / 可选独立健康负载均衡（两边同时接流量）
         ├─ 香港：Nginx TLS → HAProxy → 两边 Sub2API
         └─ 美国：Nginx TLS → HAProxy → 两边 Sub2API
 
@@ -66,7 +66,7 @@ python3 deploy/ha/render.py --inventory /secure/ha/inventory.json \
 
 两边 Nginx 使用相同域名的有效证书，参照 `../cluster/nginx-location.conf` 转发到各自 HAProxy。为 `/ingress-ready` 禁止缓存；禁止 CDN 缓存登录、管理、支付和生成接口，保留 WebSocket 与 SSE 支持及所需长连接超时。
 
-外部健康负载均衡必须独立于两台业务机，例如托管的 Cloudflare Load Balancing。随附三个 `cloudflare-*.example.json` 是 API 请求体参考：创建一个 HTTPS monitor、分别创建香港/美国 pool，再将 `default_pools` 按香港、美国排序，`steering_policy: off`。替换域名、IP 和返回的 ID 后由运维部署；本工具不调用 Cloudflare 或创建付费资源。60 秒检查间隔加重试可能让外部恢复耗时超过本地测试，不能直接沿用本地秒数作为生产 SLA。仅配置两个 A 记录不等同于健康自动切换。
+同一域名直接配置两条 A/AAAA 记录，可以让两个 IP 都提供服务。DNS 轮询不保证均分或故障自动摘除。需要自动避开故障入口时，外部健康负载均衡必须独立于两台业务机，例如托管的 Cloudflare Load Balancing。随附三个 `cloudflare-*.example.json` 是 API 请求体参考：创建一个 HTTPS monitor、分别创建香港/美国 pool，再将两个 pool 加入 `default_pools`，使用 `steering_policy: random` 和相等的 `pool_weights`，使两个健康入口都参与分流。替换域名、IP 和返回的 ID 后由运维部署；本工具不调用 Cloudflare 或创建付费资源。60 秒检查间隔加重试可能让外部恢复耗时超过本地测试，不能直接沿用本地秒数作为生产 SLA。仅配置两个 A 记录不等同于健康自动切换。
 
 ## 本地真实故障实验
 
@@ -108,3 +108,119 @@ export SUB2API_HA_HAPROXY=/absolute/haproxy
 集群事件、告警和部署检查按当前语言显示说明，中文模式同时翻译节点角色、请求状态和 Redis 主从角色。历史日志在展示时转换，原始内容保留在可展开详情；未识别的格式会提示查看原文。部署检查的“需人工验证”和“无法确认”不会被视为通过。
 
 节点控制、请求账务核对、异步任务恢复、滚动升级、物理备份/PITR、保留和日志策略见 [OPERATIONS.md](OPERATIONS.md)。所有脚本均需显式执行，不会在安装前自行连接或更新服务器。
+
+## 双入口完善与验收
+
+`inventory.example.json` 的 `ingress` 是同一个域名和两台公网 IP。生成器额外输出双 DNS 记录、两个相同域名的 Nginx HTTPS 站点、检查清单以及可选 Cloudflare 双活请求体。两种入口方式择一部署；默认不修改 DNS，不申请证书，也不连接服务器。Nginx 模板使用 `/etc/letsencrypt/live/<domain>/`，需先在两边签发并持续续期；DNS-01 可避免双 A 下 HTTP-01 验证落到另一台。Cloudflare/CDN 模式必须另设受信任来源的真实客户端 IP，不能直接信任公网传入的 XFF。
+
+`capacity` 显式列出 PostgreSQL 最大连接数、运维保留、每节点数据库/Redis 池和应用请求上限。生成器拒绝两节点池合计超出预算；Redis 额外保留 128 个连接给 Sentinel、运维和恢复。管理页部署检查也核对在线应用的数据库池合计是否超过数据库上限的 80%。预算只是连接上限，不是对真实业务容量的承诺。普通 gateway 使用 30 秒 `slowstart` 恢复；Responses 仍使用稳定一致性哈希，不因预热步进反复移动会话。两台入口必须同步同一份节点清单和权重；不要通过重放 POST 补偿错误。
+
+`verify.py` 直接连接每个指定 IP，用域名执行 Host/SNI 与系统 CA 验证，依次检查 `/ingress-ready`、`/health`、`/home`。拒绝跳转，不发送账号、支付或生成请求；明文 HTTP 仅可在 `--local-lab` 的回环地址使用。
+
+```sh
+python3 deploy/ha/verify.py ingress --inventory /etc/sub2api-ha/ingress.json   --output /run/sub2api-ha/proof.json.verification
+```
+
+输出只含检查时间、入口身份、状态、总检查耗时和证书到期时间。任一入口失败也会写入结果并以非零状态退出。应用读取自己 proof 文件旁的 `.verification`，通过节点快照展示；5 分钟后不再显示当前通过。可选 `sub2api-ha-verify.service/timer` 每分钟运行一次，从业务机执行只证明该机视角的 HTTPS 可达性；还应从独立网络运行同一工具。此报告不自动通过物理隔离、独立仲裁或故障切换验收。
+
+发布文件一致性：在两台机器分别对显式选择的应用、runner、插件二进制、公共静态文件生成清单（不要包含密钥与私密配置），将两个清单带到检查机器。清单须在 15 分钟内采集；未提供则显示未知。检查只覆盖所选文件，运行配置摘要另由现有节点同步检查负责。
+
+```sh
+python3 deploy/ha/verify.py manifest --root /opt/sub2api   --file sub2api --file cluster-runner --file plugins/example-plugin   --output /secure/node-us-manifest.json
+python3 deploy/ha/verify.py ingress --inventory /secure/ingress.json   --manifest /secure/node-us-manifest.json --manifest /secure/node-hk-manifest.json   --restore-result /secure/isolated-restore/results.json   --output /run/sub2api-ha/proof.json.verification
+```
+
+`--restore-result` 只接收 `lab_restore.py` 实际完成后的报告，显示其原始演练时间和“本地实验”，不会把本地合成账本恢复当作生产业务数据已验收。省略此参数时恢复状态未知。定时命令如果不包含清单/恢复结果，会将这两项更新为未知，不沿用旧的通过状态。
+
+性能面板包括当前 RPS、近 60 秒已成功入账样本的首字 P95 桶上界、上游 token 缓存读取比例、数据库池占用与平均等待、Redis 池连接/超时、本入口排队/活跃数及代理字节。无样本显示未知；超过最高首字桶显示大于 600 秒。流量只统计 HAProxy 到应用，不包含复制链路，也不是精确物理网络计量。RPS 是接受请求速率，不是生成成功率；数据库等待是刚过去采样区间内的均值。
+
+热点计费证据写入在新请求时由两次数据库往返减为一次；重复请求才查询旧指纹，仍拒绝指纹冲突，不覆盖原证据。心跳的角色与复制查询合并为一次。不要为降低跨洋延迟关闭账务耐久性；真实美港吞吐、上游缓存率和最终用户首字时间仍需部署后压测。
+
+本地验收命令在原运维测试之外增加：
+
+```sh
+python3 -m unittest discover -s deploy/ha -p 'test_*.py'
+HAPROXY_BIN=/path/to/haproxy go -C backend test -race ./internal/clusterlb ./internal/clusterops
+# 显式隔离测试库；测试为自身创建/删除独立 schema：
+SUB2API_CLUSTER_TEST_DSN=... go -C backend test -race ./internal/repository -run 'TestCluster.*Postgres'
+# 已启动的隔离实验：双入口登录、会话、24 并发和账务/指标核对
+/absolute/venv/bin/python deploy/ha/lab_dual_ingress.py --dir /absolute/new-ha-lab   --restore-result /absolute/isolated-restore/results.json
+```
+
+覆盖真实双入口的会话一致性、SSE/WebSocket、失败不重放，真实 PostgreSQL 两个独立连接池竞争同一账单、证据落库未扣费和扣费后未记用量的中断窗口、支付重复通知回归、TLS 域名校验、文件漂移、恢复报告和过期状态。完整 `lab_ops.py`、`lab.py test` 与 `lab_restore.py` 继续负责双应用并发、限流排空、整组进程故障、Redis/数据库接管、失去仲裁和隔离恢复演练。
+
+### 运行配置、持续检查与历史指标
+
+新版本在已有 `settings` 表登记 `cluster_security_contract_v1`，不增加数据库表。
+第一个配置完整的节点建立共享配置指纹；JWT 密钥、TOTP 加密密钥、数据库名、
+Redis DB 编号、HA 与严格计费模式必须一致。节点 ID、角色、地址与容量允许不同。
+每次心跳核对指纹，不一致的节点停止接收业务请求，并向守护进程请求排空。
+管理页会保留其心跳和中文告警，以便识别和修复；不要把在线等同于可接流量。
+指纹不证明两个不同地址连接了同一套 Redis，应继续保留故障切换与跨节点会话验收。
+
+首次升级先在维护窗口核对两端配置，再逐个替换并检查 `/ready` 与 `/ingress-ready`。
+配置错误时修复错误节点，**不要删除集群基准来迁就错误密钥**。
+有意轮换 JWT 或改变关键配置时，需要全部节点排空并停止，由运维在确认新配置一致后，
+在事务中删除该设置键，再仅启动一个可信节点建立新基准，然后逐个加入其他节点。
+TOTP 密钥用于已有数据加密，不能仅修改配置；轮换需要独立的数据重加密方案。
+旧节点未提供校验结果时会显示无法确认，不计入“可排空其他节点”的健康余量。
+
+`verify.py ingress` 每分钟运行时，会用前一个未过期报告累计失败次数。
+连续 3 次入口失败触发告警，恢复后解除；报告超过 5 分钟、证书不足 14 天、
+发布文件不一致、恢复演练超过 30 天、共享存储验证超过 24 小时也进入现有告警/恢复通知。
+主节点沿用已配置的运维邮件策略；没有配置收件人不会凭空发送通知。
+主机启动有 5 分钟检查配置宽限期，不能据此判断备份已配置。
+
+WAL 每 30 秒采样：最近失败、待归档 `.ready` 文件数、最早积压时间。
+数据库角色需要读取 `pg_stat_archiver` 及 `pg_ls_archive_statusdir()` 的权限；
+无权限显示未知。已成功归档且没有积压的空闲数据库，不会因上次归档时间较旧误报。
+积压超过 5 分钟会告警；这只能验证归档交付，恢复可用性仍需 `lab_restore.py` 等隔离演练。
+
+管理页新增 24 小时/7 天历史。Redis 按节点每 5 分钟保留一个近期采样快照，
+最多 2016 个点，停止采样后键在 8 天自动过期；查询只返回最近 7 天。
+它不是 5 分钟区间平均值，也不是账务记录。Redis 故障时历史可能丢失，前端保留空缺。
+当前完成请求平均耗时包括响应流式传输；鉴权、路由排队、上游阶段来自已有处理器采样，
+各自有样本数、覆盖范围可能不同且可能重叠，不能相加推导端到端耗时。
+
+### 共享对象存储的双节点交叉验证
+
+构建 `go build -o cluster-storage-probe ./cmd/cluster-storage-probe`（在 backend 中执行）。
+工具使用现有 AWS SDK，每次只创建一个 1 KiB 随机 canary，限定路径
+`.sub2api-ha-probe/<新 UUID>/<节点 ID>`，条件写入不会覆盖已有对象。
+凭据只通过各主机私有环境配置提供：
+`SUB2API_PROBE_S3_ENDPOINT`、`SUB2API_PROBE_S3_REGION`、`SUB2API_PROBE_S3_BUCKET`、
+`SUB2API_PROBE_S3_ACCESS_KEY`、`SUB2API_PROBE_S3_SECRET_KEY`。
+使用实际应用的存储配置和权限；不要把凭据放进命令参数或 Git。
+默认要求 HTTPS；`--local-lab` 仅允许回环 HTTP，并将报告明确标为本地实验。
+
+1. 在两端用同一新 UUID，分别执行（将变量替换为实际值）：
+   `cluster-storage-probe --action write --write-probe --node us --challenge UUID --output us-write.json`，
+   香港端使用 `--node hk --output hk-write.json`。
+2. 交换无密钥的写入回执。美国端执行
+   `cluster-storage-probe --action read --node us --receipt hk-write.json --output us-read.json`，
+   香港端交叉读取美国回执生成 `hk-read.json`。工具校验内容摘要、挑战、时间及主机标识。
+3. 汇总四份回执（失败时也执行汇总，生成失败报告，不能沿用旧的成功报告）：
+   `python3 verify.py storage --receipt us-write.json --receipt hk-write.json --receipt us-read.json --receipt hk-read.json --output storage-result.json`。
+4. `verify.py ingress` 增加 `--storage-result storage-result.json`，把结果写入两端私有
+   `.verification` 文件。存储交叉检查建议每 12 小时执行一次；接入实际机器调度属于部署步骤。
+5. 各端用自己的写入回执清理：
+   `cluster-storage-probe --action cleanup --write-probe --receipt us-write.json`。
+   不列出或清空桶；中途故障留下的 canary 可给专用前缀设置 2 天生命周期。
+
+主机标识仅为主机名摘要，两个不同摘要不构成物理独立性证明。
+本检查验证一个 canary 的共享读写，不替代已有图片/批量文件的迁移和引用核对。
+
+### 本地网络与规模验收
+
+`python3 deploy/ha/lab_network.py --dir <隔离实验目录> --output network-results.json --soak-seconds 120`
+通过随机回环端口代理现有的两个本地入口，测试 8/24/48 并发、双向读取延迟、抖动、
+转发前断连，核对成功响应、余额、usage 和计费证据；不会自动重试生成 POST。
+随后进行有上限的持续请求。仅使用 `lab.py` 的虚拟模型和测试账户。
+这不是系统级丢包模拟，也不施加 PostgreSQL 同步复制延迟，不能据此宣称美港跨机容量。
+实际部署需在隔离环境分别测入口路径和数据库复制 RTT，并完成双机/仲裁失效演练。
+
+`SUB2API_CLUSTER_TEST_DSN` 指向隔离测试 PostgreSQL，
+`SUB2API_CLUSTER_SCALE_ROWS=1000000 go test ./internal/clusterops -run TestClusterScalePostgres -v`
+会创建并删除随机 schema，生成请求、用量与计费证据，实际执行最近/待核对分页和
+`EXPLAIN (ANALYZE, BUFFERS)`。CI 使用 10 万行，本地可测试 100 万至 200 万行。
+既有索引可满足当前验收时不新增迁移；生产慢查询仍应按真实数据分布复核。

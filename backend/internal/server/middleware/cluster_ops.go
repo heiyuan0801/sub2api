@@ -1,8 +1,10 @@
 package middleware
 
 import (
+	"github.com/Wei-Shaw/sub2api/internal/service"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/clusterops"
 	"github.com/gin-gonic/gin"
@@ -37,8 +39,21 @@ func ClusterGatewayOperations(m *clusterops.Manager) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": gin.H{"code": "request_journal_unavailable", "message": "Request could not be durably recorded"}})
 			return
 		}
-		c.Request = c.Request.WithContext(ctx)
+		c.Request = c.Request.WithContext(m.WithMetrics(ctx))
 		defer func() { m.FinishRequest(id, c.Writer.Status()) }()
+		started := time.Now()
+		defer func() {
+			var phases [3]*float64
+			for i, k := range []string{service.OpsAuthLatencyMsKey, service.OpsRoutingLatencyMsKey, service.OpsUpstreamLatencyMsKey} {
+				if raw, ok := c.Get(k); ok {
+					if v, ok := raw.(int64); ok {
+						f := float64(v)
+						phases[i] = &f
+					}
+				}
+			}
+			m.ObserveCompletion(time.Since(started), phases)
+		}()
 		c.Next()
 	}
 }

@@ -398,6 +398,9 @@ func applyUsageBilling(ctx context.Context, requestID string, usageLog *UsageLog
 		}
 	}
 
+	if usageLog != nil {
+		clusterops.ObserveUsage(ctx, usageLog.FirstTokenMs, usageLog.InputTokens, usageLog.CacheCreationTokens, usageLog.CacheReadTokens)
+	}
 	finalizePostUsageBilling(billingCtx, p, deps, result)
 	return true, nil
 }

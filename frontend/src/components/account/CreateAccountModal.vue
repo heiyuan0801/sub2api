@@ -4112,6 +4112,7 @@
 </template>
 
 <script setup lang="ts">
+import { useModalVisibility } from '@/composables/useModalVisibility'
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
@@ -5078,7 +5079,7 @@ const canExchangeCode = computed(() => {
 })
 
 // Watchers
-watch(
+useModalVisibility(
   () => props.show,
   (newVal) => {
     if (newVal) {

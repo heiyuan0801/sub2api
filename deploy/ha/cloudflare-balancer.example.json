@@ -1,10 +1,11 @@
 {
   "name": "api.example.com",
-  "description": "Hong Kong preferred, United States failover",
+  "description": "Both Hong Kong and United States serve traffic",
   "proxied": true,
   "enabled": true,
   "default_pools": ["REPLACE_WITH_HK_POOL_ID", "REPLACE_WITH_US_POOL_ID"],
   "fallback_pool": "REPLACE_WITH_US_POOL_ID",
-  "steering_policy": "off",
+  "steering_policy": "random",
+  "random_steering": {"pool_weights": {"REPLACE_WITH_HK_POOL_ID": 1, "REPLACE_WITH_US_POOL_ID": 1}},
   "session_affinity": "none"
 }

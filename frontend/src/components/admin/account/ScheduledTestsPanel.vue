@@ -463,6 +463,7 @@
 </template>
 
 <script setup lang="ts">
+import { useModalVisibility } from '@/composables/useModalVisibility'
 import { ref, reactive, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -535,7 +536,7 @@ const resetNewPlan = () => {
 }
 
 // Load plans when dialog opens
-watch(
+useModalVisibility(
   () => props.show,
   async (visible) => {
     if (visible && props.accountId) {

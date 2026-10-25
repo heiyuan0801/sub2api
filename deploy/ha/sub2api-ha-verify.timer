@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Sub2API dual ingress evidence
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+RandomizedDelaySec=5s
+
+[Install]
+WantedBy=timers.target

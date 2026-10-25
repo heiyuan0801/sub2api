@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Activity, CheckCircle2, CircleHelp, Clock3, XCircle } from '@lucide/vue'
 import type { ClusterNode } from '@/api/admin/cluster'
+import ClusterPerformance from './ClusterPerformance.vue'
 import ClusterResourceMeter from './ClusterResourceMeter.vue'
 import { createClusterText } from './clusterText'
 
@@ -92,6 +93,7 @@ const statusClass = (value: string) => value === 'connected' ? 'text-emerald-700
       <dt class="text-muted-foreground">{{ t('cluster.appUptime') }}</dt><dd class="flex items-center gap-1"><Clock3 :size="12" />{{ fresh ? duration(age(node.started_at)) : '—' }}</dd>
       <dt class="text-muted-foreground">{{ t('cluster.version') }}</dt><dd class="break-all">{{ node.version }}</dd>
     </dl>
+    <ClusterPerformance :node="node" :now="now" />
     <p class="text-[11px] leading-5 text-muted-foreground">{{ t('cluster.resourceScope') }}</p>
   </section>
 </template>

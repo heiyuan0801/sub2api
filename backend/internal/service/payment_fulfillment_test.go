@@ -7,6 +7,7 @@ import (
 	"errors"
 	"math"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -930,8 +931,24 @@ func TestDuplicatePaymentNotificationDoesNotReprocessCompletedBalanceOrder(t *te
 		Amount:  order.PayAmount,
 		Status:  payment.NotificationStatusSuccess,
 	}
-	require.NoError(t, svc.HandlePaymentNotification(ctx, notification, payment.TypeAlipay))
-	require.NoError(t, svc.HandlePaymentNotification(ctx, notification, payment.TypeAlipay))
+	// Simulate notifications arriving concurrently through two ingress handlers.
+	peer := &PaymentService{entClient: client, redeemService: svc.redeemService}
+	var callbacks sync.WaitGroup
+	errors := make(chan error, 16)
+	for i := range 16 {
+		callbacks.Go(func() {
+			target := svc
+			if i%2 == 1 {
+				target = peer
+			}
+			errors <- target.HandlePaymentNotification(ctx, notification, payment.TypeAlipay)
+		})
+	}
+	callbacks.Wait()
+	close(errors)
+	for err := range errors {
+		require.NoError(t, err)
+	}
 
 	reloaded, err := client.PaymentOrder.Get(ctx, order.ID)
 	require.NoError(t, err)

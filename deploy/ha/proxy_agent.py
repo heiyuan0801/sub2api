@@ -6,6 +6,8 @@ No network listener, shell command or remote management API is exposed.
 """
 
 import argparse
+import csv
+import io
 import datetime as dt
 import json
 import os
@@ -71,10 +73,38 @@ def apply(socket_path, lines):
                 raise RuntimeError("HAProxy rejected a runtime command")
 
 
-def tick(proof, socket_path, allowed):
+def traffic(socket_path, local_node=None):
+    with socket.socket(socket.AF_UNIX) as sock:
+        sock.settimeout(2)
+        sock.connect(str(socket_path))
+        sock.sendall(b"show stat\n")
+        sock.shutdown(socket.SHUT_WR)
+        data = b""
+        while block := sock.recv(8192):
+            data += block
+            if len(data) > 2*1024*1024:
+                raise RuntimeError("runtime statistics exceed limit")
+    rows = csv.DictReader(io.StringIO(data.decode().lstrip("# ")))
+    result = dict(sampled_at=dt.datetime.now(dt.timezone.utc).isoformat(), queued=0, active=0, bytes_in=0, bytes_out=0, cross_node_bytes=0 if local_node else None)
+    seen = 0
+    for row in rows:
+        if row.get('pxname') not in ('primary', 'gateway', 'responses') or row.get('type') != '2':
+            continue
+        seen += 1
+        for source, target in [('qcur', 'queued'), ('scur', 'active'), ('bin', 'bytes_in'), ('bout', 'bytes_out')]:
+            result[target] += max(0, int(row.get(source) or 0))
+        if local_node and row['svname'] != local_node:
+            result['cross_node_bytes'] += max(0, int(row.get('bin') or 0)) + max(0, int(row.get('bout') or 0))
+    if seen == 0:
+        raise RuntimeError('no application backend statistics')
+    return result
+
+
+def tick(proof, socket_path, allowed, local_node=None):
     snapshot = json.loads(pathlib.Path(str(proof) + ".proxy").read_text())
     lines, revisions = commands(snapshot, allowed)
     apply(socket_path, lines)
+    metrics = traffic(socket_path, local_node)
     target = pathlib.Path(str(proof) + ".proxy-ack")
     temp = target.with_suffix(target.suffix + ".tmp")
     fd = os.open(temp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -83,6 +113,7 @@ def tick(proof, socket_path, allowed):
             {
                 "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
                 "revisions": revisions,
+                "traffic": metrics,
             },
             f,
         )
@@ -96,11 +127,15 @@ def main():
     parser.add_argument("--inventory", type=pathlib.Path, required=True)
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
-    allowed = {n["id"] for n in json.loads(args.inventory.read_text())["nodes"]}
+    inventory = json.loads(args.inventory.read_text())
+    allowed = {n["id"] for n in inventory["nodes"]}
+    local_node = inventory.get("local_node_id")
+    if local_node and local_node not in allowed:
+        parser.error("local node must belong to inventory")
     warned = False
     while True:
         try:
-            tick(args.proof, args.socket, allowed)
+            tick(args.proof, args.socket, allowed, local_node)
             warned = False
         except (OSError, ValueError, KeyError, TypeError, RuntimeError):
             if args.once:

@@ -17,12 +17,13 @@
           <TabsList class="h-auto w-fit max-w-full flex-wrap justify-start" :aria-label="t('cluster.title')"><TabsTrigger v-for="item in tabs" :key="item" :value="item" class="px-4 py-2">{{ t(`cluster.${item}`) }}</TabsTrigger></TabsList>
         <TabsContent value="nodes" class="grid gap-5 xl:grid-cols-2">
           <Card v-for="node in snapshot.nodes" :key="node.id" class="overflow-hidden p-6">
-            <div class="flex items-start justify-between gap-3"><div><h2 class="flex items-center gap-3 text-lg font-semibold"><span class="grid size-10 place-items-center rounded-lg border bg-muted/40"><Server :size="18" /></span>{{ node.id }} <Badge variant="outline">{{ clusterText.label('roles', node.role) }}</Badge></h2><p class="mt-1 text-sm" :class="nodeCurrent(node) ? 'text-emerald-600' : 'text-red-500'">{{ t(nodeCurrent(node) ? 'cluster.online' : 'cluster.offline') }} · {{ t(node.control.maintenance ? 'cluster.maintenance' : nodeCurrent(node) ? 'cluster.serving' : 'cluster.heartbeatTimeout') }}</p></div><Button variant="outline" @click="edit(node)">{{ t('cluster.manage') }}<ArrowUpRight :size="14" /></Button></div>
+            <div class="flex items-start justify-between gap-3"><div><h2 class="flex items-center gap-3 text-lg font-semibold"><span class="grid size-10 place-items-center rounded-lg border bg-muted/40"><Server :size="18" /></span>{{ node.id }} <Badge variant="outline">{{ clusterText.label('roles', node.role) }}</Badge></h2><p class="mt-1 text-sm" :class="nodeCurrent(node) ? 'text-emerald-600' : 'text-red-500'">{{ t(nodeCurrent(node) ? 'cluster.online' : 'cluster.offline') }} · {{ t(node.control.maintenance ? 'cluster.maintenance' : node.stats.runtime_config_ok === false ? 'cluster.blocked' : nodeCurrent(node) ? 'cluster.serving' : 'cluster.heartbeatTimeout') }}</p></div><Button variant="outline" @click="edit(node)">{{ t('cluster.manage') }}<ArrowUpRight :size="14" /></Button></div>
             <div class="my-5 grid grid-cols-3 gap-3"><div v-for="[label,value] in [['active',node.stats.active_requests],['capacity',node.control.max_concurrency],['weight',node.control.weight]]" :key="label" class="rounded-xl bg-gray-50 p-3 dark:bg-dark-800"><p class="text-xs text-gray-500">{{ t(`cluster.${label}`) }}</p><strong class="mt-2 block text-xl">{{ label === 'active' && !nodeCurrent(node) ? '—' : value }}</strong></div></div>
             <ClusterNodeTelemetry :node="node" :ha-enabled="snapshot.ha_enabled" :now="snapshotNow" />
             <p class="mt-4 text-xs text-gray-500">{{ t(nodeCurrent(node) && applied(node) ? 'cluster.applied' : 'cluster.pending') }} · r{{ node.control.revision }}</p>
           </Card>
         </TabsContent>
+        <TabsContent value="history"><ClusterHistory v-if="tab === 'history'" :nodes="snapshot.nodes" /></TabsContent>
         <TabsContent value="alerts" class="card divide-y divide-gray-100 dark:divide-dark-700">
           <p v-if="!snapshot.alerts.length" class="flex items-center gap-3 p-8 text-muted-foreground"><CheckCircle2 :size="20" class="text-emerald-600" />{{ t('cluster.healthyAlerts') }}</p>
           <article v-for="alert in snapshot.alerts" :key="alert.key" class="p-5"><strong :class="alert.severity === 'critical' ? 'text-red-600' : 'text-amber-600'">{{ clusterText.scope(alert.node_id, alert.key) }} · {{ clusterText.alertName(alert.key) }}</strong><Badge variant="outline" class="ml-2">{{ clusterText.label('severities', alert.severity) }}</Badge><p class="mt-2">{{ clusterText.message(alert.message) }}</p><ClusterLogDetails :code="alert.key" :message="alert.message" /><time class="text-xs text-gray-500">{{ date(alert.raised_at) }}</time></article>
@@ -53,6 +54,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import ClusterNodeTelemetry from '@/components/admin/cluster/ClusterNodeTelemetry.vue'
+import ClusterHistory from '@/components/admin/cluster/ClusterHistory.vue'
 import ClusterLogDetails from '@/components/admin/cluster/ClusterLogDetails.vue'
 import { createClusterText } from '@/components/admin/cluster/clusterText'
 import { useI18n } from 'vue-i18n'
@@ -63,7 +65,7 @@ import { clusterApi, type ClusterSnapshot, type ClusterNode, type Control, type 
 const { t } = useI18n()
 const clusterText = createClusterText(t)
 const app = useAppStore()
-const tabs = ['nodes', 'alerts', 'requests', 'preflight', 'events'] as const
+const tabs = ['nodes', 'history', 'alerts', 'requests', 'preflight', 'events'] as const
 type Tab = typeof tabs[number]
 const tab = ref<Tab>('nodes')
 const snapshot = ref<ClusterSnapshot | null>(null), preflight = ref<ClusterPreflight | null>(null)

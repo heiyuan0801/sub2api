@@ -40,10 +40,11 @@ class ReleaseMatrixTest(unittest.TestCase):
             archive = directory / name
             if target['goos'] == 'linux':
                 with tarfile.open(archive, 'w:gz') as out:
-                    info = tarfile.TarInfo('sub2api')
-                    info.size = 7
-                    info.mode = 0o755
-                    out.addfile(info, io.BytesIO(b'fixture'))
+                    for filename in ('sub2api', *release.HA_TOOLS, *release.HA_REQUIRED_FILES):
+                        info = tarfile.TarInfo(filename)
+                        info.size = 7
+                        info.mode = 0o755
+                        out.addfile(info, io.BytesIO(b'fixture'))
             else:
                 archive.write_bytes(b'fixture archive')
             metadata = {'version': '9.8.7', 'sha': 'a' * 40, 'target': target,
@@ -85,6 +86,30 @@ class ReleaseMatrixTest(unittest.TestCase):
                     self.assertTrue(data['release']['skip_upload'])
                 else:
                     self.assertEqual(data['checksum']['extra_files'], data['release']['extra_files'])
+
+    def test_linux_leaf_includes_all_operational_tools(self):
+        for arch in ('amd64', 'arm64'):
+            release.generate_config(argparse.Namespace(mode='build', simple=False, goos='linux', goarch=arch, output='leaf.yaml'))
+            leaf = yaml.safe_load(Path('leaf.yaml').read_text())
+            self.assertEqual([b['binary'] for b in leaf['builds']], ['sub2api', *release.HA_TOOLS])
+            for build in leaf['builds']:
+                self.assertEqual(build['goos'], ['linux'])
+                self.assertEqual(build['goarch'], [arch])
+            self.assertIn('deploy/ha/*', leaf['archives'][0]['files'])
+
+    def test_incomplete_linux_bundle_is_rejected(self):
+        for name, mode in (('sub2api', 0o755), ('cluster-runner', 0o644)):
+            with self.subTest(name=name):
+                with tarfile.open('invalid.tar.gz', 'w:gz') as out:
+                    for filename in ('sub2api', *release.HA_TOOLS, *release.HA_REQUIRED_FILES):
+                        if name == 'sub2api' and filename == 'cluster-runner':
+                            continue
+                        info = tarfile.TarInfo(filename)
+                        info.size = 7
+                        info.mode = mode if filename == name else 0o755
+                        out.addfile(info, io.BytesIO(b'fixture'))
+                with self.assertRaisesRegex(ValueError, 'missing|not executable'):
+                    release.verify_linux_bundle(Path('invalid.tar.gz'))
 
     def test_collect_and_verify_hash_and_source_binding(self):
         args = self.fixture_artifacts()

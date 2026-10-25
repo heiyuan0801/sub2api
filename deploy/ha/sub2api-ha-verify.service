@@ -1,0 +1,17 @@
+[Unit]
+Description=Read-only Sub2API dual ingress verification
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=sub2api
+Group=sub2api
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/sub2api/deploy/ha/verify.py ingress --inventory /etc/sub2api-ha/ingress.json --output /run/sub2api-ha/proof.json.verification
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/run/sub2api-ha
+TimeoutStartSec=60

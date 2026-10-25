@@ -6,6 +6,7 @@ FRONTEND_CRITICAL_VITEST := \
 	src/api/__tests__/tokenRefresh.spec.ts \
 	src/api/__tests__/keys.bulkUpdate.spec.ts \
 	src/composables/__tests__/useModelWhitelist.spec.ts \
+	src/composables/__tests__/useModalVisibility.spec.ts \
 	src/components/account/__tests__/OpenAIReferralCell.spec.ts \
 	src/components/account/__tests__/OpenAIReferralCell.transport.spec.ts \
 	src/components/account/__tests__/OpenAIQuotaResetCell.spark_shadow.spec.ts \
@@ -39,6 +40,8 @@ FRONTEND_CRITICAL_VITEST := \
 	src/views/admin/ops/components/__tests__/OpsAlertRulesCard.duration.spec.ts \
 	src/components/admin/channel/__tests__/PricingEntryCard.modelDefaultPrice.spec.ts \
 	src/components/admin/cluster/__tests__/ClusterNodeTelemetry.spec.ts \
+	src/components/admin/cluster/__tests__/ClusterPerformance.spec.ts \
+	src/components/admin/cluster/__tests__/ClusterHistory.spec.ts \
 	src/components/admin/cluster/__tests__/clusterText.spec.ts \
 	src/views/admin/__tests__/ClusterView.spec.ts \
 	src/components/common/__tests__/UiDialog.spec.ts \

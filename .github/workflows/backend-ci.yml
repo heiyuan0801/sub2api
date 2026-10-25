@@ -60,7 +60,10 @@ jobs:
         working-directory: backend
         env:
           SUB2API_CLUSTER_TEST_DSN: postgres://cluster_test:cluster_test@127.0.0.1:${{ job.services.postgres.ports[5432] }}/cluster_test?sslmode=disable
-        run: go test -race ./internal/clusterops -count=1 -v
+        run: |
+          test -n "$SUB2API_CLUSTER_TEST_DSN"
+          SUB2API_CLUSTER_SCALE_ROWS=100000 go test -race ./internal/clusterops ./internal/clusterprobe -count=1 -v
+          go test -race ./internal/repository -run 'TestCluster.*Postgres' -count=1 -v
 
   frontend:
     runs-on: ubuntu-latest
@@ -154,11 +157,12 @@ jobs:
           go build -tags=embed -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o ../ci-dist/sub2api ./cmd/server
           go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-runner ./cmd/cluster-runner
           go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-config ./cmd/cluster-config
+          go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-storage-probe ./cmd/cluster-storage-probe
           cp -R ../deploy/ha ../ci-dist/ha
           printf 'version=%s\ncommit=%s\n' "$VERSION" "$GITHUB_SHA" > ../ci-dist/build-info.txt
           cd ../ci-dist
-          sha256sum sub2api cluster-runner cluster-config > checksums.txt
-          tar -czf sub2api-linux-amd64.tar.gz sub2api cluster-runner cluster-config ha build-info.txt checksums.txt
+          sha256sum sub2api cluster-runner cluster-config cluster-storage-probe > checksums.txt
+          tar -czf sub2api-linux-amd64.tar.gz sub2api cluster-runner cluster-config cluster-storage-probe ha build-info.txt checksums.txt
       - uses: actions/upload-artifact@v7
         with:
           name: sub2api-linux-amd64-${{ github.sha }}

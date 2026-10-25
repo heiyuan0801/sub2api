@@ -131,6 +131,8 @@ def main():
         )
         assert rows == "1,2|3.7500000000", rows
         report = {
+            "checked_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+            "scope": "local_lab",
             "physical_backup_verified": True,
             "wal_archive_delivered": True,
             "pitr_target_reached": True,

@@ -11,6 +11,7 @@ func registerClusterRoutes(group *gin.RouterGroup, h *handler.Handlers) {
 	r := group.Group("/cluster")
 	r.GET("", c.Snapshot)
 	r.GET("/preflight", c.Preflight)
+	r.GET("/history", c.History)
 	r.PUT("/nodes/:node/control", c.Update)
 	r.GET("/requests", c.Requests)
 	r.POST("/requests/:id/review", c.Review)

@@ -18,6 +18,9 @@ FULL_CONFIG = Path('.goreleaser.yaml')
 SIMPLE_CONFIG = Path('.goreleaser.simple.yaml')
 VERSION_FILE = Path('backend/cmd/server/VERSION')
 VERSION_RE = re.compile(r'\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?')
+HA_TOOLS = ('cluster-runner', 'cluster-config', 'cluster-storage-probe')
+HA_REQUIRED_FILES = ('deploy/ha/README.md', 'deploy/ha/render.py',
+                     'deploy/ha/proxy_agent.py', 'deploy/ha/verify.py')
 
 
 def config(simple=False):
@@ -85,6 +88,15 @@ def generate_config(args):
         target = {'goos': args.goos, 'goarch': args.goarch}
         if target not in targets():
             raise ValueError('unsupported build target')
+        if args.goos == 'linux':
+            # Each leaf only archives one OS/architecture, so Linux can include
+            # its operational tools without changing the other platform bundles.
+            for tool in HA_TOOLS:
+                data['builds'].append({'id': tool, 'dir': 'backend',
+                                      'main': f'./cmd/{tool}', 'binary': tool,
+                                      'env': ['CGO_ENABLED=0'], 'ldflags': ['-s -w']})
+            for archive in data['archives']:
+                archive.setdefault('files', []).extend(['deploy/ha/*', 'deploy/cluster/*'])
         for build in data['builds']:
             build['goos'], build['goarch'], build['ignore'] = [args.goos], [args.goarch], []
             build['ldflags'] = [re.sub(r'{{\s*\.Date\s*}}', '{{ .Env.RELEASE_DATE }}', flag)
@@ -104,6 +116,22 @@ def generate_config(args):
     Path(args.output).write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
 
 
+def verify_linux_bundle(path):
+    with tarfile.open(path, 'r:gz') as archive:
+        members = {}
+        for member in archive.getmembers():
+            name = member.name.removeprefix('./')
+            if name in members:
+                raise ValueError(f'duplicate archive entry: {name}')
+            members[name] = member
+        for name in ('sub2api', *HA_TOOLS, *HA_REQUIRED_FILES):
+            member = members.get(name)
+            if member is None or not member.isfile() or member.size == 0:
+                raise ValueError(f'Linux archive missing regular nonempty file: {name}')
+            if name in ('sub2api', *HA_TOOLS) and not member.mode & 0o111:
+                raise ValueError(f'Linux archive binary is not executable: {name}')
+
+
 def collect(args):
     target = {'goos': args.goos, 'goarch': args.goarch}
     name = archive_name(args.version, target)
@@ -112,6 +140,8 @@ def collect(args):
     digest = sha256(source)
     if checksums.get(name) != digest:
         raise ValueError('archive does not match the build checksum')
+    if target['goos'] == 'linux':
+        verify_linux_bundle(source)
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, output / name)
@@ -130,6 +160,8 @@ def verify(args):
         if manifest != {'sha': args.sha, 'version': args.version, 'target': target,
                         'archive': name, 'sha256': sha256(directory / name)}:
             raise ValueError(f'build provenance or checksum mismatch: {name}')
+        if target['goos'] == 'linux':
+            verify_linux_bundle(directory / name)
     if {p.name for p in directory.iterdir()} != expected:
         raise ValueError('missing or unexpected release artifacts')
 

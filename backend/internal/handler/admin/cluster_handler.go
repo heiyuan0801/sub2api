@@ -41,6 +41,23 @@ func (h *ClusterHandler) Preflight(c *gin.Context) {
 	}
 	response.Success(c, v)
 }
+func (h *ClusterHandler) History(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	if h.manager == nil {
+		clusterError(c, clusterops.ErrUnavailable)
+		return
+	}
+	v, err := h.manager.History(c.Request.Context(), c.Query("node"), c.DefaultQuery("range", "24h"))
+	if errors.Is(err, clusterops.ErrInvalidHistory) {
+		response.BadRequest(c, "Invalid history node or range")
+		return
+	}
+	if err != nil {
+		clusterError(c, err)
+		return
+	}
+	response.Success(c, v)
+}
 func (h *ClusterHandler) Update(c *gin.Context) {
 	var v clusterops.Control
 	if e := c.ShouldBindJSON(&v); e != nil {
