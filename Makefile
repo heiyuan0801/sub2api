@@ -17,6 +17,8 @@ FRONTEND_CRITICAL_VITEST := \
 	src/components/account/__tests__/credentialsBuilder.spec.ts \
 	src/components/account/__tests__/OpenCodeGoProtocolRulesEditor.spec.ts \
 	src/components/keys/__tests__/BulkEditKeysModal.spec.ts \
+	src/components/keys/__tests__/AggregateKeyGroups.spec.ts \
+	src/utils/__tests__/magpieImport.spec.ts \
 	src/components/admin/user/__tests__/UserPlatformQuotaModal.spec.ts \
 	src/views/user/__tests__/KeysView.spec.ts \
 	src/api/__tests__/channelMonitorV2.spec.ts \
