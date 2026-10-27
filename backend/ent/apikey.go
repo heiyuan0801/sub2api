@@ -28,6 +28,10 @@ type APIKey struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// UserID holds the value of the "user_id" field.
 	UserID int64 `json:"user_id,omitempty"`
+	// IsAggregate holds the value of the "is_aggregate" field.
+	IsAggregate bool `json:"is_aggregate,omitempty"`
+	// AggregateGroupIds holds the value of the "aggregate_group_ids" field.
+	AggregateGroupIds []int64 `json:"aggregate_group_ids,omitempty"`
 	// Key holds the value of the "key" field.
 	Key string `json:"key,omitempty"`
 	// Name holds the value of the "name" field.
@@ -121,8 +125,10 @@ func (*APIKey) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case apikey.FieldIPWhitelist, apikey.FieldIPBlacklist:
+		case apikey.FieldAggregateGroupIds, apikey.FieldIPWhitelist, apikey.FieldIPBlacklist:
 			values[i] = new([]byte)
+		case apikey.FieldIsAggregate:
+			values[i] = new(sql.NullBool)
 		case apikey.FieldQuota, apikey.FieldQuotaUsed, apikey.FieldRateLimit5h, apikey.FieldRateLimit1d, apikey.FieldRateLimit7d, apikey.FieldUsage5h, apikey.FieldUsage1d, apikey.FieldUsage7d:
 			values[i] = new(sql.NullFloat64)
 		case apikey.FieldID, apikey.FieldUserID, apikey.FieldGroupID:
@@ -176,6 +182,20 @@ func (_m *APIKey) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field user_id", values[i])
 			} else if value.Valid {
 				_m.UserID = value.Int64
+			}
+		case apikey.FieldIsAggregate:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_aggregate", values[i])
+			} else if value.Valid {
+				_m.IsAggregate = value.Bool
+			}
+		case apikey.FieldAggregateGroupIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field aggregate_group_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.AggregateGroupIds); err != nil {
+					return fmt.Errorf("unmarshal field aggregate_group_ids: %w", err)
+				}
 			}
 		case apikey.FieldKey:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -365,6 +385,12 @@ func (_m *APIKey) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("user_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.UserID))
+	builder.WriteString(", ")
+	builder.WriteString("is_aggregate=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsAggregate))
+	builder.WriteString(", ")
+	builder.WriteString("aggregate_group_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.AggregateGroupIds))
 	builder.WriteString(", ")
 	builder.WriteString("key=")
 	builder.WriteString(_m.Key)

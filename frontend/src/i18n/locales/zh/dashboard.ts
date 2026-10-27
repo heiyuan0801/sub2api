@@ -66,6 +66,32 @@ export default {
 
   // API Keys
   keys: {
+    magpie: {
+      title: '导入到 Magpie',
+      description: '确认服务地址后打开 Magpie，在客户端确认添加。模型列表由 Magpie 从本站获取。',
+      keyNotice: '导入链接包含当前 Key，请勿转发。打开 Magpie 将直接传给本机应用；备用网页会将 Key 交给 Magpie 官方导入页。',
+      invalidUrl: '服务地址无效：请在系统设置中使用 HTTPS 地址，本机预览可使用 localhost HTTP。',
+      fallback: '备用导入页',
+      open: '打开 Magpie'
+    },
+    aggregate: {
+      smartRouting: '智能路由',
+      typeLocked: '密钥类型在创建时确定；可编辑分组和路由顺序。',
+      addGroup: '添加分组',
+      route: '路由 {index}',
+      limit: '已添加 20 个分组',
+      create: '创建聚合 Key（直接添加多个分组）',
+      groups: '聚合分组',
+      badge: '聚合 · {count} 个分组',
+      hint: '按模型匹配分组并按顺序尝试。上游故障且尚未输出或计费时，自动切换下一个可用分组；按实际成功分组的倍率或订阅计费，共用此 Key 的额度与限流。',
+      scope: '支持 HTTP 对话、Responses、Messages 和 Gemini 请求。WebSocket 会话和持久化媒体任务请使用普通 Key。',
+      empty: '没有匹配的可用分组。',
+      invalidGroups: '请选择 1–20 个可用分组。',
+      up: '提高优先级',
+      down: '降低优先级',
+      remove: '移除分组',
+      unavailable: '分组不可用',
+    },
     title: 'API 密钥',
     description: '管理您的 API 密钥和访问令牌',
     searchPlaceholder: '搜索名称或Key...',

@@ -743,6 +743,8 @@ export interface CompositeRouteDecision {
 }
 
 export interface ApiKey {
+  is_aggregate?: boolean
+  aggregate_group_ids?: number[]
   id: number
   user_id: number
   key: string
@@ -775,6 +777,8 @@ export interface ApiKey {
 }
 
 export interface CreateApiKeyRequest {
+  is_aggregate?: boolean
+  aggregate_group_ids?: number[]
   name: string
   group_id?: number | null
   custom_key?: string // Optional custom API Key
@@ -788,6 +792,7 @@ export interface CreateApiKeyRequest {
 }
 
 export interface UpdateApiKeyRequest {
+  aggregate_group_ids?: number[]
   name?: string
   group_id?: number | null
   status?: 'active' | 'inactive'

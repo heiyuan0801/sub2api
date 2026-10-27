@@ -73,6 +73,26 @@ func (_c *APIKeyCreate) SetUserID(v int64) *APIKeyCreate {
 	return _c
 }
 
+// SetIsAggregate sets the "is_aggregate" field.
+func (_c *APIKeyCreate) SetIsAggregate(v bool) *APIKeyCreate {
+	_c.mutation.SetIsAggregate(v)
+	return _c
+}
+
+// SetNillableIsAggregate sets the "is_aggregate" field if the given value is not nil.
+func (_c *APIKeyCreate) SetNillableIsAggregate(v *bool) *APIKeyCreate {
+	if v != nil {
+		_c.SetIsAggregate(*v)
+	}
+	return _c
+}
+
+// SetAggregateGroupIds sets the "aggregate_group_ids" field.
+func (_c *APIKeyCreate) SetAggregateGroupIds(v []int64) *APIKeyCreate {
+	_c.mutation.SetAggregateGroupIds(v)
+	return _c
+}
+
 // SetKey sets the "key" field.
 func (_c *APIKeyCreate) SetKey(v string) *APIKeyCreate {
 	_c.mutation.SetKey(v)
@@ -383,6 +403,10 @@ func (_c *APIKeyCreate) defaults() error {
 		v := apikey.DefaultUpdatedAt()
 		_c.mutation.SetUpdatedAt(v)
 	}
+	if _, ok := _c.mutation.IsAggregate(); !ok {
+		v := apikey.DefaultIsAggregate
+		_c.mutation.SetIsAggregate(v)
+	}
 	if _, ok := _c.mutation.Status(); !ok {
 		v := apikey.DefaultStatus
 		_c.mutation.SetStatus(v)
@@ -432,6 +456,9 @@ func (_c *APIKeyCreate) check() error {
 	}
 	if _, ok := _c.mutation.UserID(); !ok {
 		return &ValidationError{Name: "user_id", err: errors.New(`ent: missing required field "APIKey.user_id"`)}
+	}
+	if _, ok := _c.mutation.IsAggregate(); !ok {
+		return &ValidationError{Name: "is_aggregate", err: errors.New(`ent: missing required field "APIKey.is_aggregate"`)}
 	}
 	if _, ok := _c.mutation.Key(); !ok {
 		return &ValidationError{Name: "key", err: errors.New(`ent: missing required field "APIKey.key"`)}
@@ -522,6 +549,14 @@ func (_c *APIKeyCreate) createSpec() (*APIKey, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DeletedAt(); ok {
 		_spec.SetField(apikey.FieldDeletedAt, field.TypeTime, value)
 		_node.DeletedAt = &value
+	}
+	if value, ok := _c.mutation.IsAggregate(); ok {
+		_spec.SetField(apikey.FieldIsAggregate, field.TypeBool, value)
+		_node.IsAggregate = value
+	}
+	if value, ok := _c.mutation.AggregateGroupIds(); ok {
+		_spec.SetField(apikey.FieldAggregateGroupIds, field.TypeJSON, value)
+		_node.AggregateGroupIds = value
 	}
 	if value, ok := _c.mutation.Key(); ok {
 		_spec.SetField(apikey.FieldKey, field.TypeString, value)
@@ -736,6 +771,36 @@ func (u *APIKeyUpsert) SetUserID(v int64) *APIKeyUpsert {
 // UpdateUserID sets the "user_id" field to the value that was provided on create.
 func (u *APIKeyUpsert) UpdateUserID() *APIKeyUpsert {
 	u.SetExcluded(apikey.FieldUserID)
+	return u
+}
+
+// SetIsAggregate sets the "is_aggregate" field.
+func (u *APIKeyUpsert) SetIsAggregate(v bool) *APIKeyUpsert {
+	u.Set(apikey.FieldIsAggregate, v)
+	return u
+}
+
+// UpdateIsAggregate sets the "is_aggregate" field to the value that was provided on create.
+func (u *APIKeyUpsert) UpdateIsAggregate() *APIKeyUpsert {
+	u.SetExcluded(apikey.FieldIsAggregate)
+	return u
+}
+
+// SetAggregateGroupIds sets the "aggregate_group_ids" field.
+func (u *APIKeyUpsert) SetAggregateGroupIds(v []int64) *APIKeyUpsert {
+	u.Set(apikey.FieldAggregateGroupIds, v)
+	return u
+}
+
+// UpdateAggregateGroupIds sets the "aggregate_group_ids" field to the value that was provided on create.
+func (u *APIKeyUpsert) UpdateAggregateGroupIds() *APIKeyUpsert {
+	u.SetExcluded(apikey.FieldAggregateGroupIds)
+	return u
+}
+
+// ClearAggregateGroupIds clears the value of the "aggregate_group_ids" field.
+func (u *APIKeyUpsert) ClearAggregateGroupIds() *APIKeyUpsert {
+	u.SetNull(apikey.FieldAggregateGroupIds)
 	return u
 }
 
@@ -1154,6 +1219,41 @@ func (u *APIKeyUpsertOne) SetUserID(v int64) *APIKeyUpsertOne {
 func (u *APIKeyUpsertOne) UpdateUserID() *APIKeyUpsertOne {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.UpdateUserID()
+	})
+}
+
+// SetIsAggregate sets the "is_aggregate" field.
+func (u *APIKeyUpsertOne) SetIsAggregate(v bool) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetIsAggregate(v)
+	})
+}
+
+// UpdateIsAggregate sets the "is_aggregate" field to the value that was provided on create.
+func (u *APIKeyUpsertOne) UpdateIsAggregate() *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateIsAggregate()
+	})
+}
+
+// SetAggregateGroupIds sets the "aggregate_group_ids" field.
+func (u *APIKeyUpsertOne) SetAggregateGroupIds(v []int64) *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetAggregateGroupIds(v)
+	})
+}
+
+// UpdateAggregateGroupIds sets the "aggregate_group_ids" field to the value that was provided on create.
+func (u *APIKeyUpsertOne) UpdateAggregateGroupIds() *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateAggregateGroupIds()
+	})
+}
+
+// ClearAggregateGroupIds clears the value of the "aggregate_group_ids" field.
+func (u *APIKeyUpsertOne) ClearAggregateGroupIds() *APIKeyUpsertOne {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.ClearAggregateGroupIds()
 	})
 }
 
@@ -1792,6 +1892,41 @@ func (u *APIKeyUpsertBulk) SetUserID(v int64) *APIKeyUpsertBulk {
 func (u *APIKeyUpsertBulk) UpdateUserID() *APIKeyUpsertBulk {
 	return u.Update(func(s *APIKeyUpsert) {
 		s.UpdateUserID()
+	})
+}
+
+// SetIsAggregate sets the "is_aggregate" field.
+func (u *APIKeyUpsertBulk) SetIsAggregate(v bool) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetIsAggregate(v)
+	})
+}
+
+// UpdateIsAggregate sets the "is_aggregate" field to the value that was provided on create.
+func (u *APIKeyUpsertBulk) UpdateIsAggregate() *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateIsAggregate()
+	})
+}
+
+// SetAggregateGroupIds sets the "aggregate_group_ids" field.
+func (u *APIKeyUpsertBulk) SetAggregateGroupIds(v []int64) *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.SetAggregateGroupIds(v)
+	})
+}
+
+// UpdateAggregateGroupIds sets the "aggregate_group_ids" field to the value that was provided on create.
+func (u *APIKeyUpsertBulk) UpdateAggregateGroupIds() *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.UpdateAggregateGroupIds()
+	})
+}
+
+// ClearAggregateGroupIds clears the value of the "aggregate_group_ids" field.
+func (u *APIKeyUpsertBulk) ClearAggregateGroupIds() *APIKeyUpsertBulk {
+	return u.Update(func(s *APIKeyUpsert) {
+		s.ClearAggregateGroupIds()
 	})
 }
 

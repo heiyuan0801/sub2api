@@ -144,6 +144,7 @@
           <template #cell-name="{ value, row }">
             <div class="flex items-center gap-1.5">
               <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <span v-if="row.is_aggregate" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-dark-700">{{ t('keys.aggregate.badge', { count: row.aggregate_group_ids?.length || 0 }) }}</span>
               <Icon
                 v-if="row.ip_whitelist?.length > 0 || row.ip_blacklist?.length > 0"
                 name="shield"
@@ -155,7 +156,10 @@
           </template>
 
           <template #cell-group="{ row }">
-            <div class="group/dropdown relative">
+            <button v-if="row.is_aggregate" type="button" class="max-w-xs text-left text-sm text-gray-700 dark:text-gray-300" @click="editKey(row)">
+              {{ row.aggregate_group_ids?.map((id: number) => groups.find(group => group.id === id)?.name || `#${id}`).join(' → ') }}
+            </button>
+            <div v-else class="group/dropdown relative">
               <button
                 :ref="(el) => setGroupButtonRef(row.id, el)"
                 @click="openGroupSelector(row)"
@@ -409,6 +413,9 @@
                 <Icon name="upload" size="sm" />
                 <span class="text-xs">{{ t('keys.importToCcSwitch') }}</span>
               </button>
+              <button @click="magpieKey = row" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-dark-700">
+                <Icon name="upload" size="sm" /><span class="text-xs">{{ t('keys.magpie.title') }}</span>
+              </button>
               <!-- Toggle Status Button -->
               <button
                 @click="toggleKeyStatus(row)"
@@ -469,6 +476,7 @@
     <BaseDialog
       :show="showCreateModal || showEditModal"
       :title="showEditModal ? t('keys.editKey') : t('keys.createKey')"
+      panel-class="key-editor-dialog"
       width="normal"
       @close="closeModals"
     >
@@ -485,9 +493,9 @@
           />
         </div>
 
-        <fieldset v-if="!showEditModal" data-tour="key-form-provider">
+        <fieldset data-tour="key-form-provider" class="key-provider-picker">
           <legend class="input-label">{{ t('keys.providerLabel') }}</legend>
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div class="grid grid-cols-4 gap-2">
             <label
               v-for="provider in createProviderOptions"
               :key="provider.value"
@@ -504,7 +512,7 @@
                 @change="selectCreateProvider(provider.value)"
               />
               <span
-                class="flex h-full flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white px-2 py-3 text-center transition-colors peer-checked:border-primary-500 peer-checked:bg-primary-50/60 peer-checked:ring-1 peer-checked:ring-primary-500 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-500 peer-disabled:opacity-40 dark:border-dark-600 dark:bg-dark-800 dark:peer-checked:border-primary-500 dark:peer-checked:bg-primary-500/10"
+                class="key-provider-card flex h-full flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white px-2 py-3 text-center transition-colors peer-checked:border-primary-500 peer-checked:bg-primary-50/60 peer-checked:ring-1 peer-checked:ring-primary-500 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-500 peer-disabled:opacity-40 dark:border-dark-600 dark:bg-dark-800 dark:peer-checked:border-primary-500 dark:peer-checked:bg-primary-500/10"
                 :class="provider.count > 0 && 'hover:border-primary-300 dark:hover:border-primary-700'"
               >
                 <span class="flex h-8 items-center justify-center gap-1.5" aria-hidden="true">
@@ -521,20 +529,33 @@
               </span>
               <span
                 v-if="createProvider === provider.value"
-                class="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary-500 text-white"
+                class="key-provider-check absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary-500 text-white"
                 aria-hidden="true"
               >
                 <Icon name="check" size="xs" :stroke-width="3" />
               </span>
             </label>
           </div>
-          <p class="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400" aria-live="polite">
-            {{ groups.length === 0 ? t('common.noGroupsAvailable') : t(`keys.providerHints.${createProvider}`) }}
-          </p>
+          <p v-if="groups.length === 0" class="mt-2 text-xs text-gray-500" aria-live="polite">{{ t('common.noGroupsAvailable') }}</p>
         </fieldset>
 
-        <div>
-          <label class="input-label" for="key-form-group">{{ t('keys.groupLabel') }}</label>
+        <div class="key-group-heading flex items-center justify-between gap-3">
+          <label class="input-label mb-0" :for="formData.is_aggregate ? 'aggregate-add-group' : 'key-form-group'">{{ t('keys.groupLabel') }}</label>
+          <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300" :title="showEditModal ? t('keys.aggregate.typeLocked') : undefined">
+            <input v-model="formData.is_aggregate" type="checkbox" :disabled="showEditModal" class="h-3.5 w-3.5 accent-blue-600" data-test="aggregate-key-toggle" />
+            {{ t('keys.aggregate.smartRouting') }}
+          </label>
+        </div>
+        <AggregateKeyGroups
+          v-if="formData.is_aggregate"
+          v-model="formData.aggregate_group_ids"
+          :groups="groups"
+          :provider="createProvider"
+          :user-rates="userGroupRates"
+          class="key-group-control"
+        />
+
+        <div v-if="!formData.is_aggregate" class="key-group-control">
           <Select
             :key="showEditModal ? 'edit' : createProvider"
             id="key-form-group"
@@ -1195,6 +1216,7 @@
         </div>
       </div>
     </Teleport>
+    <MagpieImportModal v-if="magpieKey" :api-key="magpieKey" :base-url="publicSettings?.api_base_url || previewOrigin" :site-name="publicSettings?.site_name || 'Sub2API'" @close="magpieKey = null" />
   </AppLayout>
 </template>
 
@@ -1211,6 +1233,8 @@ import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import BulkEditKeysModal from '@/components/keys/BulkEditKeysModal.vue'
+import AggregateKeyGroups from '@/components/keys/AggregateKeyGroups.vue'
+import MagpieImportModal from '@/components/keys/MagpieImportModal.vue'
 	import DataTable from '@/components/common/DataTable.vue'
 	import Pagination from '@/components/common/Pagination.vue'
 	import BaseDialog from '@/components/common/BaseDialog.vue'
@@ -1396,6 +1420,8 @@ const filterSearch = ref('')
 const filterStatus = ref('')
 const filterGroupId = ref<string | number>('')
 
+const magpieKey = ref<ApiKey | null>(null)
+const previewOrigin = window.location.origin
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteDialog = ref(false)
@@ -1430,6 +1456,8 @@ const setGroupButtonRef = (keyId: number, el: Element | ComponentPublicInstance 
 }
 
 const formData = ref({
+  is_aggregate: false,
+  aggregate_group_ids: [] as number[],
   name: '',
   group_id: null as number | null,
   status: 'active' as 'active' | 'inactive',
@@ -1534,9 +1562,8 @@ const createProviderOptions = computed(() => KEY_GROUP_PROVIDERS.map((value) => 
   count: groups.value.filter((group) => getKeyGroupProvider(group.platform) === value).length
 })))
 
-const formGroupOptions = computed(() => showEditModal.value
-  ? groupOptions.value
-  : groupOptions.value.filter((group) => getKeyGroupProvider(group.platform) === createProvider.value)
+const formGroupOptions = computed(() =>
+  groupOptions.value.filter((group) => getKeyGroupProvider(group.platform) === createProvider.value)
 )
 
 const selectCreateProvider = (provider: KeyGroupProvider) => {
@@ -1695,9 +1722,13 @@ const handleSort = (key: string, order: 'asc' | 'desc') => {
 
 const editKey = (key: ApiKey) => {
   selectedKey.value = key
+  const firstGroup = groups.value.find(group => group.id === (key.is_aggregate ? key.aggregate_group_ids?.[0] : key.group_id))
+  createProvider.value = getKeyGroupProvider(firstGroup?.platform ?? key.group?.platform ?? 'anthropic')
   const hasIPRestriction = (key.ip_whitelist?.length > 0) || (key.ip_blacklist?.length > 0)
   const hasExpiration = !!key.expires_at
   formData.value = {
+    is_aggregate: !!key.is_aggregate,
+    aggregate_group_ids: [...(key.aggregate_group_ids || [])],
     name: key.name,
     group_id: key.group_id,
     status: key.status === 'quota_exhausted' || key.status === 'expired' ? 'inactive' : key.status,
@@ -1799,7 +1830,7 @@ const confirmDelete = (key: ApiKey) => {
 
 const handleSubmit = async () => {
   // Validate group_id is required
-  if (formData.value.group_id === null) {
+  if (!formData.value.is_aggregate && formData.value.group_id === null) {
     appStore.showError(t('keys.groupRequired'))
     return
   }
@@ -1851,12 +1882,17 @@ const handleSubmit = async () => {
     rate_limit_7d: formData.value.rate_limit_7d && formData.value.rate_limit_7d > 0 ? formData.value.rate_limit_7d : 0,
   } : { rate_limit_5h: 0, rate_limit_1d: 0, rate_limit_7d: 0 }
 
+  if (formData.value.is_aggregate && (formData.value.aggregate_group_ids.length < 1 || formData.value.aggregate_group_ids.length > 20)) {
+    appStore.showError(t('keys.aggregate.invalidGroups'))
+    return
+  }
   submitting.value = true
   try {
     if (showEditModal.value && selectedKey.value) {
       const updates: UpdateApiKeyRequest = {
+        ...(formData.value.is_aggregate ? { aggregate_group_ids: formData.value.aggregate_group_ids } : {}),
         name: formData.value.name,
-        group_id: formData.value.group_id,
+        ...(formData.value.is_aggregate ? {} : { group_id: formData.value.group_id }),
         ip_whitelist: ipWhitelist,
         ip_blacklist: ipBlacklist,
         quota: quota,
@@ -1874,13 +1910,14 @@ const handleSubmit = async () => {
       const customKey = formData.value.use_custom_key ? formData.value.custom_key : undefined
       await keysAPI.create(
         formData.value.name,
-        formData.value.group_id,
+        formData.value.is_aggregate ? null : formData.value.group_id,
         customKey,
         ipWhitelist,
         ipBlacklist,
         quota,
         expiresInDays,
-        rateLimitData
+        rateLimitData,
+        formData.value.is_aggregate ? { is_aggregate: true, aggregate_group_ids: formData.value.aggregate_group_ids } : undefined
       )
       appStore.showSuccess(t('keys.keyCreatedSuccess'))
       // Only advance tour if active, on submit step, and creation succeeded
@@ -1924,6 +1961,8 @@ const closeModals = () => {
   showEditModal.value = false
   selectedKey.value = null
   formData.value = {
+    is_aggregate: false,
+    aggregate_group_ids: [],
     name: '',
     group_id: null,
     status: 'active',
@@ -2093,3 +2132,41 @@ onUnmounted(() => {
   if (resetTimer) clearInterval(resetTimer)
 })
 </script>
+
+<style>
+/* Scope the reference treatment to the API-key editor; other dialogs retain their theme. */
+.key-editor-dialog {
+  --key-accent: #0d9488;
+  --key-border: #cbd5e1;
+  max-height: calc(100dvh - 32px);
+  border-radius: 8px;
+}
+.key-editor-dialog .modal-header { padding: 22px 24px; }
+.key-editor-dialog .modal-body { padding: 20px 24px 24px; scrollbar-width: thin; }
+.key-editor-dialog .modal-footer { padding: 16px 24px; background: #f5f6f7; border-radius: 0 0 8px 8px; }
+.key-editor-dialog .input-label { font-weight: 500; }
+.key-editor-dialog .input,
+.key-editor-dialog .select-trigger { min-height: 42px; border-color: #b4c2d0; border-radius: 8px; box-shadow: none; }
+.key-editor-dialog .input:focus,
+.key-editor-dialog .select-trigger:focus-visible { border-color: var(--key-accent); outline: 2px solid #0d948826; outline-offset: 2px; }
+.key-editor-dialog .input-hint { font-size: 12px; line-height: 1.5; }
+.key-editor-dialog .key-provider-card { min-height: 96px; justify-content: center; gap: 8px; border-radius: 8px; border-color: var(--key-border); }
+.key-editor-dialog .peer:checked ~ .key-provider-card { background: #f0fdfa; border-color: #14b8a6; box-shadow: 0 0 0 1px #14b8a6; }
+.key-editor-dialog .key-provider-check { background: #14b8a6; }
+.key-editor-dialog .key-group-control { margin-top: 8px; }
+.key-editor-dialog .modal-footer .btn { min-height: 42px; border-radius: 8px; padding: 9px 20px; }
+.key-editor-dialog .modal-footer .btn-primary { background: var(--key-accent); border-color: var(--key-accent); color: white; }
+.key-editor-dialog .modal-footer .btn-primary:hover { background: #0f766e; }
+.key-editor-dialog .modal-footer .btn-secondary { background: white; border-color: #d8e0e8; }
+.dark .key-editor-dialog { --key-border: #374151; }
+.dark .key-editor-dialog .modal-footer { background: #171b22; }
+.dark .key-editor-dialog .input,
+.dark .key-editor-dialog .select-trigger { border-color: #4b5563; }
+.dark .key-editor-dialog .peer:checked ~ .key-provider-card { background: #0d94881a; }
+.dark .key-editor-dialog .modal-footer .btn-secondary { background: #202630; border-color: #4b5563; }
+@media (max-width: 400px) {
+  .key-editor-dialog .modal-body { padding: 16px; }
+  .key-editor-dialog .key-provider-card { padding-inline: 4px; }
+  .key-editor-dialog .key-provider-card > span:last-child { font-size: 12px; }
+}
+</style>

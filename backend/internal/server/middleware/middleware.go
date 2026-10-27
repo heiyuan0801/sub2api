@@ -147,6 +147,13 @@ func RequireGroupAssignment(settingService *service.SettingService, writeError G
 			c.Next()
 			return
 		}
+		if apiKey.IsAggregate {
+			metadata, _ := aggregateRouteSupported(c.Request.Method, c.Request.URL.Path)
+			if metadata {
+				c.Next()
+				return
+			}
+		}
 		// 未分组 Key — 检查系统设置
 		if settingService.IsUngroupedKeySchedulingAllowed(c.Request.Context()) {
 			c.Next()

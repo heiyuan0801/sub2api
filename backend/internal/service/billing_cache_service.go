@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/aggregateretry"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/timezone"
@@ -995,7 +996,17 @@ func (s *BillingCacheService) checkRPM(ctx context.Context, user *User, group *G
 
 	// ── 第二层：用户级全局硬上限（始终生效） ──
 	if user.RPMLimit > 0 {
-		count, err := s.userRPMCache.IncrementUserRPM(ctx, user.ID)
+		var count int
+		var err error
+		state := aggregateretry.FromContext(ctx)
+		if state != nil && state.Enabled && state.UserRPMCounted {
+			count, err = s.userRPMCache.GetUserRPM(ctx, user.ID)
+		} else {
+			count, err = s.userRPMCache.IncrementUserRPM(ctx, user.ID)
+			if err == nil && state != nil && state.Enabled {
+				state.UserRPMCounted = true
+			}
+		}
 		if err != nil {
 			logger.LegacyPrintf(
 				"service.billing_cache",

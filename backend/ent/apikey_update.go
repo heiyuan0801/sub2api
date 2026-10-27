@@ -72,6 +72,38 @@ func (_u *APIKeyUpdate) SetNillableUserID(v *int64) *APIKeyUpdate {
 	return _u
 }
 
+// SetIsAggregate sets the "is_aggregate" field.
+func (_u *APIKeyUpdate) SetIsAggregate(v bool) *APIKeyUpdate {
+	_u.mutation.SetIsAggregate(v)
+	return _u
+}
+
+// SetNillableIsAggregate sets the "is_aggregate" field if the given value is not nil.
+func (_u *APIKeyUpdate) SetNillableIsAggregate(v *bool) *APIKeyUpdate {
+	if v != nil {
+		_u.SetIsAggregate(*v)
+	}
+	return _u
+}
+
+// SetAggregateGroupIds sets the "aggregate_group_ids" field.
+func (_u *APIKeyUpdate) SetAggregateGroupIds(v []int64) *APIKeyUpdate {
+	_u.mutation.SetAggregateGroupIds(v)
+	return _u
+}
+
+// AppendAggregateGroupIds appends value to the "aggregate_group_ids" field.
+func (_u *APIKeyUpdate) AppendAggregateGroupIds(v []int64) *APIKeyUpdate {
+	_u.mutation.AppendAggregateGroupIds(v)
+	return _u
+}
+
+// ClearAggregateGroupIds clears the value of the "aggregate_group_ids" field.
+func (_u *APIKeyUpdate) ClearAggregateGroupIds() *APIKeyUpdate {
+	_u.mutation.ClearAggregateGroupIds()
+	return _u
+}
+
 // SetKey sets the "key" field.
 func (_u *APIKeyUpdate) SetKey(v string) *APIKeyUpdate {
 	_u.mutation.SetKey(v)
@@ -587,6 +619,20 @@ func (_u *APIKeyUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(apikey.FieldDeletedAt, field.TypeTime)
 	}
+	if value, ok := _u.mutation.IsAggregate(); ok {
+		_spec.SetField(apikey.FieldIsAggregate, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.AggregateGroupIds(); ok {
+		_spec.SetField(apikey.FieldAggregateGroupIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAggregateGroupIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, apikey.FieldAggregateGroupIds, value)
+		})
+	}
+	if _u.mutation.AggregateGroupIdsCleared() {
+		_spec.ClearField(apikey.FieldAggregateGroupIds, field.TypeJSON)
+	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(apikey.FieldKey, field.TypeString, value)
 	}
@@ -856,6 +902,38 @@ func (_u *APIKeyUpdateOne) SetNillableUserID(v *int64) *APIKeyUpdateOne {
 	if v != nil {
 		_u.SetUserID(*v)
 	}
+	return _u
+}
+
+// SetIsAggregate sets the "is_aggregate" field.
+func (_u *APIKeyUpdateOne) SetIsAggregate(v bool) *APIKeyUpdateOne {
+	_u.mutation.SetIsAggregate(v)
+	return _u
+}
+
+// SetNillableIsAggregate sets the "is_aggregate" field if the given value is not nil.
+func (_u *APIKeyUpdateOne) SetNillableIsAggregate(v *bool) *APIKeyUpdateOne {
+	if v != nil {
+		_u.SetIsAggregate(*v)
+	}
+	return _u
+}
+
+// SetAggregateGroupIds sets the "aggregate_group_ids" field.
+func (_u *APIKeyUpdateOne) SetAggregateGroupIds(v []int64) *APIKeyUpdateOne {
+	_u.mutation.SetAggregateGroupIds(v)
+	return _u
+}
+
+// AppendAggregateGroupIds appends value to the "aggregate_group_ids" field.
+func (_u *APIKeyUpdateOne) AppendAggregateGroupIds(v []int64) *APIKeyUpdateOne {
+	_u.mutation.AppendAggregateGroupIds(v)
+	return _u
+}
+
+// ClearAggregateGroupIds clears the value of the "aggregate_group_ids" field.
+func (_u *APIKeyUpdateOne) ClearAggregateGroupIds() *APIKeyUpdateOne {
+	_u.mutation.ClearAggregateGroupIds()
 	return _u
 }
 
@@ -1403,6 +1481,20 @@ func (_u *APIKeyUpdateOne) sqlSave(ctx context.Context) (_node *APIKey, err erro
 	}
 	if _u.mutation.DeletedAtCleared() {
 		_spec.ClearField(apikey.FieldDeletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.IsAggregate(); ok {
+		_spec.SetField(apikey.FieldIsAggregate, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.AggregateGroupIds(); ok {
+		_spec.SetField(apikey.FieldAggregateGroupIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedAggregateGroupIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, apikey.FieldAggregateGroupIds, value)
+		})
+	}
+	if _u.mutation.AggregateGroupIdsCleared() {
+		_spec.ClearField(apikey.FieldAggregateGroupIds, field.TypeJSON)
 	}
 	if value, ok := _u.mutation.Key(); ok {
 		_spec.SetField(apikey.FieldKey, field.TypeString, value)

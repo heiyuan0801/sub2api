@@ -202,6 +202,7 @@ func (h *GatewayHandler) Responses(c *gin.Context) {
 				cls = classifySelectionFailureError(err, cls)
 				if !cls.ModelNotFound {
 					markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+					markAggregateSelectionFailure(c, err)
 				}
 				message := cls.Message
 				if !cls.ModelNotFound {
@@ -396,6 +397,7 @@ func (h *GatewayHandler) responsesErrorResponse(c *gin.Context, status int, code
 
 // handleResponsesFailoverExhausted writes a failover-exhausted error in Responses format.
 func (h *GatewayHandler) handleResponsesFailoverExhausted(c *gin.Context, lastErr *service.UpstreamFailoverError, streamStarted bool) {
+	markAggregateUpstreamFailure(c, lastErr, streamStarted)
 	if lastErr != nil {
 		copyFailoverRetryAfter(c, lastErr.ResponseHeaders)
 	}

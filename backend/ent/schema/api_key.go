@@ -34,6 +34,8 @@ func (APIKey) Mixin() []ent.Mixin {
 func (APIKey) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("user_id"),
+		field.Bool("is_aggregate").Default(false),
+		field.JSON("aggregate_group_ids", []int64{}).Optional(),
 		field.String("key").
 			MaxLen(128).
 			NotEmpty().

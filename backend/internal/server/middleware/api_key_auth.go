@@ -157,19 +157,31 @@ func apiKeyAuthWithSubscription(apiKeyService *service.APIKeyService, subscripti
 			AbortWithError(c, 401, "USER_INACTIVE", "User account is not active")
 			return
 		}
+		selectedKey, aggregateCode, aggregateMessage := prepareAggregateKey(c, apiKeyService, cfg, apiKey)
+		if aggregateCode != 0 {
+			AbortWithError(c, aggregateCode, "AGGREGATE_KEY_UNAVAILABLE", aggregateMessage)
+			return
+		}
+		if c.IsAborted() {
+			return
+		}
+		apiKey = selectedKey
+		SetOpsFallbackAPIKey(c, apiKey)
 		if abortIfAPIKeyGroupUnavailable(c, apiKey) {
 			return
 		}
 		if abortIfAPIKeyGroupNotAllowed(c, apiKey) {
 			return
 		}
+
 		ctx := context.WithValue(c.Request.Context(), ctxkey.UserID, apiKey.User.ID)
 		c.Request = c.Request.WithContext(ctx)
 		billingInfoRequest := c.Request.URL.Path == "/v1/sub2api/billing"
 		// Async image task polling only reads data that already belongs to the
 		// authenticated key and must remain available after the completed
 		// generation consumes the key's remaining balance.
-		skipBilling := c.Request.URL.Path == "/v1/usage" || billingInfoRequest || isAsyncImageTaskRead(c.Request.Method, c.Request.URL.Path)
+		aggregateDiscovery := apiKey.IsAggregate && c.Request.Method == http.MethodGet && strings.HasSuffix(c.Request.URL.Path, "/models")
+		skipBilling := aggregateDiscovery || c.Request.URL.Path == "/v1/usage" || billingInfoRequest || isAsyncImageTaskRead(c.Request.Method, c.Request.URL.Path)
 
 		// ── 4. SimpleMode → early return ─────────────────────────────
 

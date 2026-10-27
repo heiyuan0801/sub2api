@@ -39,6 +39,20 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 		googleError(c, http.StatusUnauthorized, "Invalid API key")
 		return
 	}
+	if apiKey.IsAggregate {
+		forced, _ := middleware.GetForcePlatformFromContext(c)
+		ids, err := h.apiKeyService.AggregateModels(c.Request.Context(), apiKey, service.CompositeRouteEndpointGemini, forced)
+		if err != nil {
+			googleError(c, http.StatusServiceUnavailable, "Unable to list aggregate models")
+			return
+		}
+		models := make([]gemini.Model, 0, len(ids))
+		for _, id := range ids {
+			models = append(models, gemini.FallbackModel(id))
+		}
+		c.JSON(http.StatusOK, gemini.ModelsListResponse{Models: models})
+		return
+	}
 	// 检查平台：优先使用强制平台（/antigravity 路由），否则要求 gemini 分组（composite 分组允许路由到 antigravity）
 	forcePlatform, hasForcePlatform := middleware.GetForcePlatformFromContext(c)
 	effectivePlatform := effectiveAPIKeyPlatform(c, apiKey)
@@ -83,6 +97,7 @@ func (h *GatewayHandler) GeminiV1BetaListModels(c *gin.Context) {
 			return
 		}
 		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+		markAggregateSelectionFailure(c, err)
 		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
 		return
 	}
@@ -269,6 +284,7 @@ func (h *GatewayHandler) GeminiV1BetaGetModel(c *gin.Context) {
 			return
 		}
 		markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+		markAggregateSelectionFailure(c, err)
 		googleError(c, http.StatusServiceUnavailable, "No available Gemini accounts: "+err.Error())
 		return
 	}
@@ -591,6 +607,7 @@ func (h *GatewayHandler) GeminiV1BetaModels(c *gin.Context) {
 				cls := classifyNoAccountErrorFromGin(c, h.gatewayService, apiKey, modelName, modelName, diagPlatform)
 				if !cls.ModelNotFound {
 					markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+					markAggregateSelectionFailure(c, err)
 				}
 				message := cls.Message
 				if !cls.ModelNotFound {
@@ -855,6 +872,7 @@ func parseGeminiModelAction(rest string) (model string, action string, err error
 }
 
 func (h *GatewayHandler) handleGeminiFailoverExhausted(c *gin.Context, failoverErr *service.UpstreamFailoverError) {
+	markAggregateUpstreamFailure(c, failoverErr, false)
 	if failoverErr == nil {
 		googleError(c, http.StatusBadGateway, "Upstream request failed")
 		return

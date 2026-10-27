@@ -216,6 +216,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 				cls = classifySelectionFailureError(err, cls)
 				if !cls.ModelNotFound {
 					markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+					markAggregateSelectionFailure(c, err)
 				}
 				h.handleStreamingAwareError(c, cls.Status, cls.ErrType, cls.Message, streamStarted)
 				return
@@ -232,6 +233,7 @@ func (h *OpenAIGatewayHandler) ChatCompletions(c *gin.Context) {
 			cls := classifyOpenAICompatibleNoAccountErrorFromGin(c, h.gatewayService, apiKey, reqModel, reqModel)
 			if !cls.ModelNotFound {
 				markOpsRoutingCapacityLimited(c)
+				markAggregateSelectionFailure(c, nil)
 			}
 			h.handleStreamingAwareError(c, cls.Status, cls.ErrType, cls.Message, streamStarted)
 			return

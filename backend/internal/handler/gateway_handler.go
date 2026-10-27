@@ -80,6 +80,9 @@ func NewGatewayHandler(
 	cfg *config.Config,
 	settingService *service.SettingService,
 ) *GatewayHandler {
+	if apiKeyService != nil {
+		apiKeyService.SetAggregateGateway(gatewayService)
+	}
 	pingInterval := time.Duration(0)
 	maxAccountSwitches := 10
 	maxAccountSwitchesGemini := 3
@@ -358,6 +361,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					cls := classifyNoAccountErrorFromGin(c, h.gatewayService, apiKey, reqModel, reqModel, service.PlatformGemini)
 					if !cls.ModelNotFound {
 						markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+						markAggregateSelectionFailure(c, err)
 					}
 					reqLog.Warn("gateway.select_account_no_available",
 						zap.String("model", reqModel),
@@ -689,6 +693,7 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 					cls := classifyNoAccountErrorFromGin(c, h.gatewayService, currentAPIKey, reqModel, reqModel, platform)
 					if !cls.ModelNotFound {
 						markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+						markAggregateSelectionFailure(c, err)
 					}
 					reqLog.Warn("gateway.select_account_no_available",
 						zap.String("model", reqModel),
@@ -1147,6 +1152,16 @@ func (h *GatewayHandler) Messages(c *gin.Context) {
 // Falls back to default models if no whitelist is configured
 func (h *GatewayHandler) Models(c *gin.Context) {
 	apiKey, _ := middleware2.GetAPIKeyFromContext(c)
+	if apiKey != nil && apiKey.IsAggregate {
+		forced, _ := middleware2.GetForcePlatformFromContext(c)
+		models, err := h.apiKeyService.AggregateModels(c.Request.Context(), apiKey, "", forced)
+		if err != nil {
+			h.errorResponse(c, http.StatusServiceUnavailable, "api_error", "Unable to list aggregate models")
+			return
+		}
+		writeModelsList(c, service.PlatformComposite, models)
+		return
+	}
 
 	var groupID *int64
 	var platform string
@@ -1917,6 +1932,7 @@ func (h *GatewayHandler) handleConcurrencyError(c *gin.Context, err error, slotT
 }
 
 func (h *GatewayHandler) handleFailoverExhausted(c *gin.Context, failoverErr *service.UpstreamFailoverError, platform string, streamStarted bool) {
+	markAggregateUpstreamFailure(c, failoverErr, streamStarted)
 	statusCode := failoverErr.StatusCode
 	responseBody := failoverErr.ResponseBody
 	if service.IsOpenAISilentRefusalErrorBody(responseBody) {
@@ -2233,6 +2249,7 @@ func (h *GatewayHandler) CountTokens(c *gin.Context) {
 		cls := classifyNoAccountErrorFromGin(c, h.gatewayService, apiKey, parsedReq.Model, parsedReq.Model, service.PlatformAnthropic)
 		if !cls.ModelNotFound {
 			markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+			markAggregateSelectionFailure(c, err)
 		}
 		h.errorResponse(c, cls.Status, cls.ErrType, cls.Message)
 		return

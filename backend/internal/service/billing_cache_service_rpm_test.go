@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/aggregateretry"
 	"github.com/stretchr/testify/require"
 )
 
@@ -250,4 +251,16 @@ func TestBillingCacheService_CheckRPM_NilUserIsNoop(t *testing.T) {
 	require.EqualValues(t, 0, atomic.LoadInt32(&cache.userGroupCalls))
 	require.EqualValues(t, 0, atomic.LoadInt32(&cache.userCalls))
 	require.EqualValues(t, 0, atomic.LoadInt32(&repo.calls))
+}
+
+func TestBillingCacheService_AggregateRetryCountsGlobalRPMOnce(t *testing.T) {
+	cache := &userRPMCacheStub{}
+	svc := newBillingServiceForRPM(t, cache, nil)
+	state := &aggregateretry.State{Enabled: true}
+	ctx := aggregateretry.WithState(context.Background(), state)
+	user := &User{ID: 42, RPMLimit: 1}
+	require.NoError(t, svc.checkRPM(ctx, user, &Group{ID: 1, RPMLimit: 10}))
+	require.NoError(t, svc.checkRPM(ctx, user, &Group{ID: 2, RPMLimit: 10}))
+	require.EqualValues(t, 1, cache.userCalls)
+	require.EqualValues(t, 2, cache.userGroupCalls)
 }

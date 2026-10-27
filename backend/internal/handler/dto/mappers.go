@@ -82,6 +82,8 @@ func APIKeyFromService(k *service.APIKey) *APIKey {
 		return nil
 	}
 	out := &APIKey{
+		IsAggregate:        k.IsAggregate,
+		AggregateGroupIDs:  k.AggregateGroupIDs,
 		ID:                 k.ID,
 		UserID:             k.UserID,
 		Key:                k.Key,

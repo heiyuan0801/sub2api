@@ -23,6 +23,10 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldUserID holds the string denoting the user_id field in the database.
 	FieldUserID = "user_id"
+	// FieldIsAggregate holds the string denoting the is_aggregate field in the database.
+	FieldIsAggregate = "is_aggregate"
+	// FieldAggregateGroupIds holds the string denoting the aggregate_group_ids field in the database.
+	FieldAggregateGroupIds = "aggregate_group_ids"
 	// FieldKey holds the string denoting the key field in the database.
 	FieldKey = "key"
 	// FieldName holds the string denoting the name field in the database.
@@ -99,6 +103,8 @@ var Columns = []string{
 	FieldUpdatedAt,
 	FieldDeletedAt,
 	FieldUserID,
+	FieldIsAggregate,
+	FieldAggregateGroupIds,
 	FieldKey,
 	FieldName,
 	FieldGroupID,
@@ -144,6 +150,8 @@ var (
 	DefaultUpdatedAt func() time.Time
 	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
 	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultIsAggregate holds the default value on creation for the "is_aggregate" field.
+	DefaultIsAggregate bool
 	// KeyValidator is a validator for the "key" field. It is called by the builders before save.
 	KeyValidator func(string) error
 	// NameValidator is a validator for the "name" field. It is called by the builders before save.
@@ -196,6 +204,11 @@ func ByDeletedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUserID orders the results by the user_id field.
 func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUserID, opts...).ToFunc()
+}
+
+// ByIsAggregate orders the results by the is_aggregate field.
+func ByIsAggregate(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsAggregate, opts...).ToFunc()
 }
 
 // ByKey orders the results by the key field.

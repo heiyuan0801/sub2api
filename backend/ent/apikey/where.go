@@ -75,6 +75,11 @@ func UserID(v int64) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldUserID, v))
 }
 
+// IsAggregate applies equality check predicate on the "is_aggregate" field. It's identical to IsAggregateEQ.
+func IsAggregate(v bool) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEQ(FieldIsAggregate, v))
+}
+
 // Key applies equality check predicate on the "key" field. It's identical to KeyEQ.
 func Key(v string) predicate.APIKey {
 	return predicate.APIKey(sql.FieldEQ(FieldKey, v))
@@ -308,6 +313,26 @@ func UserIDIn(vs ...int64) predicate.APIKey {
 // UserIDNotIn applies the NotIn predicate on the "user_id" field.
 func UserIDNotIn(vs ...int64) predicate.APIKey {
 	return predicate.APIKey(sql.FieldNotIn(FieldUserID, vs...))
+}
+
+// IsAggregateEQ applies the EQ predicate on the "is_aggregate" field.
+func IsAggregateEQ(v bool) predicate.APIKey {
+	return predicate.APIKey(sql.FieldEQ(FieldIsAggregate, v))
+}
+
+// IsAggregateNEQ applies the NEQ predicate on the "is_aggregate" field.
+func IsAggregateNEQ(v bool) predicate.APIKey {
+	return predicate.APIKey(sql.FieldNEQ(FieldIsAggregate, v))
+}
+
+// AggregateGroupIdsIsNil applies the IsNil predicate on the "aggregate_group_ids" field.
+func AggregateGroupIdsIsNil() predicate.APIKey {
+	return predicate.APIKey(sql.FieldIsNull(FieldAggregateGroupIds))
+}
+
+// AggregateGroupIdsNotNil applies the NotNil predicate on the "aggregate_group_ids" field.
+func AggregateGroupIdsNotNil() predicate.APIKey {
+	return predicate.APIKey(sql.FieldNotNull(FieldAggregateGroupIds))
 }
 
 // KeyEQ applies the EQ predicate on the "key" field.

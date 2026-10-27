@@ -240,6 +240,8 @@ const mountView = async () => {
         Icon: IconStub,
         UseKeyModal: true,
         BulkEditKeysModal: true,
+        AggregateKeyGroups: true,
+        MagpieImportModal: true,
         EndpointPopover: true,
         GroupBadge: true,
         GroupOptionItem: true,
@@ -295,6 +297,18 @@ describe('user KeysView column settings', () => {
     getAvailableGroups.mockResolvedValue([])
     getUserGroupRates.mockResolvedValue({})
     isCurrentStep.mockReturnValue(false)
+  })
+
+  it('opens Magpie confirmation for the selected key without navigating automatically', async () => {
+    const wrapper = await mountView()
+    expect(wrapper.findComponent({ name: 'MagpieImportModal' }).exists()).toBe(false)
+    await getButtonByText(wrapper, 'keys.magpie.title').trigger('click')
+    const modal = wrapper.findComponent({ name: 'MagpieImportModal' })
+    expect(modal.props('apiKey').id).toBe(1)
+    modal.vm.$emit('close')
+    await nextTick()
+    expect(wrapper.findComponent({ name: 'MagpieImportModal' }).exists()).toBe(false)
+    wrapper.unmount()
   })
 
   it.each([
@@ -583,6 +597,26 @@ describe('user KeysView column settings', () => {
       getAvailableGroups.mockResolvedValue(availableGroups)
     })
 
+    it('creates an aggregate from groups without an ordinary Key or primary group', async () => {
+      const wrapper = await openCreate()
+      await wrapper.get('[data-tour="key-form-name"]').setValue('My pool')
+      await wrapper.get('[data-test="aggregate-key-toggle"]').setValue(true)
+      await wrapper.get('#key-form').trigger('submit')
+      expect(keysAPI.create).not.toHaveBeenCalled()
+      expect(showError).toHaveBeenCalledWith('keys.aggregate.invalidGroups')
+      const picker = wrapper.findComponent({ name: 'AggregateKeyGroups' })
+      expect(wrapper.find('#key-form-group').exists()).toBe(false)
+      expect(picker.props('groups').length).toBeGreaterThan(0)
+      picker.vm.$emit('update:modelValue', [2, 3])
+      await nextTick()
+      vi.mocked(keysAPI.create).mockResolvedValue({ ...createApiKey(), is_aggregate: true, aggregate_group_ids: [2, 3] })
+      await wrapper.get('#key-form').trigger('submit')
+      await flushPromises()
+      expect(vi.mocked(keysAPI.create).mock.calls[0][1]).toBeNull()
+      expect(vi.mocked(keysAPI.create).mock.calls[0][8]).toEqual({ is_aggregate: true, aggregate_group_ids: [2, 3] })
+      wrapper.unmount()
+    })
+
     it('classifies all configured platforms and retains the complete table filter', async () => {
       const wrapper = await openCreate()
       expect(wrapper.findAll('input[name="key-provider"]')).toHaveLength(4)
@@ -640,7 +674,8 @@ describe('user KeysView column settings', () => {
       expect(optionIds(wrapper)).toEqual([2])
     })
 
-    it('resets provider and group when reopening create, and preserves edit options', async () => {
+    it('resets create selection and selects the existing key provider on edit', async () => {
+      listKeys.mockResolvedValue({ items: [{ ...createApiKey(), group_id: 1 }], total: 1, pages: 1 })
       const wrapper = await openCreate()
       await chooseProvider(wrapper, 'domestic')
       await groupSelect(wrapper).vm.$emit('update:modelValue', 5)
@@ -650,8 +685,14 @@ describe('user KeysView column settings', () => {
       expect(groupSelect(wrapper).props('modelValue')).toBeNull()
       await wrapper.get('[data-test="close-dialog"]').trigger('click')
       await getButtonByText(wrapper, 'common.edit').trigger('click')
-      expect(wrapper.find('[data-tour="key-form-provider"]').exists()).toBe(false)
-      expect(optionIds(wrapper)).toHaveLength(12)
+      expect(wrapper.find('[data-tour="key-form-provider"]').exists()).toBe(true)
+      expect(wrapper.get<HTMLInputElement>('input[value="anthropic"]').element.checked).toBe(true)
+      expect(optionIds(wrapper)).toEqual([1])
+      expect(groupSelect(wrapper).props('modelValue')).toBe(1)
+      expect(wrapper.get<HTMLInputElement>('[data-test="aggregate-key-toggle"]').element.disabled).toBe(true)
+      await chooseProvider(wrapper, 'openai')
+      expect(optionIds(wrapper)).toEqual([2])
+      expect(groupSelect(wrapper).props('modelValue')).toBeNull()
     })
   })
 })

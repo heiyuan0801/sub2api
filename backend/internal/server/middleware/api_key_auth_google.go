@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Wei-Shaw/sub2api/internal/config"
@@ -113,6 +114,16 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 			abortWithGoogleError(c, 401, "User account is not active")
 			return
 		}
+		selectedKey, aggregateCode, aggregateMessage := prepareAggregateKey(c, apiKeyService, cfg, apiKey)
+		if aggregateCode != 0 {
+			abortWithGoogleError(c, aggregateCode, aggregateMessage)
+			return
+		}
+		if c.IsAborted() {
+			return
+		}
+		apiKey = selectedKey
+		SetOpsFallbackAPIKey(c, apiKey)
 		if code, message, ok := validateAPIKeyGroupAvailable(apiKey); !ok {
 			service.MarkOpsClientBusinessLimited(c, service.OpsClientBusinessLimitedReasonAPIKeyGroupUnavailable)
 			if code == "GROUP_DELETED" {
@@ -165,6 +176,7 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 			return
 		}
 
+		aggregateDiscovery := apiKey.IsAggregate && c.Request.Method == http.MethodGet && strings.HasSuffix(c.Request.URL.Path, "/models")
 		isSubscriptionType := apiKey.Group != nil && apiKey.Group.IsSubscriptionType()
 		if isSubscriptionType && subscriptionService != nil {
 			subscription, err := subscriptionService.GetActiveSubscription(
@@ -199,7 +211,7 @@ func APIKeyAuthWithSubscriptionGoogle(apiKeyService *service.APIKeyService, subs
 			}
 
 			c.Set(string(ContextKeySubscription), subscription)
-		} else {
+		} else if !aggregateDiscovery {
 			if apiKeyBalanceBelowAuthThreshold(apiKey.User.Balance, cfg) {
 				abortWithGoogleError(c, 403, "Insufficient account balance")
 				return

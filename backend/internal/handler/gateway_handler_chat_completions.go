@@ -205,6 +205,7 @@ func (h *GatewayHandler) ChatCompletions(c *gin.Context) {
 				cls = classifySelectionFailureError(err, cls)
 				if !cls.ModelNotFound {
 					markOpsRoutingCapacityLimitedIfNoAvailable(c, err)
+					markAggregateSelectionFailure(c, err)
 				}
 				message := cls.Message
 				if !cls.ModelNotFound {
@@ -413,6 +414,7 @@ func (h *GatewayHandler) chatCompletionsErrorResponse(c *gin.Context, status int
 
 // handleCCFailoverExhausted writes a failover-exhausted error in CC format.
 func (h *GatewayHandler) handleCCFailoverExhausted(c *gin.Context, lastErr *service.UpstreamFailoverError, streamStarted bool) {
+	markAggregateUpstreamFailure(c, lastErr, streamStarted)
 	if streamStarted {
 		return
 	}

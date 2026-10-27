@@ -66,6 +66,32 @@ export default {
 
   // API Keys
   keys: {
+    magpie: {
+      title: 'Import to Magpie',
+      description: 'Review the endpoints, then confirm adding the provider in Magpie. Magpie retrieves the model list from this site.',
+      keyNotice: 'The import link contains this Key. Do not share it. Open Magpie passes it to the local app; the fallback shares it with the official Magpie import page.',
+      invalidUrl: 'Invalid service URL: configure HTTPS in system settings. Localhost HTTP is supported for previews.',
+      fallback: 'Fallback import page',
+      open: 'Open Magpie'
+    },
+    aggregate: {
+      smartRouting: 'Smart routing',
+      typeLocked: 'Key type is fixed at creation; groups and route order can be edited.',
+      addGroup: 'Add group',
+      route: 'Route {index}',
+      limit: '20 groups added',
+      create: 'Create aggregate Key (add groups directly)',
+      groups: 'Aggregate groups',
+      badge: 'Aggregate · {count} groups',
+      hint: 'Try matching groups in priority order. An upstream failure can switch to the next available group before any output or billing. Billing uses the successful group’s multiplier or subscription, with one shared Key quota and rate limit.',
+      scope: 'Supports HTTP chat, Responses, Messages and Gemini. Use an ordinary Key for WebSocket sessions and persistent media tasks.',
+      empty: 'No available groups match.',
+      invalidGroups: 'Select 1–20 available groups.',
+      up: 'Move up',
+      down: 'Move down',
+      remove: 'Remove group',
+      unavailable: 'Unavailable group',
+    },
     title: 'API Keys',
     description: 'Manage your API keys and access tokens',
     searchPlaceholder: 'Search name or key...',
