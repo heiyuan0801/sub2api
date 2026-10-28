@@ -56,6 +56,11 @@ jobs:
       - name: Integration tests
         working-directory: backend
         run: make test-integration
+      - name: Account metrics with PostgreSQL
+        working-directory: backend
+        env:
+          ACCOUNT_METRICS_TEST_DSN: postgres://cluster_test:cluster_test@127.0.0.1:${{ job.services.postgres.ports[5432] }}/cluster_test?sslmode=disable
+        run: go test -race ./internal/repository -run TestAccountMetricsPostgres -count=1 -v
       - name: Cluster operations and resource telemetry with PostgreSQL
         working-directory: backend
         env:

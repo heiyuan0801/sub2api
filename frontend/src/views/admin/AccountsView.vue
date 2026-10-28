@@ -377,6 +377,10 @@
               :probing="probingUpstreamBilling.has(row.id)"
               @probe="handleProbeUpstreamBilling(row)"
             />
+            <UpstreamBalanceCell :account="row" :now="upstreamBillingNow" @updated="snapshot => patchAccountInList({ ...row, extra: { ...row.extra, upstream_billing_probe: snapshot } })" />
+          </template>
+          <template #cell-call_metrics="{ row }">
+            <AccountCallMetricsCell :stats="todayStatsByAccountId[String(row.id)] ?? null" :loading="todayStatsLoading" :error="todayStatsError" />
           </template>
           <template #cell-priority="{ row }">
             <AccountPriorityCell
@@ -490,6 +494,8 @@
 </template>
 
 <script setup lang="ts">
+import AccountCallMetricsCell from '@/components/account/AccountCallMetricsCell.vue'
+import UpstreamBalanceCell from '@/components/account/UpstreamBalanceCell.vue'
 import { defineAsyncComponent, ref, reactive, computed, onMounted, onUnmounted, toRaw, watch } from 'vue'
 import { useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
@@ -899,11 +905,8 @@ const queueBatchedUsage = (account: Account, options?: { force?: boolean }) => {
 }
 
 const refreshTodayStatsBatch = async () => {
-  // Why this checks both columns:
-  // - today_stats column shows dedicated today's metrics.
-  // - usage column also embeds today's stats for Key/Bedrock rows.
-  // So we only skip fetching when BOTH columns are hidden.
-  if (hiddenColumns.has('today_stats') && hiddenColumns.has('usage')) {
+  // All three columns share the same batched daily snapshot.
+  if (hiddenColumns.has('today_stats') && hiddenColumns.has('usage') && hiddenColumns.has('call_metrics')) {
     todayStatsLoading.value = false
     todayStatsError.value = null
     return
@@ -1079,7 +1082,7 @@ const toggleColumn = (key: string) => {
     hiddenColumns.add(key)
   }
   saveColumnsToStorage()
-  if ((key === 'today_stats' || key === 'usage') && wasHidden) {
+  if ((key === 'today_stats' || key === 'usage' || key === 'call_metrics') && wasHidden) {
     refreshTodayStatsBatch().catch((error) => {
       console.error('Failed to load account today stats after showing column:', error)
     })
@@ -1845,6 +1848,7 @@ const allColumns = computed(() => {
     { key: 'priority', label: t('admin.accounts.columns.priority'), sortable: true },
     { key: 'scheduler_score', label: t('admin.accounts.columns.schedulerScore'), sortable: false },
     { key: 'rate_multiplier', label: t('admin.accounts.columns.billingRateMultiplier'), sortable: true },
+    { key: 'call_metrics', label: t('admin.accounts.callMetrics.title'), sortable: false },
     { key: 'upstream_billing_rate', label: t('admin.accounts.columns.upstreamBillingRate'), sortable: true },
     { key: 'last_used_at', label: t('admin.accounts.columns.lastUsed'), sortable: true },
     { key: 'created_at', label: t('admin.accounts.columns.createdAt'), sortable: true },

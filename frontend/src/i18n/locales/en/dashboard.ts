@@ -357,6 +357,18 @@ export default {
 
   // Usage
   usage: {
+    cacheRateColumn: 'Cache rate',
+    cacheDetails: {
+      open: 'View cache details, cache rate {rate}%',
+      title: 'Cache details',
+      read: 'Cache read tokens',
+      write: 'Cache write tokens',
+      uncached: 'Uncached input tokens',
+      totalInput: 'Total input tokens',
+      formula: 'Cache rate = cache read ÷ (uncached input + cache read + cache write). Output tokens are excluded; cache writes are not hits.',
+      unavailable: 'No input tokens available, or this record is not billed by token.',
+    },
+
     title: 'Usage Records',
     description: 'View and analyze your API usage history',
     costDetails: 'Cost Breakdown',

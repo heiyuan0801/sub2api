@@ -282,7 +282,10 @@ func (r *usageLogRepository) GetAccountTodayStats(ctx context.Context, accountID
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) as tokens,
 			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) as cost,
 			COALESCE(SUM(total_cost), 0) as standard_cost,
-			COALESCE(SUM(actual_cost), 0) as user_cost
+			COALESCE(SUM(actual_cost), 0) as user_cost,
+            COALESCE(SUM(cache_read_tokens) FILTER (WHERE (billing_mode = 'token' OR (COALESCE(billing_mode, '') = '' AND COALESCE(image_count, 0) = 0))), 0),
+            COALESCE(SUM(input_tokens + cache_read_tokens + cache_creation_tokens) FILTER (WHERE (billing_mode = 'token' OR (COALESCE(billing_mode, '') = '' AND COALESCE(image_count, 0) = 0))), 0),
+            AVG(first_token_ms) FILTER (WHERE first_token_ms > 0)
 		FROM usage_logs
 		WHERE account_id = $1 AND created_at >= $2
 	`
@@ -298,6 +301,9 @@ func (r *usageLogRepository) GetAccountTodayStats(ctx context.Context, accountID
 		&stats.Cost,
 		&stats.StandardCost,
 		&stats.UserCost,
+		&stats.CacheReadTokens,
+		&stats.CacheInputTokens,
+		&stats.AverageFirstTokenMs,
 	); err != nil {
 		return nil, err
 	}
@@ -312,7 +318,10 @@ func (r *usageLogRepository) GetAccountWindowStats(ctx context.Context, accountI
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) as tokens,
 			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) as cost,
 			COALESCE(SUM(total_cost), 0) as standard_cost,
-			COALESCE(SUM(actual_cost), 0) as user_cost
+			COALESCE(SUM(actual_cost), 0) as user_cost,
+            COALESCE(SUM(cache_read_tokens) FILTER (WHERE (billing_mode = 'token' OR (COALESCE(billing_mode, '') = '' AND COALESCE(image_count, 0) = 0))), 0),
+            COALESCE(SUM(input_tokens + cache_read_tokens + cache_creation_tokens) FILTER (WHERE (billing_mode = 'token' OR (COALESCE(billing_mode, '') = '' AND COALESCE(image_count, 0) = 0))), 0),
+            AVG(first_token_ms) FILTER (WHERE first_token_ms > 0)
 		FROM usage_logs
 		WHERE account_id = $1 AND created_at >= $2
 	`
@@ -328,6 +337,9 @@ func (r *usageLogRepository) GetAccountWindowStats(ctx context.Context, accountI
 		&stats.Cost,
 		&stats.StandardCost,
 		&stats.UserCost,
+		&stats.CacheReadTokens,
+		&stats.CacheInputTokens,
+		&stats.AverageFirstTokenMs,
 	); err != nil {
 		return nil, err
 	}
@@ -349,7 +361,10 @@ func (r *usageLogRepository) GetAccountWindowStatsBatch(ctx context.Context, acc
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) as tokens,
 			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) as cost,
 			COALESCE(SUM(total_cost), 0) as standard_cost,
-			COALESCE(SUM(actual_cost), 0) as user_cost
+			COALESCE(SUM(actual_cost), 0) as user_cost,
+            COALESCE(SUM(cache_read_tokens) FILTER (WHERE (billing_mode = 'token' OR (COALESCE(billing_mode, '') = '' AND COALESCE(image_count, 0) = 0))), 0),
+            COALESCE(SUM(input_tokens + cache_read_tokens + cache_creation_tokens) FILTER (WHERE (billing_mode = 'token' OR (COALESCE(billing_mode, '') = '' AND COALESCE(image_count, 0) = 0))), 0),
+            AVG(first_token_ms) FILTER (WHERE first_token_ms > 0)
 		FROM usage_logs
 		WHERE account_id = ANY($1) AND created_at >= $2
 		GROUP BY account_id
@@ -370,6 +385,9 @@ func (r *usageLogRepository) GetAccountWindowStatsBatch(ctx context.Context, acc
 			&stats.Cost,
 			&stats.StandardCost,
 			&stats.UserCost,
+			&stats.CacheReadTokens,
+			&stats.CacheInputTokens,
+			&stats.AverageFirstTokenMs,
 		); err != nil {
 			return nil, err
 		}

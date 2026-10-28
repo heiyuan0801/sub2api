@@ -6,6 +6,10 @@ package usagestats
 // standard_cost: 标准费用（使用 total_cost，不含倍率）
 // user_cost: 用户/API Key 口径费用（使用 actual_cost，受分组倍率影响）
 type AccountStats struct {
+	CacheReadTokens     int64    `json:"cache_read_tokens"`
+	CacheInputTokens    int64    `json:"cache_input_tokens"`
+	AverageFirstTokenMs *float64 `json:"average_first_token_ms"`
+
 	Requests     int64   `json:"requests"`
 	Tokens       int64   `json:"tokens"`
 	Cost         float64 `json:"cost"`

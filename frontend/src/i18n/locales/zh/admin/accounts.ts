@@ -181,6 +181,16 @@ export default {
           OLLAMA_CLOUD_USAGE_REFRESH_RATE_LIMITED: '刷新过于频繁，请在 {retry_after_seconds} 秒后重试。'
         }
       },
+      callMetrics: {
+        errors: '异常请求 {count}', recovered: '请求恢复 {count}', finalFailed: '最终失败 {count}', noUsage: '暂无记账调用', errorsUnavailable: '错误统计暂不可用',
+        errorsHint: '按本站今日错误日志中的账号与请求 ID 去重；同一请求多次重试仅计一次。恢复可能发生在其他账号；最终失败指请求结果。余额不足等本站业务限制不作为账号异常。未开启、被过滤、被清理或尚未写入的日志不计入；零条不代表上游绝无错误。',
+        title: '调用指标', cache: '缓存', firstToken: '首字', today: '今日 {count} 次', unused: '今日未使用', failed: '加载失败',
+        hint: '按本站今日成功记账的调用汇总。缓存率 = 缓存读取 /（普通输入 + 缓存读取 + 缓存写入）；首字为有首字记录的请求平均值。',
+      },
+      upstreamBalance: {
+        wallet: '余额', quota: 'Key 剩余额度', subscription: '订阅剩余额度', query: '查询',
+        queriedAt: '查询于 {time}', unsupported: '上游不支持', failed: '查询失败', stale: '历史快照，请重新查询',
+      },
       upstreamBilling: {
         trustWarning: '此倍率由上游站点针对当前 API Key 自行声明。Sub2API 无法验证该值是否与实际扣费一致；上游站点或中间代理可能返回伪造、过期或被篡改的数据。请结合账单、余额变化和实际用量自行核验。',
         autoProbe: '自动探测上游声明倍率',

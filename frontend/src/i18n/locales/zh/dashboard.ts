@@ -362,6 +362,18 @@ export default {
 
   // Usage
   usage: {
+    cacheRateColumn: '缓存率',
+    cacheDetails: {
+      open: '查看缓存明细，缓存率 {rate}%',
+      title: '缓存明细',
+      read: '缓存读取 Token',
+      write: '缓存写入 Token',
+      uncached: '未缓存输入 Token',
+      totalInput: '总输入 Token',
+      formula: '缓存率 = 缓存读取 ÷（未缓存输入 + 缓存读取 + 缓存写入）。不含输出 Token；缓存写入不计为命中。',
+      unavailable: '此记录没有可计算的输入 Token，或不按 Token 计费。',
+    },
+
     title: '使用记录',
     description: '查看和分析您的 API 使用历史',
     costDetails: '费用明细',

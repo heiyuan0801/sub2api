@@ -1,6 +1,12 @@
 .PHONY: build build-backend build-frontend test test-backend test-frontend test-frontend-critical
 
 FRONTEND_CRITICAL_VITEST := \
+	src/utils/__tests__/usageCacheRate.spec.ts \
+	src/components/usage/__tests__/UsageCacheRate.spec.ts \
+	src/components/account/__tests__/AccountCallMetricsCell.spec.ts \
+	src/components/account/__tests__/UpstreamBalanceCell.spec.ts \
+	src/components/admin/usage/__tests__/UsageTable.spec.ts \
+	src/views/user/__tests__/UsageView.spec.ts \
 	src/i18n/__tests__/localeKeyCompleteness.spec.ts \
 	src/api/__tests__/client.spec.ts \
 	src/api/__tests__/tokenRefresh.spec.ts \

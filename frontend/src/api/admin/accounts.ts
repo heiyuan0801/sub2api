@@ -1203,3 +1203,8 @@ export const accountsAPI = {
 }
 
 export default accountsAPI
+
+export async function probeUpstreamBalance(id: number): Promise<UpstreamBillingProbeResult> {
+  const { data } = await apiClient.post<UpstreamBillingProbeResult>(`/admin/accounts/${id}/upstream-balance`)
+  return data
+}

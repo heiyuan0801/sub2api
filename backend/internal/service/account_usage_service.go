@@ -131,12 +131,30 @@ func NewUsageCache() *UsageCache {
 	return &UsageCache{}
 }
 
+// AccountErrorStats counts observed requests, not attempts. A request may recover
+// on another account. Unknown outcomes are not presented as recovered.
+type AccountErrorStats struct {
+	AbnormalRequests  int64 `json:"abnormal_requests"`
+	RecoveredRequests int64 `json:"recovered_requests"`
+	FailedRequests    int64 `json:"failed_requests"`
+}
+
+type accountErrorStatsReader interface {
+	GetAccountErrorStatsBatch(context.Context, []int64, time.Time, time.Time) (map[int64]*AccountErrorStats, error)
+}
+
 // WindowStats 窗口期统计
 //
 // cost: 账号口径费用（total_cost * account_rate_multiplier）
 // standard_cost: 标准费用（total_cost，不含倍率）
 // user_cost: 用户/API Key 口径费用（actual_cost，受分组倍率影响）
 type WindowStats struct {
+	ErrorStats *AccountErrorStats `json:"error_stats"`
+
+	CacheReadTokens     int64    `json:"cache_read_tokens"`
+	CacheInputTokens    int64    `json:"cache_input_tokens"`
+	AverageFirstTokenMs *float64 `json:"average_first_token_ms"`
+
 	Requests     int64   `json:"requests"`
 	Tokens       int64   `json:"tokens"`
 	Cost         float64 `json:"cost"`
@@ -1397,13 +1415,18 @@ func (s *AccountUsageService) GetTodayStats(ctx context.Context, accountID int64
 		return nil, fmt.Errorf("get today stats failed: %w", err)
 	}
 
-	return &WindowStats{
-		Requests:     stats.Requests,
-		Tokens:       stats.Tokens,
-		Cost:         stats.Cost,
-		StandardCost: stats.StandardCost,
-		UserCost:     stats.UserCost,
-	}, nil
+	result := &WindowStats{
+		Requests:            stats.Requests,
+		Tokens:              stats.Tokens,
+		Cost:                stats.Cost,
+		StandardCost:        stats.StandardCost,
+		UserCost:            stats.UserCost,
+		CacheReadTokens:     stats.CacheReadTokens,
+		CacheInputTokens:    stats.CacheInputTokens,
+		AverageFirstTokenMs: stats.AverageFirstTokenMs,
+	}
+	s.attachAccountErrorStats(ctx, []int64{accountID}, timezone.Today(), map[int64]*WindowStats{accountID: result})
+	return result, nil
 }
 
 // GetTodayStatsBatch 批量获取账号今日统计，优先走批量 SQL，失败时回退单账号查询。
@@ -1433,6 +1456,7 @@ func (s *AccountUsageService) GetTodayStatsBatch(ctx context.Context, accountIDs
 			for _, accountID := range uniqueIDs {
 				result[accountID] = windowStatsFromAccountStats(statsByAccount[accountID])
 			}
+			s.attachAccountErrorStats(ctx, uniqueIDs, startTime, result)
 			return result, nil
 		}
 	}
@@ -1446,7 +1470,7 @@ func (s *AccountUsageService) GetTodayStatsBatch(ctx context.Context, accountIDs
 		g.Go(func() error {
 			stats, err := s.usageLogRepo.GetAccountWindowStats(gctx, id, startTime)
 			if err != nil {
-				return nil
+				return fmt.Errorf("account %d statistics unavailable: %w", id, err)
 			}
 			mu.Lock()
 			result[id] = windowStatsFromAccountStats(stats)
@@ -1455,13 +1479,16 @@ func (s *AccountUsageService) GetTodayStatsBatch(ctx context.Context, accountIDs
 		})
 	}
 
-	_ = g.Wait()
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
 
 	for _, accountID := range uniqueIDs {
 		if _, ok := result[accountID]; !ok {
 			result[accountID] = &WindowStats{}
 		}
 	}
+	s.attachAccountErrorStats(ctx, uniqueIDs, startTime, result)
 	return result, nil
 }
 
@@ -1470,11 +1497,14 @@ func windowStatsFromAccountStats(stats *usagestats.AccountStats) *WindowStats {
 		return &WindowStats{}
 	}
 	return &WindowStats{
-		Requests:     stats.Requests,
-		Tokens:       stats.Tokens,
-		Cost:         stats.Cost,
-		StandardCost: stats.StandardCost,
-		UserCost:     stats.UserCost,
+		Requests:            stats.Requests,
+		Tokens:              stats.Tokens,
+		Cost:                stats.Cost,
+		StandardCost:        stats.StandardCost,
+		UserCost:            stats.UserCost,
+		CacheReadTokens:     stats.CacheReadTokens,
+		CacheInputTokens:    stats.CacheInputTokens,
+		AverageFirstTokenMs: stats.AverageFirstTokenMs,
 	}
 }
 
@@ -1793,4 +1823,25 @@ func buildGeminiUsageProgress(used, limit int64, resetAt time.Time, tokens int64
 // 用于账号列表页面显示当前窗口费用
 func (s *AccountUsageService) GetAccountWindowStats(ctx context.Context, accountID int64, startTime time.Time) (*usagestats.AccountStats, error) {
 	return s.usageLogRepo.GetAccountWindowStats(ctx, accountID, startTime)
+}
+
+// Error telemetry is optional and separate from the scheduler's usage query.
+// Unavailable telemetry stays null, never a misleading zero.
+func (s *AccountUsageService) attachAccountErrorStats(ctx context.Context, ids []int64, start time.Time, result map[int64]*WindowStats) {
+	reader, ok := s.usageLogRepo.(accountErrorStatsReader)
+	if !ok {
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	stats, err := reader.GetAccountErrorStatsBatch(ctx, ids, start, time.Now())
+	if err != nil {
+		slog.Warn("account_error_stats_unavailable", "error", err)
+		return
+	}
+	for id, value := range result {
+		if value != nil {
+			value.ErrorStats = stats[id]
+		}
+	}
 }

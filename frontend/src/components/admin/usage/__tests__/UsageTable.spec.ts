@@ -107,6 +107,7 @@ const DataTableStub = {
         <slot name="cell-reasoning_effort" :row="row" :value="row.reasoning_effort" />
         <slot name="cell-billing_mode" :row="row" />
         <slot name="cell-tokens" :row="row" />
+        <slot name="cell-cache_rate" :row="row" />
         <slot name="cell-latency" :row="row" />
         <slot name="cell-cost" :row="row" />
         <slot name="cell-request_id" :row="row" />
@@ -145,6 +146,16 @@ const baseImageRow = {
 }
 
 describe('admin UsageTable tooltip', () => {
+  it('renders cache percentage through the shared usage table slot', () => {
+    const row = { ...baseImageRow, image_count: 0, billing_mode: 'token', input_tokens: 70, cache_read_tokens: 20, cache_creation_tokens: 10 }
+    const wrapper = mount(UsageTable, {
+      props: { data: [row] as any, columns: [{ key: 'cache_rate', label: 'Cache rate' }] },
+      global: { stubs: { DataTable: DataTableStub } },
+    })
+    expect(wrapper.get('[data-testid="usage-cache-rate"]').text()).toContain('20.0%')
+    wrapper.unmount()
+  })
+
   it('shows output TPS in the latency cell using total duration', () => {
     const row = { ...baseImageRow, image_count: 0, billing_mode: 'token', output_tokens: 1000, duration_ms: 20_000, first_token_ms: 10_000 }
     const wrapper = mount(UsageTable, {
@@ -837,6 +848,7 @@ const DataTableStubWithUser = {
         <slot name="cell-reasoning_effort" :row="row" :value="row.reasoning_effort" />
         <slot name="cell-billing_mode" :row="row" />
         <slot name="cell-tokens" :row="row" />
+        <slot name="cell-cache_rate" :row="row" />
         <slot name="cell-cost" :row="row" />
       </div>
     </div>

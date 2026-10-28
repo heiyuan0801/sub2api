@@ -1101,9 +1101,16 @@ export interface UpstreamBillingData {
   observed_at: string
 }
 
-export type UpstreamBillingProbeStatus = 'ok' | 'unsupported' | 'failed'
+export type UpstreamBillingProbeStatus = 'ok' | 'unsupported' | 'failed' | 'unqueried'
 
 export interface UpstreamBillingProbeSnapshot {
+  balance?: {
+    status: 'ok' | 'failed' | 'unsupported'
+    kind?: 'wallet' | 'quota' | 'subscription'
+    amount?: number
+    unit?: string
+    queried_at: string
+  }
   status: UpstreamBillingProbeStatus
   data?: UpstreamBillingData
   received_at?: string
@@ -1392,6 +1399,10 @@ export interface AccountSchedulerGroupScore {
 
 // Account Usage types
 export interface WindowStats {
+  error_stats?: { abnormal_requests: number; recovered_requests: number; failed_requests: number } | null
+  cache_read_tokens?: number
+  cache_input_tokens?: number
+  average_first_token_ms?: number | null
   requests: number
   tokens: number
   cost: number // Account cost (account multiplier)

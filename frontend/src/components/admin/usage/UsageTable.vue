@@ -145,6 +145,10 @@
           </span>
         </template>
 
+        <template #cell-cache_rate="{ row }">
+          <UsageCacheRate :row="row" />
+        </template>
+
         <template #cell-tokens="{ row }">
           <!-- 图片生成请求（仅按次计费时显示图片格式） -->
           <div v-if="isImageUsage(row)" class="flex items-center gap-1.5">
@@ -582,6 +586,7 @@ function accountBilled(row: { total_cost?: number | null; account_stats_cost?: n
 }
 
 
+import UsageCacheRate from '@/components/usage/UsageCacheRate.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import IpGeoCell from '@/components/common/IpGeoCell.vue'

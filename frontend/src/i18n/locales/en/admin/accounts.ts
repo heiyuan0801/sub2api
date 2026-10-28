@@ -335,6 +335,16 @@ export default {
           OLLAMA_CLOUD_USAGE_REFRESH_RATE_LIMITED: 'Refresh is limited. Try again in {retry_after_seconds} seconds.'
         }
       },
+      callMetrics: {
+        errors: 'Abnormal requests {count}', recovered: 'Recovered {count}', finalFailed: 'Finally failed {count}', noUsage: 'No recorded usage', errorsUnavailable: 'Error statistics unavailable',
+        errorsHint: 'Today’s observed errors, deduplicated by account and request ID. Retries count once. Recovery may occur on another account; failure describes the final request outcome. Local business limits are excluded. Disabled, filtered, removed or pending logs are not included; zero does not prove absence of errors.',
+        title: 'Call metrics', cache: 'Cache', firstToken: 'First token', today: '{count} calls today', unused: 'No calls today', failed: 'Load failed',
+        hint: 'Based on calls with usage recorded by this site today. Cache rate = cache read / (uncached input + cache read + cache write). First token is the average of requests reporting first-token latency.',
+      },
+      upstreamBalance: {
+        wallet: 'Balance', quota: 'Key quota remaining', subscription: 'Subscription remaining', query: 'Query',
+        queriedAt: 'Queried at {time}', unsupported: 'Unsupported upstream', failed: 'Query failed', stale: 'Historical snapshot; query again',
+      },
       upstreamBilling: {
         trustWarning: 'This rate is declared by the upstream site for the current API key. Sub2API cannot verify that it matches actual charges. The upstream site or an intermediary may return forged, stale, or modified data. Verify it against bills, balance changes, and actual usage.',
         autoProbe: 'Automatically probe upstream declared rate',
