@@ -18,6 +18,7 @@ func TestAPIKeyAuthSnapshotGroupPricingRoundtrip(t *testing.T) {
 		Group: &Group{
 			ID: groupID, Name: "pricing-roundtrip", Platform: PlatformAnthropic, Status: StatusActive,
 			LongContextPricingEnabled: true,
+			ImageCountBilling:         true,
 			ModelPricing: []ChannelModelPricing{{
 				Models: []string{"claude-sonnet-*"}, BillingMode: BillingModeToken,
 				InputPrice: &inputPrice, OutputPrice: &outputPrice,
@@ -36,6 +37,7 @@ func TestAPIKeyAuthSnapshotGroupPricingRoundtrip(t *testing.T) {
 	require.True(t, used)
 	require.NotNil(t, materialized.Group)
 	require.True(t, materialized.Group.LongContextPricingEnabled)
+	require.True(t, materialized.Group.ImageCountBilling)
 	require.Equal(t, apiKey.Group.ModelPricing, materialized.Group.ModelPricing)
 
 	billing := &BillingService{fallbackPrices: map[string]*ModelPricing{

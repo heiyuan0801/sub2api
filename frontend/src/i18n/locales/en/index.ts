@@ -1,4 +1,5 @@
 import design from './design'
+import adminAccessKeys from './adminAccessKeys'
 import landing from './landing'
 import common from './common'
 import dashboard from './dashboard'
@@ -14,6 +15,7 @@ import cluster from './cluster'
 export default {
   ...design,
   ...cluster,
+  adminAccessKeys,
   ...landing,
   ...common,
   ...dashboard,
