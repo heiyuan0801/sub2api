@@ -81,7 +81,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
       - name: Install frontend dependencies
@@ -126,7 +126,13 @@ jobs:
       - name: Build pinned HAProxy for real multi-node routing tests
         run: |
           cd "$RUNNER_TEMP"
-          curl --fail --location --retry 2 --output haproxy.tar.gz https://www.haproxy.org/download/3.2/src/haproxy-3.2.26.tar.gz
+          # Debian mirrors the original upstream archive (same pinned checksum).
+          # Keep CI available when haproxy.org is temporarily unreachable.
+          if ! curl --fail --location --retry 2 --retry-all-errors --connect-timeout 10 --max-time 60 \
+            --output haproxy.tar.gz https://www.haproxy.org/download/3.2/src/haproxy-3.2.26.tar.gz; then
+            curl --fail --location --retry 2 --retry-all-errors --connect-timeout 10 --max-time 60 \
+              --output haproxy.tar.gz https://deb.debian.org/debian/pool/main/h/haproxy/haproxy_3.2.26.orig.tar.gz
+          fi
           echo '760ef35fafc1e05844e73ad07e138e9e96fddbf5de02f606249c027f754827da  haproxy.tar.gz' | sha256sum --check
           tar -xzf haproxy.tar.gz
           make -C haproxy-3.2.26 TARGET=linux-glibc -j2
