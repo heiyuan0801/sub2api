@@ -157,9 +157,9 @@ jobs:
           GOOS: linux
           GOARCH: amd64
         run: |
-          VERSION="$(tr -d '\r\n' < cmd/server/VERSION)+ci.${GITHUB_SHA:0:7}"
+          VERSION="$(tr -d '\r\n' < cmd/server/VERSION)"
           mkdir -p ../ci-dist
-          go build -tags=embed -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o ../ci-dist/sub2api ./cmd/server
+          go build -tags=embed -trimpath -ldflags="-s -w -X main.Version=$VERSION -X main.Commit=$GITHUB_SHA" -o ../ci-dist/sub2api ./cmd/server
           go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-runner ./cmd/cluster-runner
           go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-config ./cmd/cluster-config
           go build -trimpath -ldflags="-s -w" -o ../ci-dist/cluster-storage-probe ./cmd/cluster-storage-probe
