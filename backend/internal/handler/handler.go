@@ -51,6 +51,7 @@ type Handlers struct {
 	ClusterOps       *clusterops.Manager
 	Auth             *AuthHandler
 	User             *UserHandler
+	MCPOAuth         *MCPOAuthHandler
 	APIKey           *APIKeyHandler
 	Usage            *UsageHandler
 	Redeem           *RedeemHandler

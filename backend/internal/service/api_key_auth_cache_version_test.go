@@ -60,9 +60,9 @@ func TestAPIKeyService_RejectsV15AuthSnapshotWithoutReasoningEffortPolicy(t *tes
 	}
 }
 
-func TestAPIKeyService_RejectsPreV27SnapshotsAfterUpstreamMerge(t *testing.T) {
+func TestAPIKeyService_RejectsPreV28SnapshotsAfterUpstreamMerge(t *testing.T) {
 	svc := &APIKeyService{}
-	for _, version := range []int{25, 26} {
+	for _, version := range []int{25, 26, 27} {
 		key, used, err := svc.applyAuthCacheEntry("merge-snapshot", &APIKeyAuthCacheEntry{Snapshot: &APIKeyAuthSnapshot{Version: version}})
 		if err != nil || used || key != nil {
 			t.Fatalf("version %d must be refreshed: used=%v err=%v", version, used, err)

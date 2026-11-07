@@ -8,6 +8,7 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/aggregateretry"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/google/uuid"
 )
@@ -25,9 +26,23 @@ func AggregateGroupRetry(next http.Handler) http.Handler {
 		state := &aggregateretry.State{}
 		var body []byte
 		var headers http.Header
-		state.Capture = func(req *http.Request, original []byte) {
+		var releaseReplay func()
+		defer func() {
+			if releaseReplay != nil {
+				releaseReplay()
+			}
+		}()
+		state.Capture = func(req *http.Request, original []byte) error {
+			// The replay copy outlives each Gin attempt; reserve it in its own scope.
+			ctx, release := pkghttputil.WithRequestBodyMemoryScope(req.Context())
+			if err := pkghttputil.ReserveRequestBodyMemory(ctx, int64(len(original))); err != nil {
+				release()
+				return err
+			}
+			releaseReplay = release
 			body = bytes.Clone(original)
 			headers = req.Header.Clone()
+			return nil
 		}
 		defer func() { state.Capture = nil }()
 		// Never trust the caller's correlation header as a billing idempotency key.

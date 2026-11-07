@@ -11,10 +11,56 @@ import (
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/aggregateretry"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/ctxkey"
+	pkghttputil "github.com/Wei-Shaw/sub2api/internal/pkg/httputil"
 	"github.com/stretchr/testify/require"
 )
 
 type aggregateAttemptContextKey struct{}
+
+func TestAggregateRetryRetainedBodyBudget(t *testing.T) {
+	const body = `{"model":"gpt-5"}`
+	for _, exhausted := range []bool{false, true} {
+		t.Run(map[bool]string{false: "retry-retains-and-releases", true: "rejects-before-copy"}[exhausted], func(t *testing.T) {
+			limit := int64(2 * len(body))
+			if exhausted {
+				limit--
+			}
+			budget := pkghttputil.NewBodyMemoryBudget(limit)
+			attempts := 0
+			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				attempts++
+				ctx, release := pkghttputil.WithRequestBodyMemoryBudget(r.Context(), budget)
+				defer release()
+				r = r.WithContext(ctx)
+				require.NoError(t, pkghttputil.ReserveRequestBodyMemory(ctx, int64(len(body))))
+				state := aggregateretry.FromContext(ctx)
+				plan := state.Plan([]int64{1, 2})
+				state.Select(plan[0])
+				err := state.Enable(r, []byte(body))
+				if exhausted {
+					require.ErrorIs(t, err, pkghttputil.ErrRequestBodyMemoryBudget)
+					require.False(t, state.Enabled)
+					w.WriteHeader(http.StatusServiceUnavailable)
+					return
+				}
+				require.NoError(t, err)
+				// The replay allocation remains counted when the next attempt starts.
+				require.ErrorIs(t, pkghttputil.ReserveRequestBodyMemory(ctx, 1), pkghttputil.ErrRequestBodyMemoryBudget)
+				state.Retryable = true
+				w.WriteHeader(http.StatusBadGateway)
+			})
+			AggregateGroupRetry(next).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("POST", "/v1/responses", strings.NewReader(body)))
+			if exhausted {
+				require.Equal(t, 1, attempts)
+			} else {
+				require.Equal(t, 2, attempts)
+			}
+			ctx, release := pkghttputil.WithRequestBodyMemoryBudget(context.Background(), budget)
+			defer release()
+			require.NoError(t, pkghttputil.ReserveRequestBodyMemory(ctx, limit), "all attempt and replay reservations must be released")
+		})
+	}
+}
 
 func TestAggregateRetryFreshAttemptsAndBillingIdentity(t *testing.T) {
 	const original = `{"model":"public-model","messages":[]}`
@@ -33,7 +79,7 @@ func TestAggregateRetryFreshAttemptsAndBillingIdentity(t *testing.T) {
 		require.Equal(t, "client", r.Header.Get("X-Original"))
 		require.Equal(t, "/v1/responses", r.URL.Path)
 		require.Nil(t, r.Context().Value(aggregateAttemptContextKey{}))
-		state.Enable(r, body)
+		require.NoError(t, state.Enable(r, body))
 		id, ok := r.Context().Value(ctxkey.ClientRequestID).(string)
 		require.True(t, ok)
 		ids = append(ids, id)
@@ -75,7 +121,7 @@ func TestAggregateRetryBoundaries(t *testing.T) {
 				s := aggregateretry.FromContext(r.Context())
 				body, _ := io.ReadAll(r.Body)
 				if mode != "ordinary" {
-					s.Enable(r, body)
+					require.NoError(t, s.Enable(r, body))
 				}
 				plan := s.Plan([]int64{1, 2})
 				if attempts == 2 && mode == "no-candidate" {
@@ -143,7 +189,7 @@ func TestAggregateRetryConcurrentIsolation(t *testing.T) {
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := aggregateretry.FromContext(r.Context())
 		body, _ := io.ReadAll(r.Body)
-		s.Enable(r, body)
+		require.NoError(t, s.Enable(r, body))
 		plan := s.Plan([]int64{1, 2})
 		s.Select(plan[0])
 		if s.GroupID == 1 {

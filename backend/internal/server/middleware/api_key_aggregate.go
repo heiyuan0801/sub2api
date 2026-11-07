@@ -105,7 +105,9 @@ func prepareAggregateKey(c *gin.Context, s aggregateGroupResolver, cfg *config.C
 				return nil, 0, ""
 			}
 			body, _ := httputil.ReadRequestBodyWithPrealloc(c.Request)
-			state.Enable(c.Request, body)
+			if err := state.Enable(c.Request, body); RejectRequestBodyMemoryOverload(c, err) {
+				return nil, 0, ""
+			}
 		}
 	}
 	return selected, 0, ""

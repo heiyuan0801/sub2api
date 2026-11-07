@@ -87,6 +87,31 @@ func TestClusterCompatDigestSharesStableCacheKey(t *testing.T) {
 	require.Empty(t, b.getOpenAICompatSessionResponseID(context.Background(), nil, account, "stable-key"))
 }
 
+func TestClusterDigestBoundedCachePreservesCrossNodeSessions(t *testing.T) {
+	cache := &clusterSessionFake{values: map[string]string{}}
+	cfg := &config.Config{Cluster: config.ClusterConfig{Enabled: true}}
+	a, b := ProvideDigestSessionStore(cache, cfg), ProvideDigestSessionStore(cache, cfg)
+	t.Cleanup(a.Close)
+	t.Cleanup(b.Close)
+	a.cache.maxEntries = 1
+	a.Save(1, "prefix", "u:a-m:b", "shared-session", 42, "")
+	a.Save(1, "prefix", "u:c", "another-session", 43, "")
+	require.Equal(t, 1, a.cache.ItemCount())
+	for _, store := range []*DigestSessionStore{a, b} {
+		uuid, accountID, chain, found := store.Find(1, "prefix", "u:a-m:b-u:c")
+		require.True(t, found, "local eviction must not remove the shared session")
+		require.Equal(t, "shared-session", uuid)
+		require.Equal(t, int64(42), accountID)
+		require.Equal(t, "u:a-m:b", chain)
+		_, _, _, found = store.Find(2, "prefix", "u:a-m:b-u:c")
+		require.False(t, found, "group boundaries must remain isolated")
+	}
+	cache.fail = true
+	uuid, _, _, found := a.Find(1, "prefix", "u:c-next")
+	require.True(t, found, "Redis failure can fall back to the bounded local cache")
+	require.Equal(t, "another-session", uuid)
+}
+
 type clusterPartialReservation struct {
 	clusterBillingFailure
 	released int

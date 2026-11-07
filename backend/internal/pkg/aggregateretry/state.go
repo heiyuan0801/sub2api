@@ -16,7 +16,7 @@ import (
 type contextKey struct{}
 
 type State struct {
-	Capture   func(*http.Request, []byte)
+	Capture   func(*http.Request, []byte) error
 	Enabled   bool
 	Retryable bool
 	Exhausted bool
@@ -72,19 +72,22 @@ func (s *State) HasNext() bool { return s.position+1 < len(s.plan) }
 
 func (s *State) BeginAttempt() { s.Retryable = false; s.Exhausted = false }
 
-func (s *State) Enable(r *http.Request, body []byte) {
+func (s *State) Enable(r *http.Request, body []byte) error {
 	if s.Capture == nil {
-		return
+		return nil
 	}
 	capture := s.Capture
 	s.Capture = nil
 	// Continuations and uploaded resources belong to their original upstream.
 	// Full-history messages and inline cache hints remain portable.
 	if !Portable(body) {
-		return
+		return nil
 	}
-	capture(r, body)
+	if err := capture(r, body); err != nil {
+		return err
+	}
 	s.Enabled = true
+	return nil
 }
 
 func Portable(body []byte) bool {

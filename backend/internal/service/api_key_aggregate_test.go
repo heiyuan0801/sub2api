@@ -136,6 +136,7 @@ func TestAggregateGroupRoutingPriorityAndFreshRevocation(t *testing.T) {
 	require.Equal(t, int64(1), *selected.GroupID)
 	require.Equal(t, p.ID, selected.ID)
 	require.Equal(t, 10, *selected.User.UserGroupRPMOverride)
+	require.Equal(t, int64(1), selected.User.UserGroupRPMOverrideGroupID)
 	require.Nil(t, p.GroupID)
 	require.Nil(t, p.User.UserGroupRPMOverride)
 	r.key.AggregateGroupIDs = []int64{2, 1, 3}

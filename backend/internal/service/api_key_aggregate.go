@@ -75,6 +75,7 @@ func (s *APIKeyService) aggregateGroups(ctx context.Context, key *APIKey) (*APIK
 	out.Key = key.Key
 	userCopy := *user
 	userCopy.UserGroupRPMOverride = nil
+	userCopy.UserGroupRPMOverrideGroupID = 0
 	out.User = &userCopy
 	out.GroupID, out.Group = nil, nil
 	out.AggregateGroupIDs = slices.Clone(current.AggregateGroupIDs)
@@ -156,6 +157,7 @@ func (s *APIKeyService) ResolveAggregateKey(ctx context.Context, key *APIKey, mo
 				return nil, err
 			}
 			out.User.UserGroupRPMOverride = override
+			out.User.UserGroupRPMOverrideGroupID = group.ID
 		}
 		if state != nil {
 			state.Select(group.ID)
