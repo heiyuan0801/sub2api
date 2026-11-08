@@ -48,7 +48,8 @@
           <label for="email" class="input-label">
             {{ t('auth.emailLabel') }}
           </label>
-          <div class="relative">
+          <div class="relative auth-field">
+            <Mail class="auth-field-icon" aria-hidden="true" />
             <UiInput
               id="email"
               v-model="formData.email"
@@ -129,6 +130,7 @@
 </template>
 
 <script setup lang="ts">
+import { Mail } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input as UiInput } from '@/components/ui/input'
 

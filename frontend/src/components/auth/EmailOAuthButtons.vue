@@ -44,6 +44,7 @@ const props = withDefaults(defineProps<{
   githubEnabled?: boolean
   googleEnabled?: boolean
   showDivider?: boolean
+  fullLabels?: boolean
 }>(), {
   showDivider: true
 })
@@ -72,7 +73,7 @@ const providerGridClass = computed(() => [
 
 function providerLabel(provider: EmailOAuthProvider): string {
   const name = provider === 'github' ? 'GitHub' : 'Google'
-  return hasMultipleProviders.value ? name : t('auth.emailOAuth.signIn', { providerName: name })
+  return hasMultipleProviders.value && !props.fullLabels ? name : t('auth.emailOAuth.signIn', { providerName: name })
 }
 
 function startLogin(provider: EmailOAuthProvider): void {

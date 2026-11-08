@@ -1,109 +1,79 @@
 <template>
   <AuthLayout variant="login">
-    <div class="space-y-6">
-      <!-- Title -->
-      <div class="auth-heading">
-        <span class="auth-eyebrow">{{ t('publicSite.auth.loginEyebrow') }}</span>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ pageCopy.heading }}
-        </h2>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
-          {{ pageCopy.subtitle }}
-        </p>
-      </div>
-      <div v-if="showOAuthLogin">
-        <div class="auth-social-providers">
-          <EmailOAuthButtons
-            :disabled="authActionDisabled"
-            :github-enabled="githubOAuthEnabled"
-            :google-enabled="googleOAuthEnabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
+    <template v-if="showOAuthLogin" #providers>
+      <EmailOAuthButtons
+        full-labels
+        :disabled="authActionDisabled"
+        :github-enabled="githubOAuthEnabled"
+        :google-enabled="googleOAuthEnabled"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
 
-          <LinuxDoOAuthSection
-            v-if="linuxdoOAuthEnabled"
-            :disabled="authActionDisabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <DingTalkOAuthSection
-            v-if="dingtalkOAuthEnabled"
-            :disabled="authActionDisabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <WechatOAuthSection
-            v-if="wechatOAuthEnabled"
-            :disabled="authActionDisabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <OidcOAuthSection
-            v-if="oidcOAuthEnabled"
-            :disabled="authActionDisabled"
-            :provider-name="oidcOAuthProviderName"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-        </div>
-        <div class="auth-separator">{{ t('publicSite.auth.or') }}</div>
-      </div>
-
-      <!-- Login Form -->
-      <form @submit.prevent="handleLogin" class="space-y-5">
-        <!-- Email Input -->
-        <div>
-          <label for="email" class="input-label">
-            {{ t('auth.emailLabel') }}
-          </label>
-          <div class="relative">
-            <UiInput
-              id="email"
-              v-model="formData.email"
-              type="email"
-              required
-              autofocus
-              autocomplete="email"
-              :disabled="authActionDisabled"
-              class="input"
-              :class="{ 'input-error': errors.email }"
-              :placeholder="t('auth.emailPlaceholder')"
-            />
+      <LinuxDoOAuthSection
+        v-if="linuxdoOAuthEnabled"
+        :disabled="authActionDisabled"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+      <DingTalkOAuthSection
+        v-if="dingtalkOAuthEnabled"
+        :disabled="authActionDisabled"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+      <WechatOAuthSection
+        v-if="wechatOAuthEnabled"
+        :disabled="authActionDisabled"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+      <OidcOAuthSection
+        v-if="oidcOAuthEnabled"
+        :disabled="authActionDisabled"
+        :provider-name="oidcOAuthProviderName"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+    </template>
+    <h1 class="sr-only">{{ pageCopy.heading }}</h1>
+    <Tabs v-model="loginMethod" class="auth-login-tabs">
+      <TabsList class="auth-methods" :aria-label="t('publicSite.auth.loginMethod')">
+        <TabsTrigger value="password">{{ t('publicSite.auth.passwordTab') }}</TabsTrigger>
+        <TabsTrigger v-if="showPasskeyLogin" value="passkey">{{ t('publicSite.auth.passkeyTab') }}</TabsTrigger>
+      </TabsList>
+      <form @submit.prevent="loginMethod === 'passkey' ? handlePasskeyLogin() : handleLogin()" class="auth-login-form space-y-5">
+        <TabsContent value="password" class="space-y-5">
+          <div>
+            <label for="email" class="sr-only">{{ t('auth.emailLabel') }}</label>
+            <div class="relative auth-field">
+              <Mail class="auth-field-icon" aria-hidden="true" />
+              <UiInput id="email" v-model="formData.email" type="email" required autofocus
+                autocomplete="email" :disabled="authActionDisabled" class="input"
+                :class="{ 'input-error': errors.email }" :placeholder="t('auth.emailPlaceholder')" />
+            </div>
           </div>
-        </div>
-
-        <!-- Password Input -->
-        <div>
-          <label for="password" class="input-label">
-            {{ t('auth.passwordLabel') }}
-          </label>
-          <div class="relative">
-            <UiInput
-              id="password"
-              v-model="formData.password"
-              :type="showPassword ? 'text' : 'password'"
-              required
-              autocomplete="current-password"
-              :disabled="authActionDisabled"
-              class="input pr-11"
-              :class="{ 'input-error': errors.password }"
-              :placeholder="t('auth.passwordPlaceholder')"
-            />
-            <button
-              type="button"
-              :aria-label="showPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
-              :aria-pressed="showPassword"
-              @click="showPassword = !showPassword"
-              :disabled="authActionDisabled"
-              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
-            >
-              <Icon v-if="showPassword" name="eyeOff" size="md" />
-              <Icon v-else name="eye" size="md" />
-            </button>
+          <div class="auth-password-row" :class="{ 'has-recovery': !backendModeEnabled && passwordResetEnabled }">
+            <label for="password" class="sr-only">{{ t('auth.passwordLabel') }}</label>
+            <div class="relative auth-field auth-password-field" :class="{ 'has-recovery': !backendModeEnabled && passwordResetEnabled }">
+              <KeyRound class="auth-field-icon" aria-hidden="true" />
+              <UiInput id="password" v-model="formData.password" :type="showPassword ? 'text' : 'password'"
+                required autocomplete="current-password" :disabled="authActionDisabled" class="input pr-11"
+                :class="{ 'input-error': errors.password }" :placeholder="t('auth.passwordPlaceholder')" />
+              <div class="auth-password-tools">
+                <button type="button" :aria-label="showPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
+                  :aria-pressed="showPassword" :disabled="authActionDisabled" @click="showPassword = !showPassword" class="auth-eye">
+                  <Icon :name="showPassword ? 'eyeOff' : 'eye'" size="md" />
+                </button>
+                <router-link v-if="!backendModeEnabled && passwordResetEnabled" to="/forgot-password" class="auth-forgot">{{ t('auth.forgotPassword') }}</router-link>
+              </div>
+            </div>
           </div>
-        </div>
-
+        </TabsContent>
+        <TabsContent v-if="showPasskeyLogin" value="passkey" class="auth-passkey-panel">
+          <Fingerprint :size="48" :stroke-width="1.3" aria-hidden="true" />
+          <p>{{ t('publicSite.auth.passkeyDescription') }}</p>
+        </TabsContent>
         <!-- Turnstile Widget -->
         <div v-if="captchaEnabled">
           <TurnstileWidget
@@ -123,36 +93,22 @@
           />
         </div>
 
-        <!-- Submit Button -->
-        <Button variant="default"
-          type="submit"
-          :disabled="authActionDisabled || (turnstileEnabled && !turnstileToken)"
-          class=" w-full"
-        >
-          <svg
-            v-if="isLoading"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin text-white"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <Icon v-else name="login" size="md" class="mr-2" />
-          {{ isLoading ? t('auth.signingIn') : pageCopy.submit }}
-        </Button>
-
+        <div class="auth-actions" :class="{ 'auth-actions--single': backendModeEnabled || !publicSettingsLoaded }">
+          <template v-if="!backendModeEnabled && publicSettingsLoaded">
+            <router-link v-if="registrationEnabled" to="/register" class="auth-secondary-action">{{ t('auth.signUp') }}</router-link>
+            <span v-else class="auth-secondary-action" aria-disabled="true">{{ t('publicSite.auth.registrationClosed') }}</span>
+          </template>
+          <Button v-if="loginMethod === 'password'" variant="default" type="submit"
+            :disabled="authActionDisabled || (turnstileEnabled && !turnstileToken)" class="w-full">
+            <LoaderCircle v-if="isLoading" class="animate-spin" :size="20" />
+            {{ isLoading ? t('auth.signingIn') : pageCopy.submit }}
+          </Button>
+          <Button v-else variant="default" type="button" class="auth-passkey w-full"
+            :disabled="authActionDisabled || (turnstileEnabled && !turnstileToken)" @click="handlePasskeyLogin">
+            <LoaderCircle v-if="passkeyLoading" class="animate-spin" :size="20" />
+            {{ passkeyLoading ? t('auth.passkeySigningIn') : t('auth.passkeySignIn') }}
+          </Button>
+        </div>
         <LoginAgreementPrompt
           v-if="loginAgreementEnabled"
           :accepted="agreementAccepted"
@@ -164,35 +120,11 @@
           @reject="rejectLoginAgreement"
           @open="showAgreementModal = true"
         />
-
-        <Button variant="outline"
-          v-if="showPasskeyLogin"
-          type="button"
-          class="auth-passkey  w-full"
-          :disabled="authActionDisabled"
-          @click="handlePasskeyLogin"
-        >
-          <Icon name="key" size="md" />
-          {{ passkeyLoading ? t('auth.passkeySigningIn') : t('auth.passkeySignIn') }}
-        </Button>
       </form>
-    </div>
-
-    <!-- Footer -->
-    <template v-if="!backendModeEnabled && publicSettingsLoaded && (registrationEnabled || passwordResetEnabled)" #footer>
-      <div class="auth-footer-row">
-        <p v-if="registrationEnabled">
-          {{ t('auth.dontHaveAccount') }}
-          <router-link to="/register">{{ t('auth.signUp') }}</router-link>
-        </p>
-        <router-link v-if="passwordResetEnabled" to="/forgot-password">
-          {{ t('auth.forgotPassword') }}
-        </router-link>
-      </div>
-    </template>
+    </Tabs>
+    <p class="auth-security-note"><ShieldCheck :size="16" aria-hidden="true" />{{ t('publicSite.auth.securityHint') }}</p>
   </AuthLayout>
 
-  <!-- 2FA Modal -->
   <TotpLoginModal
     v-if="show2FAModal"
     ref="totpModalRef"
@@ -204,6 +136,8 @@
 </template>
 
 <script setup lang="ts">
+import { Fingerprint, KeyRound, LoaderCircle, Mail, ShieldCheck } from '@lucide/vue'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input as UiInput } from '@/components/ui/input'
 
@@ -309,6 +243,8 @@ const show2FAModal = ref<boolean>(false)
 const totpTempToken = ref<string>('')
 const totpUserEmailMasked = ref<string>('')
 const totpModalRef = ref<InstanceType<typeof TotpLoginModal> | null>(null)
+
+const loginMethod = ref('password')
 
 const formData = reactive({
   email: '',
@@ -725,14 +661,21 @@ function handle2FACancel(): void {
 </script>
 
 <style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
+.auth-login-tabs { gap: 24px; }
+.auth-methods { width: 100%; height: 64px; padding: 5px; border: 1px solid var(--auth-border); border-radius: 999px; background: var(--auth-input-background); }
+.auth-methods :deep([data-slot="tabs-trigger"]) { height: 100%; border-radius: 999px; color: var(--auth-muted); font-size: 16px; font-weight: 500; }
+.auth-methods :deep([data-state="active"]) { background: var(--auth-card-background); color: var(--auth-text); font-weight: 650; box-shadow: 0 3px 8px #1b2f4b14; }
+.auth-login-form { margin-top: 0; }
+.auth-password-tools { position: absolute; top: 0; right: 24px; height: 100%; display: flex; align-items: center; gap: 16px; }
+.auth-eye { display: grid; place-items: center; min-width: 28px; min-height: 40px; color: var(--auth-muted); }
+.auth-forgot { font-size: 14px; color: var(--auth-accent); white-space: nowrap; }
+.auth-passkey-panel { min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; color: var(--auth-accent); text-align: center; }
+.auth-passkey-panel p { color: var(--auth-muted); font-size: 14px; line-height: 1.8; max-width: 340px; }
+.auth-passkey-panel[data-state="inactive"] { display: none; }
+.auth-actions.auth-actions--single { grid-template-columns: 1fr; }
+@media (min-width: 1500px) { .auth-methods { height: 72px; } .auth-methods :deep([data-slot="tabs-trigger"]) { font-size: 18px; } }
+@media (max-width: 1100px) {
+  .auth-password-row.has-recovery { padding-bottom: 30px; }
+  .auth-password-tools .auth-forgot { position: absolute; top: calc(100% + 8px); right: 0; }
 }
 </style>

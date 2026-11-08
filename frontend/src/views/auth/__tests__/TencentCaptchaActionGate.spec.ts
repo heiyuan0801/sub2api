@@ -79,7 +79,7 @@ function mountLogin() {
   return mount(LoginView, {
     global: {
       stubs: {
-        AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+        AuthLayout: { template: '<div><slot name="providers" /><slot /><slot name="footer" /></div>' },
         RouterLink: true,
         TurnstileWidget: CaptchaChallengeStub,
         Icon: true,
@@ -205,6 +205,7 @@ describe('Tencent captcha action gate', () => {
     const wrapper = mountLogin()
     await flushPromises()
 
+    await wrapper.get('[role="tab"][data-state="inactive"]').trigger('mousedown', { button: 0, ctrlKey: false })
     await wrapper.get('button.auth-passkey').trigger('click')
     await flushPromises()
 
@@ -221,6 +222,7 @@ describe('Tencent captcha action gate', () => {
     const wrapper = mountLogin()
     await flushPromises()
 
+    await wrapper.get('[role="tab"][data-state="inactive"]').trigger('mousedown', { button: 0, ctrlKey: false })
     await wrapper.get('button.auth-passkey').trigger('click')
     await flushPromises()
 

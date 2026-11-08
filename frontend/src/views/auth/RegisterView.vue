@@ -1,5 +1,41 @@
 <template>
   <AuthLayout variant="register">
+    <template v-if="showOAuthLogin" #providers>
+      <EmailOAuthButtons
+        full-labels
+        :disabled="registrationActionDisabled"
+        :aff-code="formData.aff_code"
+        :promo-code="formData.promo_code"
+        :github-enabled="githubOAuthEnabled"
+        :google-enabled="googleOAuthEnabled"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+
+      <LinuxDoOAuthSection
+        v-if="linuxdoOAuthEnabled"
+        :disabled="registrationActionDisabled"
+        :aff-code="formData.aff_code"
+        :promo-code="formData.promo_code"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+      <WechatOAuthSection
+        v-if="wechatOAuthEnabled"
+        :disabled="registrationActionDisabled"
+        :aff-code="formData.aff_code"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+      <OidcOAuthSection
+        v-if="oidcOAuthEnabled"
+        :disabled="registrationActionDisabled"
+        :provider-name="oidcOAuthProviderName"
+        :aff-code="formData.aff_code"
+        :show-divider="false"
+        @start="handleOAuthStart"
+      />
+    </template>
     <div class="space-y-6">
       <!-- Title -->
       <div class="auth-heading">
@@ -10,45 +46,6 @@
         <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
           {{ pageCopy.subtitle }}
         </p>
-      </div>
-
-      <div v-if="showOAuthLogin">
-        <div class="auth-social-providers">
-          <EmailOAuthButtons
-            :disabled="registrationActionDisabled"
-            :aff-code="formData.aff_code"
-            :promo-code="formData.promo_code"
-            :github-enabled="githubOAuthEnabled"
-            :google-enabled="googleOAuthEnabled"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-
-          <LinuxDoOAuthSection
-            v-if="linuxdoOAuthEnabled"
-            :disabled="registrationActionDisabled"
-            :aff-code="formData.aff_code"
-            :promo-code="formData.promo_code"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <WechatOAuthSection
-            v-if="wechatOAuthEnabled"
-            :disabled="registrationActionDisabled"
-            :aff-code="formData.aff_code"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-          <OidcOAuthSection
-            v-if="oidcOAuthEnabled"
-            :disabled="registrationActionDisabled"
-            :provider-name="oidcOAuthProviderName"
-            :aff-code="formData.aff_code"
-            :show-divider="false"
-            @start="handleOAuthStart"
-          />
-        </div>
-        <div class="auth-separator">{{ t('publicSite.auth.or') }}</div>
       </div>
 
       <!-- Registration Disabled Message -->
@@ -73,7 +70,8 @@
           <label for="email" class="input-label">
             {{ t('auth.emailLabel') }}
           </label>
-          <div class="relative">
+          <div class="relative auth-field">
+            <Mail class="auth-field-icon" aria-hidden="true" />
             <UiInput
               id="email"
               v-model="formData.email"
@@ -94,7 +92,8 @@
           <label for="password" class="input-label">
             {{ t('auth.passwordLabel') }}
           </label>
-          <div class="relative">
+          <div class="relative auth-field">
+            <KeyRound class="auth-field-icon" aria-hidden="true" />
             <UiInput
               id="password"
               v-model="formData.password"
@@ -128,7 +127,8 @@
           <label for="confirmPassword" class="input-label">
             {{ t('auth.confirmPassword') }}
           </label>
-          <div class="relative">
+          <div class="relative auth-field">
+            <KeyRound class="auth-field-icon" aria-hidden="true" />
             <UiInput
               id="confirmPassword"
               v-model="confirmPassword"
@@ -342,6 +342,7 @@
 </template>
 
 <script setup lang="ts">
+import { KeyRound, Mail } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input as UiInput } from '@/components/ui/input'
 

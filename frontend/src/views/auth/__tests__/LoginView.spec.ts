@@ -73,7 +73,7 @@ function mountLogin() {
   return mount(LoginView, {
     global: {
       stubs: {
-        AuthLayout: { template: '<div><slot /><slot name="footer" /></div>' },
+        AuthLayout: { template: '<div><slot name="providers" /><slot /><slot name="footer" /></div>' },
         DingTalkOAuthSection: true,
         EmailOAuthButtons: true,
         Icon: true,
@@ -114,5 +114,31 @@ describe('LoginView registration entry', () => {
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('auth.signUp')
+    expect(wrapper.text()).toContain('publicSite.auth.registrationClosed')
+  })
+
+  it('only shows the passkey method when enabled and supported', async () => {
+    const wrapper = mountLogin()
+    await flushPromises()
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(1)
+  })
+
+  it('switches methods without keeping required password fields in the passkey panel', async () => {
+    vi.stubGlobal('PublicKeyCredential', class {})
+    getPublicSettingsMock.mockResolvedValueOnce({ ...publicSettings, passkey_enabled: true })
+    const wrapper = mountLogin()
+    await flushPromises()
+
+    await wrapper.get('#email').setValue('person@example.com')
+    await wrapper.get('[role="tab"][data-state="inactive"]').trigger('mousedown', { button: 0, ctrlKey: false })
+    await flushPromises()
+    expect(wrapper.find('#password').exists()).toBe(false)
+    expect(wrapper.find('button.auth-passkey').exists()).toBe(true)
+
+    await wrapper.get('[role="tab"][data-state="inactive"]').trigger('mousedown', { button: 0, ctrlKey: false })
+    await flushPromises()
+    expect((wrapper.get('#email').element as HTMLInputElement).value).toBe('person@example.com')
+    expect(wrapper.find('button[type="submit"]').exists()).toBe(true)
+    vi.unstubAllGlobals()
   })
 })
