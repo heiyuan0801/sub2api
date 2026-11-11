@@ -48,6 +48,7 @@ type AdminHandlers struct {
 
 // Handlers contains all HTTP handlers
 type Handlers struct {
+	RewardActivity   *RewardActivityHandler
 	ClusterOps       *clusterops.Manager
 	Auth             *AuthHandler
 	User             *UserHandler

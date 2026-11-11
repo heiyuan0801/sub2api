@@ -245,12 +245,13 @@ func incrementUsageBillingSubscription(ctx context.Context, tx *sql.Tx, subscrip
 func deductUsageBillingBalance(ctx context.Context, tx *sql.Tx, userID int64, amount float64) (float64, bool, error) {
 	var newBalance float64
 	err := tx.QueryRowContext(ctx, `
+		WITH charged AS (
 		UPDATE users
 		SET balance = balance - $1,
 			updated_at = NOW()
 		WHERE id = $2 AND deleted_at IS NULL AND balance >= $1
-		RETURNING balance
-	`, amount, userID).Scan(&newBalance)
+		RETURNING balance, id AS user_id, $1::numeric AS amount
+	`+recordRewardActivitySpend+`SELECT balance FROM charged`, amount, userID).Scan(&newBalance)
 	if err == nil {
 		return newBalance, true, nil
 	}
@@ -259,12 +260,13 @@ func deductUsageBillingBalance(ctx context.Context, tx *sql.Tx, userID int64, am
 	}
 
 	err = tx.QueryRowContext(ctx, `
+		WITH charged AS (
 		UPDATE users
 		SET balance = balance - $1,
 			updated_at = NOW()
 		WHERE id = $2 AND deleted_at IS NULL
-		RETURNING balance
-	`, amount, userID).Scan(&newBalance)
+		RETURNING balance, id AS user_id, $1::numeric AS amount
+	`+recordRewardActivitySpend+`SELECT balance FROM charged`, amount, userID).Scan(&newBalance)
 	if errors.Is(err, sql.ErrNoRows) {
 		return 0, false, service.ErrUserNotFound
 	}
@@ -310,6 +312,7 @@ func captureUsageBillingBatchImageBalance(ctx context.Context, tx *sql.Tx, cmd *
 	}
 	var balance, frozen float64
 	err := tx.QueryRowContext(ctx, `
+		WITH charged AS (
 		UPDATE users
 		SET balance = balance
 				+ CASE WHEN $1 > $2 THEN $1 - $2 ELSE 0 END
@@ -317,8 +320,8 @@ func captureUsageBillingBatchImageBalance(ctx context.Context, tx *sql.Tx, cmd *
 			frozen_balance = COALESCE(frozen_balance, 0) - $1,
 			updated_at = NOW()
 		WHERE id = $3 AND deleted_at IS NULL AND COALESCE(frozen_balance, 0) >= $1
-		RETURNING balance, frozen_balance
-	`, cmd.HoldAmount, cmd.ActualAmount, cmd.UserID).Scan(&balance, &frozen)
+		RETURNING balance, frozen_balance, id AS user_id, $2::numeric AS amount
+	`+recordRewardActivitySpend+`SELECT balance, frozen_balance FROM charged`, cmd.HoldAmount, cmd.ActualAmount, cmd.UserID).Scan(&balance, &frozen)
 	if err == nil {
 		return &service.BatchImageBalanceHoldResult{NewBalance: &balance, FrozenBalance: &frozen}, nil
 	}

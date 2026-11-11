@@ -79,6 +79,13 @@ func RegisterAdminRoutes(
 		// 系统设置
 		registerSettingsRoutes(admin, h, stepUpAuth)
 
+		if h.RewardActivity != nil {
+			rewards := admin.Group("/reward-activities")
+			rewards.GET("", h.RewardActivity.GetConfig)
+			rewards.PUT("", h.RewardActivity.UpdateConfig)
+			rewards.GET("/claims", h.RewardActivity.RecentClaims)
+		}
+
 		// 数据管理
 		registerDataManagementRoutes(admin, h, stepUpAuth)
 

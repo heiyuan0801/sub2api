@@ -79,6 +79,13 @@ func RegisterUserRoutes(
 			}
 		}
 
+		if h.RewardActivity != nil {
+			rewards := authenticated.Group("/reward-activities")
+			rewards.GET("", h.RewardActivity.Status)
+			rewards.POST("/check-in", h.RewardActivity.CheckIn)
+			rewards.POST("/draw", h.RewardActivity.Draw)
+		}
+
 		// API Key管理
 		keys := authenticated.Group("/keys")
 		{

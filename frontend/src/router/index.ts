@@ -254,6 +254,17 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/reward-activities',
+    name: 'RewardActivities',
+    component: () => import('@/views/user/RewardActivitiesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Reward Activities',
+      titleKey: 'rewards.title',
+    },
+  },
+  {
     path: '/redeem',
     name: 'Redeem',
     component: () => import('@/views/user/RedeemView.vue'),
@@ -626,6 +637,17 @@ const routes: RouteRecordRaw[] = [
       titleKey: 'admin.promo.title',
       descriptionKey: 'admin.promo.description'
     }
+  },
+  {
+    path: '/admin/reward-activities',
+    name: 'AdminRewardActivities',
+    component: () => import('@/views/admin/RewardActivitiesView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Reward Activities',
+      titleKey: 'rewards.adminTitle',
+    },
   },
   {
     path: '/admin/settings',
