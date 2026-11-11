@@ -12,6 +12,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/clusterops"
 	"github.com/Wei-Shaw/sub2api/internal/config"
 	"github.com/Wei-Shaw/sub2api/internal/service"
+	"github.com/Wei-Shaw/sub2api/migrations"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -48,6 +49,13 @@ func TestClusterConcurrentBillingPostgres(t *testing.T) {
 	require.NoError(t, err)
 	_, err = db.Exec(`CREATE TABLE users(id bigint primary key,balance numeric(20,10),deleted_at timestamptz,updated_at timestamptz);INSERT INTO users VALUES(1,100,NULL,NOW());CREATE TABLE usage_billing_dedup(id bigserial,request_id text,api_key_id bigint,request_fingerprint text,UNIQUE(request_id,api_key_id));CREATE TABLE usage_billing_dedup_archive(request_id text,api_key_id bigint,request_fingerprint text);CREATE TABLE usage_logs(id bigserial,request_id text,api_key_id bigint,actual_cost numeric(20,10));`)
 	require.NoError(t, err)
+	rewardMigration, err := migrations.FS.ReadFile("251_spend_reward_activities.sql")
+	require.NoError(t, err)
+	_, err = db.Exec(string(rewardMigration))
+	require.NoError(t, err)
+	rewardConfig := service.DefaultRewardActivityConfig()
+	rewardConfig.CheckIn.Enabled = true
+	require.NoError(t, NewRewardActivityRepository(db).SaveConfig(ctx, rewardConfig))
 	repos := []*usageBillingRepository{{db: pools[0]}, {db: pools[1]}}
 	attempt := uuid.NewString()
 	cmd := service.UsageBillingCommand{RequestID: "concurrent", APIKeyID: 2, UserID: 1, AccountID: 3, BalanceCost: 1.25}
@@ -106,6 +114,9 @@ func TestClusterConcurrentBillingPostgres(t *testing.T) {
 	var balance string
 	require.NoError(t, db.QueryRow(`SELECT balance::text FROM users WHERE id=1`).Scan(&balance))
 	require.Equal(t, "98.7500000000", balance)
+	var activitySpend float64
+	require.NoError(t, db.QueryRow(`SELECT amount FROM reward_activity_spend WHERE user_id=1`).Scan(&activitySpend))
+	require.Equal(t, 1.25, activitySpend)
 	cmd.BalanceCost = 2
 	cmd.RequestFingerprint = "different"
 	_, err = repos[1].Apply(ctx, &cmd)
