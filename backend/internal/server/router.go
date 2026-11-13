@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -83,7 +84,19 @@ func SetupRouter(
 				frontendServer.InvalidateCache()
 				refreshFrameOrigins()
 			})
-			r.Use(frontendServer.Middleware())
+			r.Use(frontendServer.Middleware(func(ctx context.Context, path string) (web.PageMetadata, bool) {
+				slug, docsPath := strings.CutPrefix(path, "/docs/")
+				if !docsPath || slug == "batch-image" || handlers.Docs == nil {
+					return web.PageMetadata{}, false
+				}
+				if settingService.IsBackendModeEnabled(ctx) {
+					return web.PageMetadata{NoIndex: true}, true
+				}
+				ctx, cancel := context.WithTimeout(ctx, time.Second)
+				defer cancel()
+				title, description, found := handlers.Docs.PublicMetadata(ctx, slug)
+				return web.PageMetadata{Title: title, Description: description, NoIndex: !found}, true
+			}))
 		}
 	} else {
 		settingService.SetOnUpdateCallback(refreshFrameOrigins)
@@ -127,6 +140,7 @@ func registerRoutes(
 	routes.RegisterAuthRoutes(v1, h, jwtAuth, auditLog, redisClient, settingService, panelRateLimiter)
 	routes.RegisterUserRoutes(v1, h, jwtAuth, auditLog, settingService, panelRateLimiter)
 	routes.RegisterModelPlazaRoutes(v1, h, optionalJWTAuth, settingService, panelRateLimiter)
+	routes.RegisterDocsRoutes(v1, h.Docs, optionalJWTAuth, settingService, panelRateLimiter)
 	routes.RegisterAdminRoutes(v1, h, adminAuth, auditLog, stepUpAuth, settingService, panelRateLimiter)
 	routes.RegisterMCPRoutes(v1, h, auditLog, stepUpAuth, settingService, panelRateLimiter, cfg.CORS.AllowedOrigins, redisClient)
 	routes.RegisterMCPOAuthRoutes(r, v1, h, redisClient)

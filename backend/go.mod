@@ -53,6 +53,7 @@ require (
 	github.com/wechatpay-apiv3/wechatpay-go v0.2.21
 	github.com/zeromicro/go-zero v1.9.4
 	go.etcd.io/etcd/client/v3 v3.6.16
+	github.com/yuin/goldmark v1.8.7
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.41.0

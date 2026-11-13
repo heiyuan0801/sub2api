@@ -51,6 +51,7 @@ func RegisterAdminRoutes(
 
 		// 公告管理
 		registerAnnouncementRoutes(admin, h)
+		registerAdminDocsRoutes(admin, h.Docs)
 
 		// OpenAI OAuth
 		registerOpenAIOAuthRoutes(admin, h)

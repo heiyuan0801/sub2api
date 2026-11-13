@@ -6,7 +6,7 @@
           <h1>{{ t('publicSite.market.heading') }}</h1>
           <p>{{ t('publicSite.models.subtitle') }}</p>
         </div>
-        <RouterLink v-if="!descriptionHtml" to="/home#api-example" class="market-guide"><Icon name="document" size="sm" />{{ t('publicSite.nav.apiDocs') }}</RouterLink>
+        <a v-if="!descriptionHtml" href="/docs/api" class="market-guide"><Icon name="document" size="sm" />{{ t('publicSite.nav.apiDocs') }}</a>
         <Button v-else variant="ghost" size="sm" @click="descriptionOpen = !descriptionOpen" :aria-expanded="descriptionOpen" aria-controls="market-description">
           <Icon name="document" size="sm" />{{ t('publicSite.models.priceDescription') }}
         </Button>

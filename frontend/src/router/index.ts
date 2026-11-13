@@ -54,6 +54,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/docs',
+    name: 'DocsIndex',
+    component: () => import('@/views/public/DocsView.vue'),
+    meta: { requiresAuth: false, title: 'Documentation', titleKey: 'docs.title' }
+  },
+  {
+    path: '/docs/:slug([a-z0-9-]+)',
+    name: 'DocsArticle',
+    component: () => import('@/views/public/DocsView.vue'),
+    meta: { requiresAuth: false, title: 'Documentation', titleKey: 'docs.title' }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/LoginView.vue'),
@@ -640,6 +652,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/docs',
+    name: 'AdminDocs',
+    component: () => import('@/views/admin/DocsManagementView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Documentation management', titleKey: 'docs.adminTitle' }
+  },
+  {
     path: '/admin/reward-activities',
     name: 'AdminRewardActivities',
     component: () => import('@/views/admin/RewardActivitiesView.vue'),
@@ -802,8 +820,9 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
-    if (_to.name === 'Home' && (_to.hash === '#quick-start' || _to.hash === '#api-example')) {
-      return { el: _to.hash, top: 80 }
+    if ((_to.name === 'DocsArticle' || _to.name === 'DocsIndex') && _to.hash) return false
+    if (_to.name === 'Home' && _to.hash === '#quick-start') {
+      return { el: '#quick-start', top: 80 }
     }
     // Scroll to top for new routes
     return { top: 0 }

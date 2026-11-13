@@ -186,6 +186,7 @@ func ProvideHandlers(
 	authHandler *AuthHandler,
 	userHandler *UserHandler,
 	rewardActivityHandler *RewardActivityHandler,
+	docsHandler *DocsHandler,
 	mcpOAuthHandler *MCPOAuthHandler,
 	apiKeyHandler *APIKeyHandler,
 	usageHandler *UsageHandler,
@@ -218,6 +219,7 @@ func ProvideHandlers(
 		Auth:             authHandler,
 		User:             userHandler,
 		RewardActivity:   rewardActivityHandler,
+		Docs:             docsHandler,
 		MCPOAuth:         mcpOAuthHandler,
 		APIKey:           apiKeyHandler,
 		Usage:            usageHandler,
@@ -244,6 +246,7 @@ func ProvideHandlers(
 // ProviderSet is the Wire provider set for all handlers
 var ProviderSet = wire.NewSet(
 	NewRewardActivityHandler,
+	NewDocsHandler,
 	// Top-level handlers
 	NewAuthHandler,
 	NewUserHandler,

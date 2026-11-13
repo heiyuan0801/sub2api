@@ -8,8 +8,8 @@
       <div class="public-footer-column">
         <h2>{{ t('publicSite.footer.help') }}</h2>
         <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">{{ t('publicSite.nav.helpCenter') }}</a>
-        <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">{{ t('publicSite.nav.apiDocs') }}</a>
-        <RouterLink v-else-if="variant === 'home'" to="/home#api-example">{{ t('publicSite.nav.apiDocs') }}</RouterLink>
+        <RouterLink v-if="variant === 'home'" to="/docs">{{ t('docs.title') }}</RouterLink>
+        <RouterLink to="/docs/api">{{ t('publicSite.nav.apiDocs') }}</RouterLink>
         <RouterLink to="/home#quick-start">{{ t('publicSite.nav.quickStart') }}</RouterLink>
       </div>
       <div class="public-footer-column">

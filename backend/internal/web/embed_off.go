@@ -29,7 +29,7 @@ func NewFrontendServer(settingsProvider PublicSettingsProvider) (*FrontendServer
 func (s *FrontendServer) InvalidateCache() {}
 
 // Middleware returns a handler that returns 404 for non-embed builds
-func (s *FrontendServer) Middleware() gin.HandlerFunc {
+func (s *FrontendServer) Middleware(_ ...PageMetadataProvider) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.String(http.StatusNotFound, "Frontend not embedded. Build with -tags embed to include frontend.")
 		c.Abort()

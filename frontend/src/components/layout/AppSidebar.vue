@@ -332,6 +332,9 @@ const ChartIcon = {
     )
 }
 
+const DocsIcon = {
+  template: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linejoin="round" d="M12 6C9 4 5 4 2 5v14c3-1 7-1 10 1 3-2 7-2 10-1V5c-3-1-7-1-10 1zm0 0v14"/></svg>'
+}
 const GiftIcon = {
   render: () =>
     h(
@@ -816,6 +819,7 @@ const adminNavItems = computed((): NavItem[] => {
       ],
     },
     { path: '/admin/redeem', label: t('nav.redeemCodes'), icon: TicketIcon, hideInSimpleMode: true },
+    { path: '/admin/docs', label: t('docs.adminTitle'), icon: DocsIcon, hideInSimpleMode: true },
     { path: '/admin/reward-activities', label: t('rewards.adminTitle'), icon: GiftIcon, hideInSimpleMode: true },
     { path: '/admin/promo-codes', label: t('nav.promoCodes'), icon: GiftIcon, hideInSimpleMode: true },
     {

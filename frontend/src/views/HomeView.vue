@@ -40,6 +40,9 @@
           >
             <Icon name="book" size="md" />
           </a>
+          <RouterLink v-else to="/docs" :title="t('docs.title')" :aria-label="t('docs.title')" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-dark-400 dark:hover:bg-dark-800">
+            <Icon name="book" size="md" />
+          </RouterLink>
           <router-link
             v-if="showModelPlazaEntry"
             to="/model-plaza"
@@ -106,7 +109,7 @@
             <div class="market-hero-actions">
               <RouterLink v-if="showModelPlazaEntry" to="/model-plaza" class="market-primary">{{ t('publicSite.market.explore') }}<ArrowUpRight :size="16" /></RouterLink>
               <RouterLink :to="startPath" :class="showModelPlazaEntry ? 'market-secondary' : 'market-primary'">{{ isAuthenticated ? t('publicHome.actions.dashboard') : t('publicHome.actions.getStarted') }}</RouterLink>
-              <a v-if="!showModelPlazaEntry" :href="docUrl || '#quick-start'" class="market-secondary">{{ t('publicHome.actions.documentation') }}</a>
+              <a v-if="!showModelPlazaEntry" :href="docUrl || '/docs/quickstart'" class="market-secondary">{{ t('publicHome.actions.documentation') }}</a>
             </div>
             <dl v-if="marketGroups.length" class="market-totals">
               <div><dd>{{ catalogModels.length }}</dd><dt>{{ t('publicSite.market.availableModels') }}</dt></div>
@@ -204,7 +207,7 @@
                 <Icon name="arrowRight" size="sm" class="step-arrow" aria-hidden="true" />
               </router-link>
               <a
-                :href="docUrl || '#api-example'"
+                :href="docUrl || '/docs/api'"
                 :target="docUrl ? '_blank' : undefined"
                 :rel="docUrl ? 'noopener noreferrer' : undefined"
                 class="step-card"
@@ -293,7 +296,7 @@
             </div>
             <div class="start-actions">
               <RouterLink :to="startPath" class="market-primary">{{ isAuthenticated ? t('publicHome.actions.dashboard') : t('publicHome.actions.getStarted') }} <ArrowUpRight :size="16" /></RouterLink>
-              <RouterLink to="/home#quick-start" class="market-secondary">{{ t('publicSite.nav.quickStart') }}</RouterLink>
+              <RouterLink to="/docs/quickstart" class="market-secondary">{{ t('publicSite.nav.quickStart') }}</RouterLink>
             </div>
           </div>
         </div>

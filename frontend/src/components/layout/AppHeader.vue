@@ -41,6 +41,10 @@
           <span class="hidden sm:inline">{{ t('nav.docs') }}</span>
         </a>
 
+        <RouterLink v-else to="/docs" :aria-label="t('docs.title')" class="btn-ghost btn-icon hidden sm:inline-flex">
+          <Icon name="book" size="sm" />
+        </RouterLink>
+
         <!-- Model Plaza Entry (icon only below sm) -->
         <router-link
           v-if="user && modelPlazaEnabled"

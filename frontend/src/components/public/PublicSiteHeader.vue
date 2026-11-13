@@ -11,6 +11,7 @@
         <RouterLink v-if="showModels" to="/model-plaza" @click="mobileOpen = false">{{ t('publicSite.market.heading') }}</RouterLink>
         <RouterLink v-if="showMonitor" to="/monitor" @click="mobileOpen = false">{{ t('nav.channelStatus') }}</RouterLink>
         <RouterLink to="/home#quick-start" @click="mobileOpen = false">{{ t('publicSite.nav.quickStart') }}</RouterLink>
+        <RouterLink to="/docs" @click="mobileOpen = false">{{ t('docs.title') }}</RouterLink>
         <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer" @click="mobileOpen = false">{{ t('publicSite.nav.helpCenter') }} <Icon name="externalLink" size="xs" /></a>
       </nav>
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -77,4 +78,26 @@ func (s *S3ImageStorage) Save(ctx context.Context, key, contentType string, data
 		return "", fmt.Errorf("presign url: %w", err)
 	}
 	return result.URL, nil
+}
+
+// PutPrivate writes an opaque object without generating a direct download URL.
+func (s *S3ImageStorage) PutPrivate(ctx context.Context, key string, data []byte) error {
+	contentType := "application/octet-stream"
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: &s.bucket, Key: &key, Body: bytes.NewReader(data), ContentType: &contentType,
+	})
+	return err
+}
+
+func (s *S3ImageStorage) OpenPrivate(ctx context.Context, key string) (io.ReadCloser, error) {
+	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: &s.bucket, Key: &key})
+	if err != nil {
+		return nil, err
+	}
+	return result.Body, nil
+}
+
+func (s *S3ImageStorage) DeletePrivate(ctx context.Context, key string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: &s.bucket, Key: &key})
+	return err
 }

@@ -11,6 +11,7 @@ import misc from './misc'
 import publicSite from './publicSite'
 import publicHome from './publicHome'
 import rewards from './rewards'
+import docs from './docs'
 
 import cluster from './cluster'
 
@@ -29,4 +30,5 @@ export default {
   ...publicSite,
   ...publicHome,
   rewards,
+  docs,
 }
