@@ -18,6 +18,10 @@ export default {
       getStarted: 'Get started',
       documentation: 'Documentation'
     },
+    getStarted: {
+      title: 'Get started with {siteName}',
+      description: 'Create an API key to call your chosen models from your application.'
+    },
     services: {
       eyebrow: 'Built for developers',
       title: 'Everything you need to build',

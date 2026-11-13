@@ -18,6 +18,10 @@ export default {
       getStarted: '立即开始',
       documentation: '帮助文档'
     },
+    getStarted: {
+      title: '开始接入 {siteName}',
+      description: '创建 API 密钥后，即可在你的应用里调用所选模型。'
+    },
     services: {
       eyebrow: '为开发者而构建',
       title: '完善的服务体系',

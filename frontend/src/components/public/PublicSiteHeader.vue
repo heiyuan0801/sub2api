@@ -4,20 +4,21 @@
       <RouterLink to="/home" class="public-brand" :aria-label="t('publicSite.nav.homeLabel', { siteName })">
         <img :src="siteLogo || '/logo.svg'" alt="" />
         <span>{{ siteName }}</span>
-        <small>API</small>
       </RouterLink>
 
       <nav id="public-navigation" class="public-navigation" :class="{ 'is-open': mobileOpen }" :aria-label="t('publicSite.nav.mainNavigation')">
-        <RouterLink :to="dashboardTarget" @click="mobileOpen = false">{{ t('publicSite.nav.console') }}</RouterLink>
-        <RouterLink v-if="showModels" to="/model-plaza" :class="{ active: route.name === 'ModelPlaza' }" @click="mobileOpen = false">{{ t('publicSite.nav.models') }}</RouterLink>
+        <RouterLink to="/home">{{ t('publicSite.market.home') }}</RouterLink>
+        <RouterLink v-if="showModels" to="/model-plaza" @click="mobileOpen = false">{{ t('publicSite.market.heading') }}</RouterLink>
+        <RouterLink v-if="showMonitor" to="/monitor" @click="mobileOpen = false">{{ t('nav.channelStatus') }}</RouterLink>
         <RouterLink to="/home#quick-start" @click="mobileOpen = false">{{ t('publicSite.nav.quickStart') }}</RouterLink>
-        <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer" @click="mobileOpen = false">{{ t('publicSite.nav.helpCenter') }}</a>
-        <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer" @click="mobileOpen = false">
-          {{ t('publicSite.nav.apiDocs') }} <Icon name="externalLink" size="xs" />
-        </a>
+        <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer" @click="mobileOpen = false">{{ t('publicSite.nav.helpCenter') }} <Icon name="externalLink" size="xs" /></a>
       </nav>
 
       <div class="public-header-actions">
+        <form v-if="showModels" class="public-search" role="search" @submit.prevent="searchModels">
+          <Icon name="search" size="sm" />
+          <input v-model="marketQuery" type="search" :aria-label="t('publicSite.models.searchLabel')" :placeholder="t('publicSite.market.search')" />
+        </form>
         <AnnouncementBell v-if="authStore.isAuthenticated" class="public-notifications" />
         <LocaleSwitcher compact class="public-language" />
         <button type="button" class="public-icon-button" :aria-label="isDark ? t('publicSite.nav.lightMode') : t('publicSite.nav.darkMode')" @click="toggleTheme">
@@ -39,7 +40,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import { computed, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
@@ -51,6 +52,8 @@ import { sanitizeUrl } from '@/utils/url'
 
 const { t } = useI18n()
 const route = useRoute()
+const router = useRouter()
+const marketQuery = ref('')
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const mobileOpen = ref(false)
@@ -61,9 +64,15 @@ const siteLogo = computed(() => sanitizeUrl(settings.value?.site_logo || appStor
 const docUrl = computed(() => sanitizeUrl(settings.value?.doc_url || appStore.docUrl || ''))
 const registrationEnabled = computed(() => settings.value?.registration_enabled === true)
 const showModels = computed(() => isFeatureFlagEnabled(FeatureFlags.modelPlaza) && (authStore.isAuthenticated || settings.value?.model_plaza_require_auth !== true))
+const showMonitor = computed(() => isFeatureFlagEnabled(FeatureFlags.channelMonitor))
 const dashboardPath = computed(() => authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
 const dashboardTarget = computed(() => authStore.isAuthenticated ? dashboardPath.value : { path: '/login', query: { redirect: '/dashboard' } })
 const loginTarget = computed(() => ({ path: '/login', query: { redirect: route.name === 'ModelPlaza' ? route.fullPath : '/dashboard' } }))
+
+function searchModels() {
+  const search = marketQuery.value.trim()
+  void router.push({ path: '/model-plaza', query: search ? { search } : {} })
+}
 
 function toggleTheme() {
   isDark.value = !isDark.value
@@ -113,4 +122,17 @@ onMounted(() => {
 .public-brand > span { font-size: 18px; letter-spacing: -.5px; }
 .public-navigation a { border-radius: 6px; font-weight: 500; font-size: 13px; }
 @media (max-width: 640px) { .public-header-inner { padding: 0 16px; gap: 12px; } .public-brand > span { max-width: 110px; font-size: 16px; } .public-header-actions { gap: 5px; } }
+.public-header { height:60px; }
+.public-header-inner { max-width:1536px; }
+.public-brand > span { max-width:220px; }
+.public-navigation { margin-left:14px; margin-right:auto; }
+.public-navigation a { font-size:14px; }
+.public-navigation a.router-link-active { font-weight:700; color:hsl(var(--foreground)); }
+.public-search { display:flex; align-items:center; gap:7px; width:220px; border:1px solid #dfe5ee; border-radius:6px; padding:0 8px; color:#595af1; }
+.public-search input { width:100%; min-width:0; border:0; background:transparent; color:hsl(var(--foreground)); font-size:12px; padding:5px 0; box-shadow:none; }
+.public-search:focus-within { outline:2px solid #7578f4; }
+.dark .public-search { border-color:#303949; color:#aeb1ff; }
+@media(max-width:1110px) { .public-search { display:none; } .public-navigation { margin-left:0; } }
+@media(max-width:900px) { .public-navigation { top:59px; } }
+@media(max-width:480px) { .public-brand > span { max-width:110px; } }
 </style>

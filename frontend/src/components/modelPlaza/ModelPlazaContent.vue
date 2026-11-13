@@ -28,24 +28,26 @@
       {{ t('modelPlaza.loadFailed') }}
     </div>
     <template v-else>
-      <!-- 筛选区:平台 → 分组 → 倍率 -->
       <PlazaFilterBar
         :platforms="platforms"
-        :groups="groupOptions"
-        :rates="rates"
+        :groups="platformGroups"
         :platform="selectedPlatform"
         :group-id="selectedGroupId"
-        :rate="selectedRate"
         :search="searchQuery"
         @update:platform="selectedPlatform = $event"
         @update:group-id="selectedGroupId = $event"
-        @update:rate="selectedRate = $event"
         @update:search="searchQuery = $event"
       />
 
-      <!-- 分组分节的模型清单(默认按生效倍率升序) -->
-      <div v-if="filteredGroups.length > 0" class="space-y-5">
-        <PlazaGroupSection v-for="g in filteredGroups" :key="g.id" :group="g" />
+      <div v-if="providerSections.length" class="space-y-7">
+        <section v-for="{ platform, groups } in providerSections" :key="platform" class="space-y-3">
+          <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
+            <PlatformIcon :platform="platform as GroupPlatform" size="sm" />
+            {{ platformLabel(platform) }}
+            <span class="text-xs font-normal text-gray-500 dark:text-dark-400">{{ t('publicSite.models.groupCount', { count: groups.length }) }}</span>
+          </h2>
+          <PlazaGroupSection v-for="group in groups" :key="group.id" :group="group" prices-only />
+        </section>
       </div>
       <div
         v-else
@@ -63,11 +65,14 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import Icon from '@/components/icons/Icon.vue'
+import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import PlazaFilterBar from './PlazaFilterBar.vue'
 import PlazaGroupSection from './PlazaGroupSection.vue'
 import PlazaCatalog from './PlazaCatalog.vue'
 import type { ModelPlazaGroup, ModelPlazaResponse } from '@/api/modelPlaza'
 import { useAuthStore } from '@/stores/auth'
+import { platformLabel } from '@/utils/platformColors'
+import type { GroupPlatform } from '@/types'
 
 const props = defineProps<{
   response: ModelPlazaResponse | null
@@ -77,13 +82,12 @@ const props = defineProps<{
   embedded?: boolean
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const selectedPlatform = ref<string>('all')
 const selectedGroupId = ref<number | 'all'>('all')
-const selectedRate = ref<number | 'all'>('all')
 const searchQuery = ref('')
 
 const searchActive = computed(() => searchQuery.value.trim() !== '')
@@ -94,58 +98,44 @@ const descriptionHtml = computed(() => {
   return DOMPurify.sanitize(marked.parse(md) as string)
 })
 
-/** 生效倍率 = 用户专属倍率 ?? 分组默认倍率。 */
-function effectiveRate(g: ModelPlazaGroup): number {
-  return g.user_rate_multiplier ?? g.rate_multiplier
-}
-
+const groups = computed(() => props.response?.groups ?? [])
 const platforms = computed(() =>
-  [...new Set((props.response?.groups ?? []).map((g) => g.platform).filter(Boolean))].sort()
+  [...new Set(groups.value.map(group => group.platform))].sort((a, b) =>
+    platformLabel(a).localeCompare(platformLabel(b), locale.value)
+  )
+)
+const platformGroups = computed(() =>
+  groups.value.filter(group => selectedPlatform.value === 'all' || group.platform === selectedPlatform.value)
+    .sort((a, b) => a.name.localeCompare(b.name, locale.value, { numeric: true }) || a.id - b.id)
 )
 
-const groupOptions = computed(() =>
-  (props.response?.groups ?? []).map((g) => ({
-    id: g.id,
-    name: g.name,
-    platform: g.platform,
-    rate: effectiveRate(g)
-  }))
-)
-
-/** 全量生效倍率;当前组合下不可用的项由 FilterBar 置灰而非隐藏。 */
-const rates = computed(() =>
-  [...new Set((props.response?.groups ?? []).map(effectiveRate))].sort((a, b) => a - b)
-)
-
-/** 数据刷新后选中的倍率可能不复存在,重置为全部。 */
-watch(rates, (list) => {
-  if (selectedRate.value !== 'all' && !list.includes(selectedRate.value)) {
-    selectedRate.value = 'all'
+watch(platforms, (list) => {
+  if (selectedPlatform.value !== 'all' && !list.includes(selectedPlatform.value)) {
+    selectedPlatform.value = 'all'
+  }
+})
+watch(platformGroups, (list) => {
+  if (selectedGroupId.value !== 'all' && !list.some(group => group.id === selectedGroupId.value)) {
+    selectedGroupId.value = 'all'
   }
 })
 
-const filteredGroups = computed(() => {
-  let groups = props.response?.groups ?? []
-  if (selectedPlatform.value !== 'all') {
-    groups = groups.filter((g) => g.platform === selectedPlatform.value)
-  }
-  if (selectedGroupId.value !== 'all') {
-    groups = groups.filter((g) => g.id === selectedGroupId.value)
-  }
-  if (selectedRate.value !== 'all') {
-    groups = groups.filter((g) => effectiveRate(g) === selectedRate.value)
-  }
-  // 模型名搜索:分组内只留命中的模型,整组无命中则隐藏该分组。
+const providerSections = computed(() => {
+  const byPlatform = new Map<string, ModelPlazaGroup[]>()
   const q = searchQuery.value.trim().toLowerCase()
-  if (q) {
-    groups = groups
-      .map((g) => ({ ...g, models: g.models.filter((m) => m.name.toLowerCase().includes(q)) }))
-      .filter((g) => g.models.length > 0)
+  for (const group of platformGroups.value) {
+    if (selectedGroupId.value !== 'all' && group.id !== selectedGroupId.value) continue
+    const models = q ? group.models.filter(model => model.name.toLowerCase().includes(q)) : group.models
+    if (!models.length) continue
+    const section = byPlatform.get(group.platform)
+    const matchingGroup = { ...group, models }
+    if (section) section.push(matchingGroup)
+    else byPlatform.set(group.platform, [matchingGroup])
   }
-  // 专属倍率会改变生效值,不能只依赖后端按默认倍率的排序。
-  return [...groups].sort(
-    (a, b) => effectiveRate(a) - effectiveRate(b) || a.name.localeCompare(b.name)
-  )
+  return platforms.value.flatMap(platform => {
+    const matchingGroups = byPlatform.get(platform)
+    return matchingGroups ? [{ platform, groups: matchingGroups }] : []
+  })
 })
 </script>
 

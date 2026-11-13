@@ -13,7 +13,7 @@ function read(rel: string) {
 }
 
 describe('channel-monitor-v2 design system structure', () => {
-  it('user ChannelStatus V2 keeps model availability, filtering, and accessible summaries together', () => {
+  it('user ChannelStatus V2 keeps group availability, filtering, and accessible summaries together', () => {
     // Route wrapper may switch V1/V2; design chrome lives on the V2 implementation.
     const src = read('views/user/ChannelStatusV2View.vue')
     expect(src).toContain('availability-header')
@@ -40,9 +40,9 @@ describe('channel-monitor-v2 design system structure', () => {
     // Dense tables scroll internally
     expect(src).toMatch(/max-h-\[min\(52vh/)
     expect(src).toContain('overflow-auto')
-    // Retain alternative trends while defaulting to independent model/group rows.
+    // Retain alternative trends while defaulting to platform/group rows.
     expect(src).toContain("trendView")
-    expect(src).toContain(": 'platform_group_model'")
+    expect(src).toContain("const MATRIX_GROUP_BY = 'platform_group'")
     expect(src).toContain('MonitorTrendChart')
   })
 

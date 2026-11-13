@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
   getDimensions: vi.fn(),
   getSnapshot: vi.fn(),
   getMatrix: vi.fn(),
-  getModels: vi.fn(),
   getErrors: vi.fn(),
   getUsers: vi.fn(),
   replace: vi.fn(),
@@ -28,9 +27,12 @@ vi.mock('@/api/channelMonitorV2', () => ({
   getDimensions: mocks.getDimensions,
   getSnapshot: mocks.getSnapshot,
   getMatrix: mocks.getMatrix,
-  getModels: mocks.getModels,
   getErrors: mocks.getErrors,
   getUsers: mocks.getUsers,
+}))
+vi.mock('@/api/groups', () => ({
+  getAvailable: vi.fn().mockResolvedValue([{ id: 1, rate_multiplier: 0.1 }, { id: 2, rate_multiplier: 0.2 }]),
+  getUserGroupRates: vi.fn().mockResolvedValue({ 1: 0, 3: 0.15 }),
 }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => mocks.auth }))
 vi.mock('@/stores/app', () => ({ useAppStore: () => ({ showError: mocks.showError }) }))
@@ -108,9 +110,8 @@ function health(overall: HealthState): MonitorHealth {
 function row(model: string, groupId: number, state: HealthState, patch: Partial<MonitorMetric> = {}): MonitorMatrixRow {
   return {
     platform: model.startsWith('claude') ? 'anthropic' : 'openai',
-    model,
     group_id: groupId,
-    group_name: groupId === 1 ? 'default' : 'vip',
+    group_name: groupId === 1 ? 'default' : model,
     metrics: metric(patch),
     health: health(state),
     buckets: [],
@@ -130,9 +131,9 @@ function snapshot(): MonitorSnapshot {
 
 const CardsStub = defineComponent({
   name: 'MonitorChannelCards',
-  props: ['rows', 'coverage', 'loading', 'healthMode', 'showThroughput', 'emptyDescription', 'favoriteKeys', 'stale'],
+  props: ['rows', 'coverage', 'loading', 'healthMode', 'showThroughput', 'emptyDescription', 'favoriteKeys', 'stale', 'groupRates', 'refreshSeconds'],
   emits: ['toggle-favorite', 'inspect', 'select-group'],
-  setup: () => () => h('div', { 'data-testid': 'model-cards' }),
+  setup: () => () => h('div', { 'data-testid': 'channel-cards' }),
 })
 const IncidentStub = defineComponent({
   name: 'MonitorIncidentDialog',
@@ -178,7 +179,7 @@ function render() {
 }
 let wrapper: ReturnType<typeof render> | undefined
 const displayedRows = () => wrapper!.getComponent(CardsStub).props('rows') as MonitorMatrixRow[]
-const dimensionPicker = (dimension: 'group' | 'model' | 'platform') => wrapper!.findAllComponents(FilterMultiSelect)
+const dimensionPicker = (dimension: 'group' | 'platform') => wrapper!.findAllComponents(FilterMultiSelect)
   .find(item => item.props('label') === `channelMonitorV2.filters.${dimension}`)!
 
 beforeEach(() => {
@@ -191,8 +192,7 @@ beforeEach(() => {
   mocks.route.query = {}
   mocks.getDimensions.mockReset().mockResolvedValue({ platforms: [], groups: [], models: [] })
   mocks.getSnapshot.mockReset().mockResolvedValue(snapshot())
-  mocks.getMatrix.mockReset().mockResolvedValue({ coverage, group_by: 'platform_group_model', items: rows })
-  mocks.getModels.mockReset().mockResolvedValue({ coverage, items: [] })
+  mocks.getMatrix.mockReset().mockResolvedValue({ coverage, group_by: 'platform_group', items: rows })
   mocks.getErrors.mockReset().mockResolvedValue({ coverage, items: [] })
   mocks.getUsers.mockReset().mockResolvedValue({ coverage, items: [] })
   mocks.replace.mockResolvedValue(undefined)
@@ -204,7 +204,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('ChannelStatusV2View model availability', () => {
+describe('ChannelStatusV2View group availability', () => {
   function platformCatalog() {
     return {
       platforms: [
@@ -274,9 +274,9 @@ describe('ChannelStatusV2View model availability', () => {
       groups: [...catalog.groups, ...providers.map(provider => ({ id: provider.groupId, name: provider.group, platform: provider.value, platforms: [provider.value], request_count: 0 }))],
       models: [...catalog.models, ...providers.flatMap(provider => provider.models.map(model => ({ value: model, label: model, platform: provider.value, group_ids: [provider.groupId], request_count: 0 })))],
     })
-    mocks.getMatrix.mockImplementation(async (filter) => ({ coverage, group_by: 'platform_group_model', items: providers
+    mocks.getMatrix.mockImplementation(async (filter) => ({ coverage, group_by: 'platform_group', items: providers
       .filter(provider => !filter.platforms.length || filter.platforms.includes(provider.value))
-      .flatMap(provider => provider.models.map(model => ({ ...row(model, provider.groupId, 'unknown', { has_data: false }), platform: provider.value, group_name: provider.group }))) }))
+      .map(provider => ({ ...row(provider.group, provider.groupId, 'unknown', { has_data: false }), platform: provider.value })) }))
     wrapper = render()
     await flushPromises()
 
@@ -287,10 +287,9 @@ describe('ChannelStatusV2View model availability', () => {
       await flushPromises()
       expect(shortcut.attributes('aria-pressed')).toBe('true')
       expect(dimensionPicker('group').props('options')).toEqual([{ value: String(provider.groupId), label: `${provider.value} / ${provider.group}` }])
-      expect(dimensionPicker('model').props('options')).toEqual(provider.models.map(model => ({ value: model, label: `${provider.value} / ${model}` })))
-      expect(displayedRows()).toHaveLength(2)
+      expect(displayedRows()).toHaveLength(1)
       expect(displayedRows().every(item => item.platform === provider.value && item.metrics.has_data === false && item.health.overall === 'unknown')).toBe(true)
-      expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: [provider.value], groupIds: [], models: [] }, false, expect.any(AbortSignal))
+      expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '90m', platforms: [provider.value], groupIds: [], models: [] }, false, expect.any(AbortSignal))
     }
     expect(mocks.getDimensions).toHaveBeenCalledTimes(1)
   })
@@ -312,7 +311,6 @@ describe('ChannelStatusV2View model availability', () => {
     expect(wrapper.find('[data-testid="platform-kimi"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="platform-zhipu"]').exists()).toBe(false)
     expect(dimensionPicker('group').props('options')).toEqual([{ value: '1', label: 'openai / Selected group' }])
-    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'gpt-selected', label: 'openai / gpt-selected' }])
   })
 
   it('shows enabled platform shortcuts from the catalog and switches scope without stale group/model selections', async () => {
@@ -330,16 +328,15 @@ describe('ChannelStatusV2View model availability', () => {
     await wrapper.get('[data-testid="platform-anthropic"]').trigger('click')
     await flushPromises()
 
-    const scoped = { range: '24h', platforms: ['anthropic'], groupIds: [], models: [] }
+    const scoped = { range: '90m', platforms: ['anthropic'], groupIds: [], models: [] }
     expect(mocks.getSnapshot).toHaveBeenCalledTimes(1)
     expect(mocks.getSnapshot).toHaveBeenCalledWith(scoped, false, expect.any(AbortSignal))
     expect(mocks.getMatrix).toHaveBeenCalledTimes(1)
-    expect(mocks.getMatrix).toHaveBeenCalledWith(scoped, 'platform_group_model', false, expect.any(AbortSignal))
+    expect(mocks.getMatrix).toHaveBeenCalledWith(scoped, 'platform_group', false, expect.any(AbortSignal))
     expect(dimensionPicker('group').props('options')).toEqual([{ value: '3', label: 'anthropic / Claude group' }])
-    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'claude-critical', label: 'anthropic / claude-critical' }])
     expect(wrapper.get('[data-testid="platform-anthropic"]').attributes('aria-pressed')).toBe('true')
-    expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ platform: 'anthropic', group: undefined, model: undefined, q: 'search', status: 'healthy', sort: 'name' }) }))
-    expect(JSON.parse(localStorage.getItem('channel-monitor-v2:v1:42')!)).toMatchObject({ platform: ['anthropic'], group: [], model: [] })
+    expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ platform: 'anthropic', group: undefined, q: 'search', status: 'healthy', sort: 'name' }) }))
+    expect(JSON.parse(localStorage.getItem('channel-monitor-v2:v1:42')!)).toMatchObject({ platform: ['anthropic'], group: [] })
     expect(mocks.getDimensions).toHaveBeenCalledTimes(1)
 
     // Enabled providers without any calls remain selectable, and incompatible
@@ -347,44 +344,22 @@ describe('ChannelStatusV2View model availability', () => {
     await wrapper.get('[data-testid="platform-deepseek"]').trigger('click')
     await flushPromises()
     expect(dimensionPicker('group').props('options')).toEqual([])
-    expect(dimensionPicker('model').props('options')).toEqual([])
     expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ ...scoped, platforms: ['deepseek'] }, false, expect.any(AbortSignal))
     await wrapper.get('[data-testid="platform-all"]').trigger('click')
     await flushPromises()
     expect(dimensionPicker('group').props('options')).toHaveLength(3)
-    expect(dimensionPicker('model').props('options')).toHaveLength(3)
     expect(wrapper.get('[data-testid="platform-all"]').attributes('aria-pressed')).toBe('true')
   })
 
-  it('cascades model choices by selected groups and clears a model outside the next group', async () => {
+  it('loads the selected group without forwarding a legacy model filter', async () => {
     mocks.getDimensions.mockResolvedValue(platformCatalog())
-    mocks.route.query = { platform: 'openai', model: 'gpt-alpha' }
+    mocks.route.query = { platform: 'openai', model: 'gpt-alpha', model_type: 'image', group_by: 'platform_group_model', q: 'old-model-search' }
     wrapper = render()
     await flushPromises()
-    expect(dimensionPicker('model').props('options')).toHaveLength(2)
-
+    expect(wrapper.get('input[type="search"]').element).toHaveProperty('value', '')
     dimensionPicker('group').vm.$emit('update:modelValue', ['2'])
     await flushPromises()
-    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'gpt-image-new', label: 'openai / gpt-image-new' }])
-    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['openai'], groupIds: [2], models: [] }, false, expect.any(AbortSignal))
-    expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ group: '2', model: undefined }) }))
-  })
-
-  it('keeps compatible dimensions on platform selection and supports older catalogs without model group links', async () => {
-    const catalog = platformCatalog()
-    mocks.getDimensions.mockResolvedValue({ ...catalog, models: catalog.models.map(model => ({ value: model.value, label: model.label, platform: model.platform, request_count: model.request_count })) })
-    mocks.route.query = { group: '1', model: 'gpt-alpha' }
-    wrapper = render()
-    await flushPromises()
-
-    await wrapper.get('[data-testid="platform-openai"]').trigger('click')
-    await flushPromises()
-    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['openai'], groupIds: [1], models: ['gpt-alpha'] }, false, expect.any(AbortSignal))
-    expect(dimensionPicker('model').props('options')).toHaveLength(2)
-    dimensionPicker('platform').vm.$emit('update:modelValue', ['anthropic', 'grok'])
-    await flushPromises()
-    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['anthropic', 'grok'], groupIds: [], models: [] }, false, expect.any(AbortSignal))
-    expect(dimensionPicker('model').props('options')).toHaveLength(1)
+    expect(mocks.getMatrix).toHaveBeenLastCalledWith({ range: '90m', platforms: ['openai'], groupIds: [2], models: [] }, 'platform_group', false, expect.any(AbortSignal))
   })
 
   it('includes a composite group under every platform advertised by its catalog models', async () => {
@@ -401,29 +376,28 @@ describe('ChannelStatusV2View model availability', () => {
     await wrapper.get('[data-testid="platform-anthropic"]').trigger('click')
     await flushPromises()
     expect(dimensionPicker('group').props('options')).toContainEqual({ value: '9', label: 'composite / Mixed group' })
-    expect(dimensionPicker('model').props('options')).toEqual([{ value: 'claude-critical', label: 'anthropic / claude-critical' }])
-    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['anthropic'], groupIds: [9], models: [] }, false, expect.any(AbortSignal))
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '90m', platforms: ['anthropic'], groupIds: [9], models: [] }, false, expect.any(AbortSignal))
     await wrapper.get('[data-testid="platform-grok"]').trigger('click')
     await flushPromises()
     expect(dimensionPicker('group').props('options')).toEqual([])
-    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '24h', platforms: ['grok'], groupIds: [], models: [] }, false, expect.any(AbortSignal))
+    expect(mocks.getSnapshot).toHaveBeenLastCalledWith({ range: '90m', platforms: ['grok'], groupIds: [], models: [] }, false, expect.any(AbortSignal))
   })
 
-  it('loads a 24-hour model/group view using the authenticated user API', async () => {
+  it('loads a 90-minute group view using the authenticated user API', async () => {
     wrapper = render()
     await flushPromises()
 
-    const filter = { range: '24h', platforms: [], groupIds: [], models: [] }
+    const filter = { range: '90m', platforms: [], groupIds: [], models: [] }
     expect(mocks.getDimensions).toHaveBeenCalledWith(filter, false, expect.any(AbortSignal))
     expect(mocks.getSnapshot).toHaveBeenCalledWith(filter, false, expect.any(AbortSignal))
-    expect(mocks.getMatrix).toHaveBeenCalledWith(filter, 'platform_group_model', false, expect.any(AbortSignal))
-    expect(mocks.getModels).toHaveBeenCalledWith(filter, false, expect.any(AbortSignal))
-    expect(wrapper.get('[aria-pressed="true"]').text()).toContain('availability.range24h')
+    expect(mocks.getMatrix).toHaveBeenCalledWith(filter, 'platform_group', false, expect.any(AbortSignal))
+    expect(wrapper.get('[aria-pressed="true"]').text()).toContain('ranges.90m')
     expect(displayedRows()).toEqual(severityOrder)
+    expect(wrapper.getComponent(CardsStub).props('groupRates')).toEqual({ 1: 0, 2: 0.2, 3: 0.15 })
     expect(wrapper.find('a[href="/admin/channels/monitor"]').exists()).toBe(false)
   })
 
-  it.each(['form', 'button'] as const)('applies case-insensitive model search through the %s submission', async (submission) => {
+  it.each(['form', 'button'] as const)('applies case-insensitive group search through the %s submission', async (submission) => {
     wrapper = render()
     await flushPromises()
     await wrapper.get('input[type="search"]').setValue(' CLAUDE ')
@@ -434,7 +408,7 @@ describe('ChannelStatusV2View model availability', () => {
     else await wrapper.get('form[role="search"] button[type="submit"]').trigger('click')
     await flushPromises()
 
-    expect(displayedRows().map(item => item.model)).toEqual(['claude-critical'])
+    expect(displayedRows().map(item => item.group_name)).toEqual(['claude-critical'])
     expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ q: 'CLAUDE' }) }))
     expect(mocks.getMatrix).toHaveBeenCalledTimes(1)
     await wrapper.get('input[type="search"]').setValue('')
@@ -444,40 +418,27 @@ describe('ChannelStatusV2View model availability', () => {
   it('counts missing and insufficient samples separately and filters by actual status', async () => {
     wrapper = render()
     await flushPromises()
-    expect(wrapper.get('[data-testid="summary-total"]').text()).toMatch(/5$/)
-    for (const status of ['healthy', 'warning', 'critical']) {
-      expect(wrapper.get(`[data-testid="summary-${status}"]`).text()).toMatch(/1$/)
-    }
     expect(wrapper.text()).toContain('pendingSummary empty=1 insufficient=1')
 
     const status = wrapper.get('select[aria-label="channelMonitorV2.availability.filterStatus"]')
     await status.setValue('critical')
-    expect(displayedRows().map(item => item.model)).toEqual(['claude-critical'])
+    expect(displayedRows().map(item => item.group_name)).toEqual(['claude-critical'])
     // Filtering must not turn the absent sample into a failed model or collapse the summary.
-    expect(wrapper.get('[data-testid="summary-total"]').text()).toMatch(/5$/)
     await status.setValue('noData')
-    expect(displayedRows().map(item => item.model)).toEqual(['gpt-empty'])
+    expect(displayedRows().map(item => item.group_name)).toEqual(['gpt-empty'])
     await status.setValue('insufficient')
-    expect(displayedRows().map(item => item.model)).toEqual(['gpt-sparse'])
+    expect(displayedRows().map(item => item.group_name)).toEqual(['gpt-sparse'])
   })
 
-  it('includes image models by default and filters by backend model type without name guessing', async () => {
-    const image = { ...row('gpt-image-2.5-flare', 20, 'healthy'), is_image_model: true }
-    const text = { ...row('image-analysis-chat', 21, 'healthy'), is_image_model: false }
-    mocks.getMatrix.mockResolvedValue({ coverage, group_by: 'platform_group_model', items: [image, text] })
+  it('uses group statistics rather than displaying model rows or platform placeholders', async () => {
+    const group = row('OpenAI images', 20, 'healthy')
+    mocks.getMatrix.mockResolvedValue({ coverage, group_by: 'platform_group', items: [
+      group, { ...group, model: 'gpt-image-2', is_image_model: true }, { ...group, group_id: undefined },
+    ] })
     wrapper = render()
     await flushPromises()
-
-    expect(displayedRows()).toEqual([image, text])
-    const type = wrapper.get('select[aria-label="channelMonitorV2.availability.modelType"]')
-    await type.setValue('image')
-    expect(displayedRows()).toEqual([image])
-    expect(wrapper.get('[data-testid="summary-total"]').text()).toMatch(/1$/)
-    expect(mocks.replace).toHaveBeenLastCalledWith(expect.objectContaining({ query: expect.objectContaining({ model_type: 'image' }) }))
-    await type.setValue('text')
-    expect(displayedRows()).toEqual([text])
-    await type.setValue('all')
-    expect(displayedRows()).toEqual([image, text])
+    expect(displayedRows()).toEqual([group])
+    expect(wrapper.find('select[aria-label="channelMonitorV2.availability.modelType"]').exists()).toBe(false)
   })
 
   it('retains the last snapshot while a background refresh runs and shows a failure notice', async () => {
@@ -491,7 +452,7 @@ describe('ChannelStatusV2View model availability', () => {
     expect(mocks.getSnapshot).toHaveBeenCalledTimes(2)
     expect(wrapper.get('.availability-results').attributes('aria-busy')).toBe('true')
     expect(displayedRows()).toEqual(severityOrder)
-    expect(wrapper.get('[data-metric="channelMonitorV2.metrics.successRate"]').text()).toBe('80.0%')
+    expect(wrapper.get('.availability-summary').text()).toContain('availabilityValue value=80.0%')
 
     rejectRefresh({ message: 'Snapshot unavailable' })
     await flushPromises()
@@ -506,18 +467,17 @@ describe('ChannelStatusV2View model availability', () => {
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
-  it('clears stale model data and explains when the backend disables monitoring', async () => {
+  it('clears stale group data and explains when the backend disables monitoring', async () => {
     wrapper = render()
     await flushPromises()
     mocks.getSnapshot.mockRejectedValueOnce({ reason: 'CHANNEL_MONITOR_DISABLED', message: 'Feature disabled' })
-    await wrapper.get('.availability-header .availability-action').trigger('click')
+    await wrapper.get('.availability-header button[aria-label="common.refresh"]').trigger('click')
     await flushPromises()
 
-    expect(wrapper.find('[data-testid="model-cards"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="channel-cards"]').exists()).toBe(false)
     expect(wrapper.find('[data-metric="channelMonitorV2.metrics.successRate"]').exists()).toBe(false)
     expect(wrapper.get('[role="alert"]').text()).toContain('availability.disabled')
     expect(wrapper.text()).toContain('availability.disabledHint')
-    expect(wrapper.get('[data-testid="summary-total"]').text()).toMatch(/0$/)
     expect(wrapper.get('[role="alert"]').text()).not.toContain('availability.stale')
   })
 
@@ -526,8 +486,8 @@ describe('ChannelStatusV2View model availability', () => {
     wrapper = render()
     await flushPromises()
 
-    expect(wrapper.get('[data-metric="channelMonitorV2.metrics.successRate"]').text()).toBe('80.0%')
-    expect(wrapper.get('[data-metric="channelMonitorV2.metrics.cacheRate"]').text()).toBe('—')
+    expect(wrapper.get('.availability-summary').text()).toContain('availabilityValue value=80.0%')
+    expect(wrapper.get('.availability-summary').text()).toContain('cacheRateValue value=—')
   })
 
   it('offers the existing monitor settings entry to admins and requests admin statistics', async () => {
@@ -537,26 +497,26 @@ describe('ChannelStatusV2View model availability', () => {
 
     expect(wrapper.get('a[href="/admin/channels/monitor"]').text()).toContain('availability.settings')
     expect(mocks.getSnapshot).toHaveBeenCalledWith(expect.any(Object), true, expect.any(AbortSignal))
-    expect(mocks.getMatrix).toHaveBeenCalledWith(expect.any(Object), 'platform_group_model', true, expect.any(AbortSignal))
+    expect(mocks.getMatrix).toHaveBeenCalledWith(expect.any(Object), 'platform_group', true, expect.any(AbortSignal))
   })
 
   it('persists favorites and display filters per authenticated user and restores them after remount', async () => {
     wrapper = render()
     await flushPromises()
     wrapper.getComponent(CardsStub).vm.$emit('toggle-favorite', rows[0])
-    await wrapper.get('input[type="search"]').setValue('gpt')
+    await wrapper.get('input[type="search"]').setValue('default')
     await wrapper.get('form[role="search"]').trigger('submit')
     await wrapper.get('select[aria-label="channelMonitorV2.preferences.sortLabel"]').setValue('name')
     await wrapper.findAll('button').find(item => item.text() === 'channelMonitorV2.preferences.favoritesOnly')!.trigger('click')
     await flushPromises()
 
-    const favorite = JSON.stringify(['openai', 'gpt-alpha', 1])
-    expect(JSON.parse(localStorage.getItem('channel-monitor-v2:v1:42')!)).toMatchObject({ q: 'gpt', sort: 'name', favorites_only: true, favorites: [favorite] })
+    const favorite = JSON.stringify(['openai', '', 1])
+    expect(JSON.parse(localStorage.getItem('channel-monitor-v2:v1:42')!)).toMatchObject({ q: 'default', sort: 'name', favorites_only: true, favorites: [favorite] })
     expect(displayedRows()).toEqual([rows[0]])
     wrapper.unmount()
     wrapper = render()
     await flushPromises()
-    expect(wrapper.get('input[type="search"]').element).toHaveProperty('value', 'gpt')
+    expect(wrapper.get('input[type="search"]').element).toHaveProperty('value', 'default')
     expect(wrapper.get('select[aria-label="channelMonitorV2.preferences.sortLabel"]').element).toHaveProperty('value', 'name')
     expect(wrapper.getComponent(CardsStub).props('favoriteKeys')).toEqual([favorite])
     expect(displayedRows()).toEqual([rows[0]])
@@ -575,27 +535,25 @@ describe('ChannelStatusV2View model availability', () => {
     localStorage.setItem('channel-monitor-v2:v1:42', JSON.stringify({
       range: '7d', platform: ['openai'], group: [1], model: ['gpt-alpha'], q: 'gpt', status: 'healthy', model_type: 'image', sort: 'name', favorites_only: true,
     }))
-    mocks.route.query = { range: '24h', platform: '', group: '', model: '', q: 'CLAUDE', status: 'all', model_type: 'all', sort: 'success', favorites_only: '0' }
+    mocks.route.query = { range: '90m', platform: '', group: '', model: '', q: 'CLAUDE', status: 'all', model_type: 'all', sort: 'success', favorites_only: '0' }
     wrapper = render()
     await flushPromises()
-    expect(mocks.getSnapshot).toHaveBeenCalledWith({ range: '24h', platforms: [], groupIds: [], models: [] }, false, expect.any(AbortSignal))
+    expect(mocks.getSnapshot).toHaveBeenCalledWith({ range: '90m', platforms: [], groupIds: [], models: [] }, false, expect.any(AbortSignal))
     expect(wrapper.get('input[type="search"]').element).toHaveProperty('value', 'CLAUDE')
     expect(wrapper.get('select[aria-label="channelMonitorV2.preferences.sortLabel"]').element).toHaveProperty('value', 'success')
     expect(displayedRows()).toEqual([rows[2]])
   })
 
-  it('marks stale HTTP-200 data as historical and withholds current health counts', async () => {
+  it('marks stale HTTP-200 data as historical in the channel cards', async () => {
     const staleCoverage = { ...coverage, computed_at: '2026-10-17T13:00:00Z', data_through: '2026-10-17T13:00:00Z', aggregation_lag_seconds: 5460 }
     mocks.getSnapshot.mockResolvedValue({ ...snapshot(), coverage: staleCoverage })
-    mocks.getMatrix.mockResolvedValue({ coverage: staleCoverage, group_by: 'platform_group_model', items: rows })
+    mocks.getMatrix.mockResolvedValue({ coverage: staleCoverage, group_by: 'platform_group', items: rows })
     wrapper = render()
     await flushPromises()
     expect(wrapper.get('[data-testid="freshness-warning"]').text()).toContain('freshness.title')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     expect(wrapper.getComponent(CardsStub).props('stale')).toBe(true)
-    expect(wrapper.get('[data-testid="summary-total"]').text()).toMatch(/5$/)
-    for (const status of ['healthy', 'warning', 'critical']) expect(wrapper.get(`[data-testid="summary-${status}"]`).text()).toMatch(/—$/)
-    expect(wrapper.get('[data-metric="channelMonitorV2.metrics.successRate"]').text()).toBe('80.0%')
+    expect(wrapper.get('.availability-summary').text()).toContain('availabilityValue value=80.0%')
   })
 
   it.each([false, true])('loads exact row scope and clicked interval for incident details (bucket=%s)', async bucket => {
@@ -608,8 +566,8 @@ describe('ChannelStatusV2View model availability', () => {
     mocks.getErrors.mockResolvedValueOnce({ coverage, items: [{ category: 'timeout', rate: 1, count: 0 }] })
     wrapper.getComponent(CardsStub).vm.$emit('inspect', { row: selected, ...window })
     await flushPromises()
-    const scoped = { range: '24h', platforms: ['anthropic'], groupIds: [3], models: ['claude-critical'], ...interval }
-    expect(mocks.getMatrix).toHaveBeenLastCalledWith(scoped, 'platform_group_model', false, expect.any(AbortSignal))
+    const scoped = { range: '90m', platforms: ['anthropic'], groupIds: [3], models: [], ...interval }
+    expect(mocks.getMatrix).toHaveBeenLastCalledWith(scoped, 'platform_group', false, expect.any(AbortSignal))
     expect(mocks.getErrors).toHaveBeenLastCalledWith(scoped, false, expect.any(AbortSignal))
     const dialog = wrapper.getComponent(IncidentStub)
     expect(dialog.props('window')).toEqual(interval)
@@ -650,11 +608,11 @@ describe('ChannelStatusV2View model availability', () => {
     const signal = mocks.getMatrix.mock.calls.at(-1)![3] as AbortSignal
     expect(wrapper.getComponent(IncidentStub).props('show')).toBe(true)
     mocks.getSnapshot.mockRejectedValueOnce({ reason: 'CHANNEL_MONITOR_DISABLED', message: 'Feature disabled' })
-    await wrapper.get('.availability-header .availability-action').trigger('click')
+    await wrapper.get('.availability-header button[aria-label="common.refresh"]').trigger('click')
     await flushPromises()
     expect(signal.aborted).toBe(true)
     expect(wrapper.getComponent(IncidentStub).props('show')).toBe(false)
-    expect(wrapper.find('[data-testid="model-cards"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="channel-cards"]').exists()).toBe(false)
 
     resolveIncident({ coverage, items: [rows[0]] })
     await flushPromises()

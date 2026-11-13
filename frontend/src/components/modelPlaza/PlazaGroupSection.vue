@@ -6,7 +6,9 @@
     <!-- 分组头部:名称/平台/倍率徽章/专属/订阅徽章 + 描述 -->
     <header class="border-b border-gray-100 px-5 py-4 dark:border-dark-700/60">
       <div class="flex flex-wrap items-center gap-2">
+        <h3 v-if="pricesOnly" class="min-w-0 break-words text-sm font-semibold text-gray-900 dark:text-white">{{ group.name }}</h3>
         <GroupBadge
+          v-else
           :name="group.name"
           :platform="group.platform as GroupPlatform"
           :subscription-type="(group.subscription_type || 'standard') as SubscriptionType"
@@ -56,6 +58,7 @@
       <PlazaModelPricingTable
         v-if="group.models.length > 0"
         :models="group.models"
+        :prices-only="pricesOnly"
         :platform="group.platform"
         :rate-multiplier="group.rate_multiplier"
         :user-rate-multiplier="group.user_rate_multiplier ?? null"
@@ -87,6 +90,7 @@ import { useAppStore } from '@/stores/app'
 
 const props = defineProps<{
   group: ModelPlazaGroup
+  pricesOnly?: boolean
 }>()
 
 const { t } = useI18n()
@@ -118,6 +122,6 @@ const longContextNote = computed(() => {
   const hasOfficialLadder = props.group.models.some(
     (m) => (m.official_pricing?.intervals?.length ?? 0) > 1
   )
-  return hasOfficialLadder ? t('modelPlaza.detail.longContextDisabledNote') : ''
+  return hasOfficialLadder ? t(props.pricesOnly ? 'publicSite.models.baseContextPrice' : 'modelPlaza.detail.longContextDisabledNote') : ''
 })
 </script>

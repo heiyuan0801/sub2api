@@ -30,7 +30,7 @@ vi.mock('@/stores/app', () => ({
 }))
 
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => authStore }))
-vi.mock('vue-router', async (original) => ({ ...(await original<typeof import('vue-router')>()), useRoute: () => ({ name: 'Home', fullPath: '/home' }) }))
+vi.mock('vue-router', async (original) => ({ ...(await original<typeof import('vue-router')>()), useRoute: () => ({ name: 'Home', fullPath: '/home' }), useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('@/api/modelPlaza', () => ({ getModelPlaza: vi.fn().mockResolvedValue({ groups: [] }) }))
 
 vi.mock('vue-i18n', async (importOriginal) => {
@@ -60,7 +60,7 @@ function mountHome(settings: Record<string, unknown> = {}) {
 }
 
 function compactDestination(wrapper: ReturnType<typeof mountHome>) {
-  return wrapper.get('[data-testid="compact-home"]').findComponent(RouterLinkStub).props('to')
+  return wrapper.get('[data-testid="compact-home"] main').findComponent(RouterLinkStub).props('to')
 }
 
 function modelPlazaDestination(wrapper: ReturnType<typeof mountHome>) {

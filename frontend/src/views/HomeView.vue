@@ -95,56 +95,80 @@
     <PublicSiteHeader />
 
     <main>
-      <section class="hero" aria-labelledby="hero-heading">
-        <div class="hero-grid" aria-hidden="true"></div>
-        <div class="hero-shell"><div class="hero-inner">
-          <p class="hero-eyebrow">{{ t('design.homeEyebrow') }}</p>
-          <router-link
-            v-if="showModelPlazaEntry && featuredModel"
-            :to="{ path: '/model-plaza', query: { search: featuredModel } }"
-            class="model-announcement featured-model-announcement"
-            :aria-label="t('publicHome.announcement.label', { model: featuredModel })"
-            :title="t('publicHome.announcement.label', { model: featuredModel })"
-          >
-            <span class="announcement-label"><Icon name="sparkles" size="md" aria-hidden="true" />{{ t('publicHome.announcement.newModel') }}</span>
-            <span class="announcement-model">{{ featuredModel }}</span>
-            <Icon name="arrowRight" size="lg" class="announcement-arrow" aria-hidden="true" />
-          </router-link>
-          <div v-else class="model-announcement">
-            <span class="announcement-label">{{ t('publicHome.announcement.unifiedApi') }}</span>
-            <span>{{ t('publicHome.announcement.simplifyDevelopment') }}</span>
-            <Icon name="sparkles" size="sm" aria-hidden="true" />
+      <section class="market-home-hero" aria-labelledby="hero-heading">
+        <div class="market-home-shell">
+          <div class="market-home-copy">
+            <RouterLink v-if="showModelPlazaEntry && featuredModel" :to="modelLink(featuredModel)" class="featured-model-announcement market-new">
+              <Icon name="sparkles" size="sm" /><span>{{ t('publicHome.announcement.newModel') }}</span><strong>{{ featuredModel }}</strong><Icon name="arrowRight" size="xs" />
+            </RouterLink>
+            <h1 id="hero-heading">{{ t('publicSite.market.homeTitle') }}</h1>
+            <p class="market-lead">{{ heroSubtitle }}</p>
+            <div class="market-hero-actions">
+              <RouterLink v-if="showModelPlazaEntry" to="/model-plaza" class="market-primary">{{ t('publicSite.market.explore') }}<ArrowUpRight :size="16" /></RouterLink>
+              <RouterLink :to="startPath" :class="showModelPlazaEntry ? 'market-secondary' : 'market-primary'">{{ isAuthenticated ? t('publicHome.actions.dashboard') : t('publicHome.actions.getStarted') }}</RouterLink>
+              <a v-if="!showModelPlazaEntry" :href="docUrl || '#quick-start'" class="market-secondary">{{ t('publicHome.actions.documentation') }}</a>
+            </div>
+            <dl v-if="marketGroups.length" class="market-totals">
+              <div><dd>{{ catalogModels.length }}</dd><dt>{{ t('publicSite.market.availableModels') }}</dt></div>
+              <div><dd>{{ providerCount }}</dd><dt>{{ t('publicSite.market.providers') }}</dt></div>
+              <div><dd>{{ marketGroups.length }}</dd><dt>{{ t('publicSite.market.groups') }}</dt></div>
+            </dl>
           </div>
-
-          <h1 id="hero-heading" class="hero-title">
-            <span>{{ t('publicHome.hero.title') }}</span>
-            <span>{{ t('publicHome.hero.subtitle') }}</span>
-          </h1>
-          <p class="hero-description">{{ heroSubtitle }}</p>
-          <div class="hero-actions">
-            <Button as-child size="lg"><router-link :to="startPath">
-              {{ isAuthenticated ? t('publicHome.actions.dashboard') : t('publicHome.actions.getStarted') }}
-              <ArrowUpRight :size="16" aria-hidden="true" />
-            </router-link></Button>
-            <Button as-child variant="outline" size="lg"><a
-              :href="docUrl || '#quick-start'"
-              :target="docUrl ? '_blank' : undefined"
-              :rel="docUrl ? 'noopener noreferrer' : undefined"
-            >{{ t('publicHome.actions.documentation') }}</a></Button>
-          </div>
-        </div>
-        <Card class="hero-preview">
-          <div class="hero-preview-header"><span><Terminal :size="15" />{{ t('publicHome.examples.request') }}</span><Badge variant="outline">API</Badge></div>
-          <div class="hero-preview-body"><p>POST <span>/v1/chat/completions</span></p><pre><code>{{ requestExamples.chat }}</code></pre></div>
-          <div class="hero-preview-footer"><span>{{ t('publicHome.quickstart.apiEndpoint') }}</span><code>{{ gatewayRoot }}</code></div>
-        </Card>
+          <img :src="marketHero" class="market-home-art" width="1320" height="880" alt="" fetchpriority="high" />
         </div>
       </section>
 
-      <section id="features" class="home-section services-section" aria-labelledby="services-heading">
+      <section v-if="featuredCards.length" class="market-home-section featured-section" aria-labelledby="featured-heading">
         <div class="home-container">
-          <div class="section-heading">
-            <span class="section-eyebrow"><span class="status-dot"></span>{{ t('publicHome.services.eyebrow') }}</span>
+          <div class="market-section-title">
+            <h2 id="featured-heading">{{ t('publicSite.market.featured') }}</h2>
+            <p>{{ t('publicSite.market.featuredDescription') }} <RouterLink to="/model-plaza">{{ t('publicSite.market.explore') }} <ArrowUpRight :size="15" /></RouterLink></p>
+          </div>
+          <div class="featured-grid">
+            <RouterLink v-for="{ model, group, groups, prices } in featuredCards" :key="model.platform + ':' + model.name" :to="modelLink(model.name)" class="featured-tile">
+              <article>
+                <h3><PlatformIcon :platform="model.platform as GroupPlatform" size="md" />{{ model.name }}</h3>
+                <div class="featured-tags"><span>{{ platformLabel(model.platform) }}</span><span v-if="latestNames.includes(model.name)">{{ t('publicHome.announcement.newModel') }}</span></div>
+                <p :title="group.description || undefined">{{ group.name }} · {{ t('publicSite.models.groupCount', { count: groups }) }}</p>
+                <footer>
+                  <dl v-if="prices.mode === BILLING_MODE_TOKEN && (prices.input !== null || prices.output !== null)" class="featured-prices">
+                    <div v-if="prices.input !== null"><dt>{{ t('publicSite.market.input') }}</dt><dd>{{ formatCatalogPrice(prices.input, 1e6) }}<small>/M</small></dd></div>
+                    <div v-if="prices.output !== null"><dt>{{ t('publicSite.market.output') }}</dt><dd>{{ formatCatalogPrice(prices.output, 1e6) }}<small>/M</small></dd></div>
+                  </dl>
+                  <dl v-else-if="prices.request !== null && prices.mode !== BILLING_MODE_TOKEN" class="featured-prices">
+                    <div><dt>{{ t(`publicSite.models.${prices.mode === BILLING_MODE_IMAGE ? 'imageBilling' : prices.mode === BILLING_MODE_VIDEO ? 'videoBilling' : 'requestBilling'}`) }}</dt><dd>{{ formatCatalogPrice(prices.request) }}</dd></div>
+                  </dl>
+                  <span>{{ t('publicSite.market.details') }} <ArrowUpRight :size="15" /></span>
+                </footer>
+              </article>
+            </RouterLink>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="providers.length" class="market-home-section provider-section" aria-labelledby="provider-heading">
+        <div class="home-container">
+          <div class="market-section-title">
+            <h2 id="provider-heading">{{ t('publicSite.market.overview') }}</h2>
+            <p>{{ t('publicSite.market.overviewDescription') }}</p>
+          </div>
+          <ul class="provider-grid">
+            <li v-for="provider in providers.slice(0, 8)" :key="provider.name">
+              <RouterLink :to="modelLink(platformLabel(provider.name))" class="provider-tile">
+                <span class="provider-symbol"><PlatformIcon :platform="provider.name as GroupPlatform" size="lg" /></span>
+                <span class="provider-label"><strong>{{ platformLabel(provider.name) }}</strong><small>{{ t('publicSite.models.modelCount', { count: provider.count }) }}</small></span>
+                <span class="provider-bar" aria-hidden="true"><span :style="{ width: `${100 * provider.count / catalogModels.length}%` }"></span></span>
+                <ArrowUpRight :size="16" />
+              </RouterLink>
+            </li>
+          </ul>
+          <RouterLink to="/model-plaza" class="market-section-link">{{ t('publicSite.market.explore') }} <ArrowUpRight :size="16" /></RouterLink>
+        </div>
+      </section>
+
+      <section id="features" class="market-home-section services-section" aria-labelledby="services-heading">
+        <div class="home-container">
+          <div class="market-section-title">
             <h2 id="services-heading">{{ t('publicHome.services.title') }}</h2>
             <p>{{ t('publicHome.services.description') }}</p>
           </div>
@@ -158,17 +182,16 @@
         </div>
       </section>
 
-      <section id="quick-start" class="home-section quickstart-section" aria-labelledby="quickstart-heading">
+      <section id="quick-start" class="market-home-section quickstart-section" aria-labelledby="quickstart-heading">
         <div class="home-container">
-          <div class="section-heading">
-            <span class="section-eyebrow"><Icon name="terminal" size="sm" aria-hidden="true" />{{ t('publicHome.quickstart.eyebrow') }}</span>
+          <div class="market-section-title">
             <h2 id="quickstart-heading">{{ t('publicHome.quickstart.title') }}</h2>
             <p>{{ t('publicHome.quickstart.description') }}</p>
           </div>
           <div class="quickstart-layout">
             <div class="steps-list">
               <router-link :to="startPath" class="step-card">
-                <span class="step-number">1</span>
+                <span class="step-icon"><Icon name="user" size="md" aria-hidden="true" /></span>
                 <div>
                   <h3>{{ accountStep.title }}</h3>
                   <p>{{ accountStep.description }}</p>
@@ -176,7 +199,7 @@
                 <Icon name="arrowRight" size="sm" class="step-arrow" aria-hidden="true" />
               </router-link>
               <router-link to="/keys" class="step-card">
-                <span class="step-number">2</span>
+                <span class="step-icon"><Icon name="key" size="md" aria-hidden="true" /></span>
                 <div><h3>{{ t('publicHome.quickstart.createKey.title') }}</h3><p>{{ t('publicHome.quickstart.createKey.description') }}</p></div>
                 <Icon name="arrowRight" size="sm" class="step-arrow" aria-hidden="true" />
               </router-link>
@@ -186,23 +209,22 @@
                 :rel="docUrl ? 'noopener noreferrer' : undefined"
                 class="step-card"
               >
-                <span class="step-number">3</span>
+                <span class="step-icon"><Icon name="terminal" size="md" aria-hidden="true" /></span>
                 <div><h3>{{ t('publicHome.quickstart.connectApp.title') }}</h3><p>{{ t('publicHome.quickstart.connectApp.description') }}</p></div>
                 <Icon name="arrowRight" size="sm" class="step-arrow" aria-hidden="true" />
               </a>
-              <div class="endpoint-note">
-                <Icon name="link" size="sm" aria-hidden="true" />
-                <span>{{ t('publicHome.quickstart.apiEndpoint') }}</span>
-                <code>{{ gatewayRoot }}</code>
-                <button type="button" :title="t('publicHome.quickstart.copyEndpoint')" :aria-label="t('publicHome.quickstart.copyEndpoint')" @click="copyToClipboard(gatewayRoot)">
-                  <Icon name="copy" size="sm" aria-hidden="true" />
-                </button>
-              </div>
             </div>
 
             <div id="api-example" class="code-panel">
               <div class="code-window-header">
-                <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+                <div class="endpoint-note">
+                  <Icon name="link" size="sm" aria-hidden="true" />
+                  <span>{{ t('publicHome.quickstart.apiEndpoint') }}</span>
+                  <code>{{ gatewayRoot }}</code>
+                  <button type="button" :title="t('publicHome.quickstart.copyEndpoint')" :aria-label="t('publicHome.quickstart.copyEndpoint')" @click="copyEndpoint(gatewayRoot)">
+                    <Icon :name="endpointCopied ? 'check' : 'copy'" size="sm" aria-hidden="true" />
+                  </button>
+                </div>
                 <div class="protocol-tabs" role="tablist" :aria-label="t('publicHome.examples.protocolsLabel')">
                   <button
                     v-for="protocol in protocols"
@@ -219,17 +241,21 @@
                   >{{ protocol.label }}</button>
                 </div>
               </div>
-              <div id="protocol-code" role="tabpanel" :aria-labelledby="`protocol-tab-${activeProtocol}`">
-                <div class="code-toolbar">
-                  <span class="code-block-label">{{ t('publicHome.examples.request') }}</span>
-                  <button type="button" class="code-copy" :title="copied ? t('publicHome.examples.requestCopied') : t('publicHome.examples.copyRequest')" :aria-label="copied ? t('publicHome.examples.requestCopied') : t('publicHome.examples.copyRequest')" @click="copyToClipboard(requestExamples[activeProtocol])">
-                    <Icon :name="copied ? 'check' : 'copy'" size="sm" aria-hidden="true" />
-                    <span>{{ copied ? t('publicHome.examples.copied') : t('publicHome.examples.copy') }}</span>
-                  </button>
+              <div id="protocol-code" class="code-examples" role="tabpanel" :aria-labelledby="`protocol-tab-${activeProtocol}`">
+                <div class="code-pane">
+                  <div class="code-toolbar">
+                    <span class="code-block-label">{{ t('publicHome.examples.request') }}</span>
+                    <button type="button" class="code-copy" :title="copied ? t('publicHome.examples.requestCopied') : t('publicHome.examples.copyRequest')" :aria-label="copied ? t('publicHome.examples.requestCopied') : t('publicHome.examples.copyRequest')" @click="copyToClipboard(requestExamples[activeProtocol])">
+                      <Icon :name="copied ? 'check' : 'copy'" size="sm" aria-hidden="true" />
+                      <span>{{ copied ? t('publicHome.examples.copied') : t('publicHome.examples.copy') }}</span>
+                    </button>
+                  </div>
+                  <pre class="example-code" :aria-label="t('publicHome.examples.requestLabel')" tabindex="0"><code>{{ requestExamples[activeProtocol] }}</code></pre>
                 </div>
-                <pre class="example-code request-code" :aria-label="t('publicHome.examples.requestLabel')" tabindex="0"><code>{{ requestExamples[activeProtocol] }}</code></pre>
-                <div class="code-toolbar response-toolbar"><span class="code-block-label">{{ t('publicHome.examples.response') }}</span></div>
-                <pre class="example-code response-code" :aria-label="t('publicHome.examples.responseLabel')" tabindex="0"><code>{{ responseExamples[activeProtocol] }}</code></pre>
+                <div class="code-pane">
+                  <div class="code-toolbar"><span class="code-block-label">{{ t('publicHome.examples.response') }}</span></div>
+                  <pre class="example-code response-code" :aria-label="t('publicHome.examples.responseLabel')" tabindex="0"><code>{{ responseExamples[activeProtocol] }}</code></pre>
+                </div>
               </div>
               <div class="code-caption">
                 <span class="request-method">POST</span>
@@ -242,10 +268,9 @@
         </div>
       </section>
 
-      <section class="home-section applications-section" aria-labelledby="applications-heading">
+      <section class="market-home-section applications-section" aria-labelledby="applications-heading">
         <div class="home-container">
-          <div class="section-heading">
-            <span class="section-eyebrow"><Icon name="sparkles" size="sm" aria-hidden="true" />{{ t('publicHome.applications.eyebrow') }}</span>
+          <div class="market-section-title">
             <h2 id="applications-heading">{{ t('publicHome.applications.title') }}</h2>
             <p>{{ t('publicHome.applications.description') }}</p>
           </div>
@@ -259,23 +284,30 @@
         </div>
       </section>
 
-      <section class="capabilities-section" :aria-label="t('publicHome.capabilities.label')">
-        <div class="home-container capability-grid">
-          <div v-for="capability in capabilities" :key="capability.id"><span>{{ capability.title }}</span><p>{{ capability.description }}</p></div>
+      <section class="market-home-section start-section" aria-labelledby="start-heading">
+        <div class="home-container">
+          <div class="start-panel">
+            <div>
+              <h2 id="start-heading">{{ t('publicHome.getStarted.title', { siteName }) }}</h2>
+              <p>{{ t('publicHome.getStarted.description') }}</p>
+            </div>
+            <div class="start-actions">
+              <RouterLink :to="startPath" class="market-primary">{{ isAuthenticated ? t('publicHome.actions.dashboard') : t('publicHome.actions.getStarted') }} <ArrowUpRight :size="16" /></RouterLink>
+              <RouterLink to="/home#quick-start" class="market-secondary">{{ t('publicSite.nav.quickStart') }}</RouterLink>
+            </div>
+          </div>
         </div>
       </section>
 
     </main>
 
-    <PublicSiteFooter />
+    <PublicSiteFooter variant="home" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Terminal, ArrowUpRight } from '@lucide/vue'
+import { ArrowUpRight } from '@lucide/vue'
 
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -287,12 +319,19 @@ import PublicSiteFooter from '@/components/public/PublicSiteFooter.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
-import { getModelPlaza } from '@/api/modelPlaza'
+import { getModelPlaza, type ModelPlazaResponse, type ModelPlazaGroup, type PlazaModel } from '@/api/modelPlaza'
+import PlatformIcon from '@/components/common/PlatformIcon.vue'
+import { catalogPrices, formatCatalogPrice } from '@/components/modelPlaza/catalogPricing'
+import { BILLING_MODE_IMAGE, BILLING_MODE_TOKEN, BILLING_MODE_VIDEO } from '@/constants/channel'
+import { platformLabel } from '@/utils/platformColors'
+import type { GroupPlatform } from '@/types'
+import marketHero from '@/assets/market-hero.webp'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const { copied, copyToClipboard } = useClipboard()
+const { copied: endpointCopied, copyToClipboard: copyEndpoint } = useClipboard()
 
 // Custom and compact home options retain their existing priority and behavior.
 const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'Sub2API')
@@ -317,6 +356,34 @@ const registrationEnabled = computed(() => appStore.cachedPublicSettings?.regist
 const startPath = computed(() => isAuthenticated.value ? dashboardPath.value : registrationEnabled.value ? '/register' : '/login')
 const currentYear = computed(() => new Date().getFullYear())
 const featuredModel = ref('')
+const marketData = ref<ModelPlazaResponse | null>(null)
+const marketGroups = computed(() => marketData.value?.groups ?? [])
+const latestNames = computed(() => marketData.value?.latest_models?.map(model => model.name) ?? [])
+const catalogModels = computed(() => {
+  const models = new Map<string, { model: PlazaModel; group: ModelPlazaGroup; groups: number }>()
+  for (const group of marketGroups.value) {
+    for (const model of group.models) {
+      const key = `${model.platform}:${model.name}`
+      const entry = models.get(key)
+      if (entry) entry.groups++
+      else models.set(key, { model, group, groups: 1 })
+    }
+  }
+  return [...models.values()]
+})
+const providers = computed(() => {
+  const counts = new Map<string, number>()
+  for (const { model } of catalogModels.value) counts.set(model.platform, (counts.get(model.platform) ?? 0) + 1)
+  return [...counts].map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count)
+})
+const providerCount = computed(() => providers.value.length)
+const featuredCards = computed(() => {
+  const preferred = latestNames.value.map(name => catalogModels.value.find(entry => entry.model.name === name)).filter(entry => entry !== undefined)
+  const firstByProvider = providers.value.map(provider => catalogModels.value.find(entry => entry.model.platform === provider.name)).filter(entry => entry !== undefined)
+  return [...new Set([...preferred, ...firstByProvider, ...catalogModels.value])].slice(0, 4)
+    .map(entry => ({ ...entry, prices: catalogPrices(entry.model, entry.group) }))
+})
+const modelLink = (search: string) => ({ path: '/model-plaza', query: { search } })
 const canLoadFeaturedModel = computed(() =>
   !hasHomeContent.value && !compactHomeEnabled.value && showModelPlazaEntry.value &&
   (!appStore.backendModeEnabled || authStore.isAdmin)
@@ -338,6 +405,7 @@ function clearFeaturedModelTimer() {
 function resetFeaturedModel() {
   clearFeaturedModelTimer()
   featuredModel.value = ''
+  marketData.value = null
   featuredModelGeneration++
   refreshFeaturedModelAfterRequest = false
   featuredModelRequest?.abort()
@@ -358,11 +426,13 @@ async function refreshFeaturedModel() {
   try {
     const data = await getModelPlaza({ signal: controller.signal })
     if (controller.signal.aborted || !featuredModelMounted || generation !== featuredModelGeneration || !canLoadFeaturedModel.value) return
+    marketData.value = data
     const latestModel = data.latest_models?.[0]?.name
     featuredModel.value = typeof latestModel === 'string' ? latestModel.trim() : ''
   } catch {
     if (!controller.signal.aborted && featuredModelMounted && generation === featuredModelGeneration) {
       featuredModel.value = ''
+      marketData.value = null
     }
   } finally {
     if (featuredModelRequest === controller) featuredModelRequest = null
@@ -422,13 +492,6 @@ const applications = computed(() => [
   { icon: 'sparkles', title: t('publicHome.applications.images.title'), description: t('publicHome.applications.images.description') },
   { icon: 'chartBar', title: t('publicHome.applications.analysis.title'), description: t('publicHome.applications.analysis.description') }
 ] as const)
-
-const capabilities = computed(() => [
-  { id: 'unifiedApi', title: t('publicHome.capabilities.unifiedApi.title'), description: t('publicHome.capabilities.unifiedApi.description') },
-  { id: 'models', title: t('publicHome.capabilities.models.title'), description: t('publicHome.capabilities.models.description') },
-  { id: 'usage', title: t('publicHome.capabilities.usage.title'), description: t('publicHome.capabilities.usage.description') },
-  { id: 'control', title: t('publicHome.capabilities.control.title'), description: t('publicHome.capabilities.control.description') }
-])
 
 const protocols = computed(() => [
   { id: 'chat', label: t('publicHome.examples.protocols.chat') },
@@ -508,10 +571,21 @@ onBeforeUnmount(() => {
 <style scoped>
 .public-home {
   --home-bg: #fff;
-  --home-surface: #fafafa;
   --home-text: #171717;
   --home-muted: #737373;
-  --home-border: #ededed;
+  --home-border: #e0e6f2;
+  --lower-surface: #f5f7fd;
+  --lower-muted: #546179;
+  --lower-glow: #e1e7ff;
+  --lower-accent: #4236cd;
+  --lower-icon-bg: #eaf0ff;
+  --lower-icon-border: #dce5ff;
+  --lower-violet-bg: #f1ebff;
+  --lower-violet-border: #e8ddff;
+  --lower-violet-text: #6740b0;
+  --lower-teal-bg: #e7f8f6;
+  --lower-teal-border: #d5efed;
+  --lower-teal-text: #176c60;
   min-height: 100vh;
   background: var(--home-bg);
   color: var(--home-text);
@@ -520,10 +594,21 @@ onBeforeUnmount(() => {
 }
 .dark .public-home {
   --home-bg: #111214;
-  --home-surface: #17181b;
   --home-text: #f5f5f5;
   --home-muted: #a3a3a3;
-  --home-border: #2a2b2e;
+  --home-border: #303a52;
+  --lower-surface: #1a2133;
+  --lower-muted: #abb8d0;
+  --lower-glow: #273860;
+  --lower-accent: #c0c8ff;
+  --lower-icon-bg: #262f51;
+  --lower-icon-border: #37466d;
+  --lower-violet-bg: #32274d;
+  --lower-violet-border: #4b386a;
+  --lower-violet-text: #dfccff;
+  --lower-teal-bg: #203c40;
+  --lower-teal-border: #2f5357;
+  --lower-teal-text: #9be4d8;
 }
 .public-home main { min-width: 0; }
 .public-home a, .public-home button { -webkit-tap-highlight-color: transparent; }
@@ -531,196 +616,203 @@ onBeforeUnmount(() => {
   outline: 2px solid var(--home-text);
   outline-offset: 4px;
 }
-.home-container { width: min(1152px, calc(100% - 64px)); margin: 0 auto; }
-.hero { position: relative; isolation: isolate; min-height: 506px; text-align: center; background: var(--home-bg); }
-.hero-grid {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  pointer-events: none;
-  background-image: linear-gradient(to right, rgba(120, 120, 120, .065) 1px, transparent 1px), linear-gradient(to bottom, rgba(120, 120, 120, .065) 1px, transparent 1px);
-  background-size: 100px 100px;
-  background-position: center top;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, #000 12%, transparent 77%);
-  mask-image: radial-gradient(ellipse at 50% 30%, #000 12%, transparent 77%);
+/* Shared styles for the sections below the hero. */
+.market-home-section { scroll-margin-top: 80px; }
+.market-home-section .market-section-title { margin-bottom: 32px; }
+.services-section, .applications-section { background: var(--home-bg); }
+.service-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.service-card {
+  min-width: 0;
+  border: 1px solid var(--home-border);
+  border-radius: 16px;
+  padding: 24px;
+  background: linear-gradient(145deg, var(--lower-surface), var(--home-bg) 56%);
+  color: var(--home-text);
+  box-shadow: 0 4px 12px rgb(22 42 80 / 3%);
 }
-.hero::after { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 28%, rgba(120, 120, 120, .045), transparent 65%); }
-.hero-inner { width: min(920px, calc(100% - 40px)); margin: 0 auto; padding: 62px 0 72px; }
-.model-announcement { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 33px; max-width: 100%; padding: 4px 12px 4px 5px; border: 1px solid var(--home-border); border-radius: 999px; background: var(--home-bg); color: var(--home-muted); font-size: 12px; }
-.announcement-label { flex-shrink: 0; border-radius: 999px; background: var(--home-text); color: var(--home-bg); padding: 3px 9px; font-size: 10px; font-weight: 500; }
-.featured-model-announcement { gap: 17px; min-height: 66px; padding: 10px 30px 10px 16px; font-size: 28px; line-height: 1; text-decoration: none; transition: border-color .18s, background-color .18s; }
-.featured-model-announcement:hover { border-color: color-mix(in srgb, var(--home-muted) 35%, var(--home-bg)); background: var(--home-surface); }
-.featured-model-announcement .announcement-label { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 7px 15px; font-size: 22px; line-height: 1; white-space: nowrap; }
-.featured-model-announcement .announcement-label svg { flex-shrink: 0; width: 24px; height: 24px; }
-.announcement-model { min-width: 0; overflow: hidden; color: #595959; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.announcement-arrow { flex-shrink: 0; width: 30px; height: 30px; margin-left: 10px; color: #595959; }
-.dark .announcement-model, .dark .announcement-arrow { color: #c5c5c5; }
-.hero-title { margin: 24px 0 0; font-weight: 750; letter-spacing: -.045em; line-height: 1.3; }
-.hero-title span { display: block; font-size: 56px; }
-.hero-title span + span { margin-top: 5px; font-size: 44px; letter-spacing: -.035em; }
-.hero-description { max-width: 720px; margin: 22px auto 0; color: var(--home-muted); font-size: 17px; line-height: 1.9; white-space: pre-line; overflow-wrap: anywhere; }
-.hero-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 16px; margin-top: 30px; }
-.public-button { display: inline-flex; align-items: center; justify-content: center; gap: 15px; min-height: 54px; border: 1px solid transparent; border-radius: 999px; padding: 0 29px; font-size: 14px; font-weight: 500; text-decoration: none; transition: background-color .18s, border-color .18s, box-shadow .18s; }
-.button-primary { min-width: 158px; border-color: var(--home-text); background: var(--home-text); color: var(--home-bg); }
-.button-primary:hover { opacity: .86; }
-.button-secondary { min-width: 128px; border-color: var(--home-border); background: var(--home-bg); color: var(--home-text); box-shadow: 0 1px 2px rgba(0, 0, 0, .02); }
-.button-secondary:hover { background: var(--home-surface); border-color: var(--home-muted); }
-.home-section { padding: 80px 0; scroll-margin-top: 80px; }
-.section-heading { text-align: center; margin-bottom: 44px; }
-.section-eyebrow { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--home-border); border-radius: 999px; padding: 5px 11px; color: var(--home-muted); background: var(--home-bg); font-size: 11px; line-height: 1.5; }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 2px rgba(34, 197, 94, .09); }
-.section-heading h2 { margin: 17px 0 0; color: var(--home-text); font-size: 36px; font-weight: 700; line-height: 1.4; letter-spacing: -.03em; }
-.section-heading p { margin: 13px 0 0; color: var(--home-muted); font-size: 15px; line-height: 1.8; }
-.service-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-.service-card { min-width: 0; border: 1px solid var(--home-border); border-radius: 20px; padding: 30px 28px; background: var(--home-bg); transition: border-color .18s, box-shadow .18s; }
-.service-card:hover { border-color: color-mix(in srgb, var(--home-muted) 40%, var(--home-bg)); box-shadow: 0 6px 24px rgba(0, 0, 0, .035); }
-.service-icon { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; margin-bottom: 23px; border: 1px solid var(--home-border); border-radius: 50%; background: var(--home-bg); box-shadow: 0 3px 7px rgba(0, 0, 0, .035); }
-.service-card h3, .application-card h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.5; }
-.service-card p, .application-card p { margin: 10px 0 0; color: var(--home-muted); font-size: 13px; line-height: 1.9; }
-.quickstart-section { border-top: 1px solid var(--home-border); background: var(--home-bg); }
-.quickstart-layout { display: grid; grid-template-columns: .85fr 1.15fr; gap: 32px; align-items: start; }
-.steps-list { display: flex; min-width: 0; flex-direction: column; gap: 12px; border: 1px solid var(--home-border); border-radius: 20px; padding: 16px; background: var(--home-bg); }
-.step-card { display: flex; align-items: center; gap: 16px; min-height: 102px; border: 1px solid var(--home-border); border-radius: 12px; padding: 21px 18px; background: var(--home-bg); transition: border-color .18s; }
-.step-card:hover { border-color: var(--home-muted); }
-.step-number { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--home-text); color: var(--home-bg); font-size: 13px; font-weight: 600; }
+.service-icon, .step-icon, .application-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--lower-icon-border);
+  border-radius: 11px;
+  background: var(--lower-icon-bg);
+  color: var(--lower-accent);
+}
+.service-card:nth-child(3n + 2) .service-icon, .step-card:nth-child(2) .step-icon, .application-card:nth-child(2n) .application-icon {
+  border-color: var(--lower-violet-border);
+  background: var(--lower-violet-bg);
+  color: var(--lower-violet-text);
+}
+.service-card:nth-child(3n) .service-icon, .step-card:nth-child(3) .step-icon, .application-card:nth-child(3) .application-icon {
+  border-color: var(--lower-teal-border);
+  background: var(--lower-teal-bg);
+  color: var(--lower-teal-text);
+}
+.service-card h3, .application-card h3 { margin-top: 16px; font-size: 17px; font-weight: 650; line-height: 1.5; }
+.service-card p, .application-card p { margin-top: 7px; color: var(--lower-muted); font-size: 14px; line-height: 1.7; }
+.quickstart-section {
+  border-block: 1px solid var(--home-border);
+  background: radial-gradient(ellipse at 100% 0%, var(--lower-glow), transparent 65%), var(--lower-surface);
+}
+.quickstart-layout { display: grid; gap: 18px; }
+.steps-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.step-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  min-height: 102px;
+  padding: 16px;
+  border: 1px solid var(--home-border);
+  border-radius: 13px;
+  background: var(--home-bg);
+  transition: border-color .18s, box-shadow .18s;
+}
+.step-card:hover, .provider-tile:hover {
+  border-color: var(--lower-accent);
+  box-shadow: 0 4px 16px rgb(76 79 187 / 8%);
+}
 .step-card > div { flex: 1; min-width: 0; }
-.step-card h3 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.6; }
-.step-card p { margin: 5px 0 0; color: var(--home-muted); font-size: 12px; line-height: 1.8; }
-.step-arrow { flex-shrink: 0; color: var(--home-muted); }
-.endpoint-note { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 3px 2px; color: var(--home-muted); font-size: 11px; }
-.endpoint-note > svg { flex-shrink: 0; }
-.endpoint-note code { min-width: 0; overflow-wrap: anywhere; color: var(--home-text); font-size: 11px; }
-.endpoint-note button { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; }
-.endpoint-note button:hover { background: var(--home-border); }
-.code-panel { min-width: 0; overflow: hidden; border: 1px solid var(--home-border); border-radius: 20px; background: var(--home-bg); box-shadow: 0 5px 20px rgba(0, 0, 0, .025); scroll-margin-top: 90px; }
-.code-window-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 56px; padding: 12px 20px; border-bottom: 1px solid var(--home-border); }
-.window-dots { display: flex; flex-shrink: 0; gap: 5px; }
-.window-dots span { width: 6px; height: 6px; border-radius: 50%; background: #d4d4d4; }
-.protocol-tabs { display: flex; align-items: center; gap: 5px; min-width: 0; overflow-x: auto; padding: 2px; }
-.protocol-tabs button { flex-shrink: 0; min-height: 27px; border-radius: 999px; padding: 4px 11px; color: var(--home-muted); font-size: 10px; white-space: nowrap; }
-.protocol-tabs button.active { background: var(--home-text); color: var(--home-bg); font-weight: 500; }
-.code-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 37px; padding: 15px 22px 0; }
-.code-block-label { color: var(--home-muted); font-size: 9px; font-weight: 500; letter-spacing: 1.5px; }
-.response-toolbar { min-height: 29px; border-top: 1px solid var(--home-border); padding-top: 15px; }
-.code-copy { display: flex; align-items: center; gap: 5px; border-radius: 5px; padding: 5px; color: var(--home-muted); font-size: 10px; }
-.code-copy:hover { color: var(--home-text); background: var(--home-surface); }
-.example-code { margin: 0; overflow: auto; padding: 12px 22px 20px; color: var(--home-text); font-size: 11px; line-height: 1.9; tab-size: 2; }
-.request-code { min-height: 227px; max-height: 300px; }
-.response-code { max-height: 170px; color: #15803d; }
-.dark .response-code { color: #86efac; }
+.step-card h3 { font-size: 15px; font-weight: 650; line-height: 1.5; }
+.step-card p { margin-top: 5px; color: var(--lower-muted); font-size: 13px; line-height: 1.6; }
+.step-arrow { flex: none; color: var(--lower-accent); }
+.code-panel { min-width: 0; border: 1px solid var(--home-border); border-radius: 16px; background: var(--home-bg); box-shadow: 0 10px 30px rgb(22 42 80 / 5%); scroll-margin-top: 80px; }
+.code-window-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px 16px; padding: 12px 18px; border-bottom: 1px solid var(--home-border); }
+.endpoint-note { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; min-width: 0; color: var(--lower-muted); font-size: 12px; }
+.endpoint-note > svg { flex: none; color: var(--lower-accent); }
+.endpoint-note code { min-width: 0; overflow-wrap: anywhere; color: var(--home-text); }
+.endpoint-note button, .code-copy { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 30px; padding: 4px 7px; border-radius: 6px; color: var(--lower-accent); }
+.endpoint-note button:hover, .code-copy:hover { background: var(--lower-icon-bg); }
+.protocol-tabs { display: flex; align-items: center; gap: 3px; min-width: 0; max-width: 100%; overflow-x: auto; padding: 4px; border-radius: 9px; background: var(--lower-surface); }
+.protocol-tabs button { flex: none; min-height: 30px; padding: 4px 12px; border-radius: 6px; color: var(--lower-muted); font-size: 12px; white-space: nowrap; }
+.protocol-tabs button.active { background: var(--lower-icon-bg); color: var(--lower-accent); font-weight: 650; }
+.protocol-tabs button:focus-visible, .example-code:focus-visible { outline-offset: -2px; }
+.code-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.code-pane { min-width: 0; }
+.code-pane + .code-pane { border-left: 1px solid var(--home-border); }
+.code-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; padding: 5px 18px; background: var(--lower-surface); color: var(--lower-muted); font-size: 12px; }
+.code-block-label { font-weight: 650; }
+.example-code { min-height: 205px; max-height: 230px; margin: 0; overflow: auto; padding: 16px 18px; color: var(--home-text); font-size: 12px; line-height: 1.65; tab-size: 2; }
 .example-code code { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; }
-.code-caption { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--home-border); padding: 12px 20px; color: var(--home-muted); font-size: 10px; line-height: 1.6; }
-.code-caption code { min-width: 0; overflow-wrap: anywhere; font-size: 10px; }
-.request-method { flex-shrink: 0; font-size: 9px; font-weight: 600; }
-.response-status { display: flex; flex-shrink: 0; align-items: center; gap: 4px; margin-left: auto; color: #15803d; font-size: 9px; }
-.response-status small { color: var(--home-muted); font-size: 9px; }
-.dark .response-status { color: #86efac; }
-.example-note { margin: 0; padding: 0 20px 12px; color: var(--home-muted); font-size: 10px; line-height: 1.6; }
-.application-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.application-card { min-width: 0; border: 1px solid var(--home-border); border-radius: 17px; padding: 27px 22px; background: var(--home-bg); }
-.application-card:first-child { grid-column: span 2; }
-.application-icon { margin-bottom: 22px; color: var(--home-text); }
+.response-code, .response-status { color: var(--lower-teal-text); }
+.code-caption { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 10px 18px 5px; border-top: 1px solid var(--home-border); color: var(--lower-muted); font-size: 12px; }
+.code-caption code { min-width: 0; overflow-wrap: anywhere; }
+.request-method { padding: 2px 6px; border-radius: 4px; background: var(--lower-icon-bg); color: var(--lower-accent); font-size: 11px; font-weight: 700; }
+.response-status { display: flex; flex-shrink: 0; align-items: center; gap: 5px; margin-left: auto; font-size: 11px; }
+.response-status small { color: var(--lower-muted); font-size: 11px; }
+.example-note { padding: 1px 18px 11px; color: var(--lower-muted); font-size: 11px; line-height: 1.5; }
+.application-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.application-card { min-width: 0; padding: 18px; border: 1px solid var(--home-border); border-radius: 13px; background: var(--lower-surface); }
 .application-card h3 { font-size: 15px; }
-.application-card p { font-size: 12px; }
-.capabilities-section { border-top: 1px solid var(--home-border); border-bottom: 1px solid var(--home-border); padding: 47px 0; background: var(--home-surface); }
-.capability-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); text-align: center; }
-.capability-grid > div + div { border-left: 1px solid var(--home-border); }
-.capability-grid span { font-size: 24px; font-weight: 650; letter-spacing: -.03em; }
-.capability-grid p { margin: 8px 0 0; color: var(--home-muted); font-size: 12px; }
-@media (max-width: 1100px) {
-  .home-container { width: min(calc(100% - 64px), 1000px); }
-  .service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .application-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .application-card:first-child { grid-column: auto; }
-  .quickstart-layout { gap: 24px; }
-  .step-card { padding: 20px 14px; gap: 12px; }
-  .code-window-header { gap: 10px; padding-inline: 16px; }
-  .protocol-tabs button { padding-inline: 9px; }
+.application-card p { font-size: 13px; }
+.market-home-section.start-section { padding-top: 12px; }
+.start-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: clamp(24px, 4vw, 52px);
+  border: 1px solid var(--lower-icon-border);
+  border-radius: 20px;
+  background: radial-gradient(ellipse at 85% 15%, var(--lower-glow), transparent 70%), var(--lower-surface);
 }
-@media (max-width: 760px) {
-  .home-container { width: calc(100% - 40px); }
-  .hero { min-height: auto; }
-  .hero-inner { padding: 55px 0 65px; }
-  .featured-model-announcement { gap: 13px; min-height: 54px; padding: 8px 23px 8px 12px; font-size: 22px; }
-  .featured-model-announcement .announcement-label { gap: 6px; min-height: 34px; padding: 6px 12px; font-size: 18px; }
-  .featured-model-announcement .announcement-label svg { width: 22px; height: 22px; }
-  .announcement-arrow { width: 26px; height: 26px; margin-left: 4px; }
-  .hero-title span { font-size: 44px; }
-  .hero-title span + span { font-size: 32px; }
-  .hero-description { max-width: 530px; font-size: 15px; line-height: 1.9; }
-  .home-section { padding: 60px 0; }
-  .section-heading { margin-bottom: 32px; }
-  .section-heading h2 { font-size: 29px; }
-  .section-heading p { font-size: 13px; }
-  .service-grid { gap: 16px; }
-  .service-card { padding: 25px 22px; }
-  .quickstart-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .steps-list { gap: 12px; }
-  .step-card { min-height: 94px; padding: 20px; }
-  .application-grid { grid-template-columns: minmax(0, 1fr); gap: 15px; }
-  .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 29px; }
-  .capability-grid > div:nth-child(3) { border-left: 0; }
-  .capability-grid span { font-size: 22px; }
+.start-panel h2 { overflow-wrap: anywhere; font-size: clamp(25px, 3vw, 38px); font-weight: 730; line-height: 1.2; letter-spacing: -.035em; }
+.start-panel p { margin-top: 10px; color: var(--lower-muted); font-size: 14px; line-height: 1.7; }
+.start-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 1000px) {
+  .application-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (max-width: 480px) {
-  .hero-title span { font-size: 36px; }
-  .hero-title span + span { margin-top: 10px; font-size: clamp(24px, 6.3vw, 30px); }
-  .hero-description { font-size: 14px; }
-  .model-announcement { gap: 8px; font-size: 11px; }
-  .featured-model-announcement { gap: 11px; min-height: 46px; padding: 6px 16px 6px 9px; font-size: clamp(15px, 4.2vw, 18px); }
-  .featured-model-announcement .announcement-label { gap: 5px; min-height: 32px; padding: 6px 10px; font-size: clamp(12px, 3.4vw, 14px); }
-  .featured-model-announcement .announcement-label svg { width: 19px; height: 19px; }
-  .announcement-arrow { width: 22px; height: 22px; margin-left: 2px; }
-  .hero-actions { gap: 12px; }
-  .public-button { min-height: 48px; padding-inline: 23px; }
-  .button-primary { min-width: 144px; }
-  .button-secondary { min-width: 118px; }
-  .service-grid { grid-template-columns: minmax(0, 1fr); }
-  .service-card { padding: 27px 25px; }
-  .service-icon { margin-bottom: 18px; }
-  .application-card { padding: 24px 18px; }
-  .application-card p { font-size: 11px; }
-  .capability-grid p { font-size: 11px; }
-  .code-window-header { gap: 9px; padding-inline: 14px; }
-  .protocol-tabs { gap: 2px; }
+@media (max-width: 800px) {
+  .service-grid, .application-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steps-list { grid-template-columns: minmax(0, 1fr); }
+  .step-card { min-height: 80px; }
+  .start-panel { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 540px) {
+  .service-grid, .code-examples { grid-template-columns: minmax(0, 1fr); }
+  .service-card, .application-card { padding: 16px; }
+  .code-pane + .code-pane { border-left: 0; border-top: 1px solid var(--home-border); }
+  .code-window-header, .code-toolbar, .example-code, .code-caption, .example-note { padding-inline: 12px; }
   .protocol-tabs button { padding-inline: 8px; }
-  .code-toolbar { padding-inline: 14px; }
-  .example-code { padding: 18px 14px; font-size: 10px; }
-  .code-caption { padding-inline: 14px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .public-home *, .public-home *::before, .public-home *::after { transition: none !important; scroll-behavior: auto !important; }
 }
-
-/* Public landing uses the same neutral tokens as the console. */
-.hero-shell { display: grid; grid-template-columns: 1.05fr 1fr; align-items: center; gap: 56px; width: min(1200px, calc(100% - 64px)); margin: 0 auto; padding: 88px 0 96px; }
-.hero-inner { width: 100%; padding: 0; text-align: left; }
-.hero-eyebrow { margin-bottom: 28px; color: var(--home-muted); font-size: 12px; letter-spacing: .08em; }
-.hero-title { margin-top: 28px; letter-spacing: -.055em; line-height: 1.14; }
-.hero-title span { font-size: clamp(36px, 4.2vw, 60px); }
-.hero-title span + span { font-size: clamp(30px, 3.3vw, 48px); color: var(--home-muted); margin-top: 12px; }
-.hero-description { margin: 24px 0 0; font-size: 15px; line-height: 1.9; max-width: 500px; }
-.hero-actions { justify-content: flex-start; gap: 12px; margin-top: 28px; }
-.hero-grid { opacity: .35; background-size: 56px 56px; }
-.model-announcement { min-height: 30px; padding: 4px 8px 4px 5px; font-size: 11px; gap: 8px; }
-.featured-model-announcement .announcement-model { font-size: 13px; }
-.model-announcement .announcement-label { padding: 4px 9px; font-size: 10px; }
-.model-announcement .announcement-arrow { width: 15px; height: 15px; margin-left: 2px; }
-.hero-preview { min-width: 0; overflow: hidden; text-align: left; background: hsl(var(--card)); box-shadow: 0 12px 40px #00000006; transform: rotate(-1deg); }
-.hero-preview-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--home-border); font-size: 12px; }
-.hero-preview-header > span { display: flex; align-items: center; gap: 8px; }
-.hero-preview-body { padding: 26px 24px; font: 11px/1.8 ui-monospace, monospace; }
-.hero-preview-body p { color: var(--home-muted); margin-bottom: 24px; }
-.hero-preview-body p span { color: var(--home-text); margin-left: 8px; }
-.hero-preview-body pre { overflow-x: auto; max-height: 250px; color: var(--home-text); white-space: pre; }
-.hero-preview-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--home-border); background: var(--home-surface); font-size: 10px; color: var(--home-muted); }
-.hero-preview-footer code { overflow-wrap: anywhere; }
-.service-card { padding: 26px; border-radius: 12px; }
-.service-icon { border-radius: 10px; box-shadow: none; width: 38px; height: 38px; margin-bottom: 24px; }
-.section-heading h2 { font-weight: 600; letter-spacing: -.04em; }
-.code-panel, .step-card, .application-card { border-radius: 12px; }
-@media (max-width: 900px) { .hero-shell { grid-template-columns: minmax(0,1fr); gap: 36px; padding: 56px 0; max-width: 600px; } .hero-preview { transform: none; } }
-@media (max-width: 600px) { .hero-shell { width: calc(100% - 40px); } .hero-title span { font-size: 36px; } .hero-title span + span { font-size: 30px; } .hero-preview-body { padding: 20px 16px; } }
-@media (prefers-reduced-motion: reduce) { .hero-preview { transform: none; } }
-
+.market-home-hero { position:relative; min-height:610px; display:flex; padding:0; border:0; text-align:left; background:radial-gradient(ellipse at 81% 82%,#e3e7ff 0,transparent 59%),linear-gradient(180deg,#f3f8fc,#edf1fc); overflow:hidden; }
+.market-home-shell { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.16fr); align-items:center; gap:12px; width:min(100%,1536px); padding:55px 58px 60px; margin:auto; }
+.market-home-copy { position:relative; z-index:1; color:#141923; }
+.market-home-copy h1 { margin:0; max-width:650px; font-size:clamp(38px,3.65vw,54px); font-weight:760; line-height:1.18; letter-spacing:-.04em; }
+.market-lead { max-width:600px; margin-top:20px; color:#566379; font-size:15px; line-height:1.9; overflow-wrap:anywhere; }
+.market-home-art { width:112%; max-width:none; height:auto; margin-left:-5%; object-fit:contain; mask-image:radial-gradient(ellipse 72% 74% at center,#000 45%,transparent 84%); }
+.market-new { display:inline-flex; flex-wrap:wrap; gap:7px; align-items:center; max-width:100%; padding:6px 10px; border:1px solid #cdd8fe; border-radius:100px; margin-bottom:19px; font-size:12px; color:#423bd1; background:#eff2ff; overflow-wrap:anywhere; }
+.market-new:hover { background:#e1e6ff; }
+.market-hero-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
+.market-primary,.market-secondary { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:46px; padding:0 20px; border-radius:8px; font-size:15px; font-weight:650; }
+.market-primary { color:white; background:linear-gradient(95deg,#2e50fb,#805ffa); }
+.market-primary:hover { filter:brightness(1.08); }
+.market-secondary { color:#4139e0; border:1px solid #6659fc; background:#ffffff4d; }
+.market-secondary:hover { background:#fff; }
+.market-totals { display:flex; flex-wrap:wrap; gap:20px 36px; margin-top:44px; }
+.market-totals dd { font-size:25px; font-weight:750; line-height:1.3; }
+.market-totals dt { margin-top:4px; font-size:13px; color:#566379; }
+.market-home-section { padding:54px 0 58px; }
+.market-home-section .home-container { width:100%; max-width:1536px; padding:0 58px; margin-inline:auto; }
+.featured-section { background:linear-gradient(180deg,var(--home-bg),#f4f7fc); }
+.provider-section { background:#f4f7fc; }
+.market-section-title { text-align:center; margin-bottom:34px; }
+.market-section-title h2 { font-size:clamp(28px,3.3vw,40px); font-weight:730; letter-spacing:-.035em; }
+.market-section-title p { margin-top:10px; color:var(--home-muted); font-size:14px; line-height:1.7; }
+.market-section-title a { display:inline-flex; align-items:center; gap:4px; margin-left:7px; color:var(--home-text); font-weight:650; }
+.featured-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.featured-tile { min-width:0; padding:18px; border-radius:12px; background:radial-gradient(ellipse at 85% 14%,#d8e4ff,transparent 70%),linear-gradient(130deg,#92dbff,#4361fc 68%,#dbdfff); }
+.featured-tile:nth-child(2) { background:radial-gradient(ellipse at 75% 15%,#f4d8ff,transparent 70%),linear-gradient(145deg,#d9c5fe,#7844fa 70%,#f9bcfc); }
+.featured-tile:nth-child(3) { background:linear-gradient(140deg,#a480dc,#ffd0e8 46%,#b19ded); }
+.featured-tile:nth-child(4) { background:linear-gradient(140deg,#a9dcff,#82e4ef 46%,#b6f4cd); }
+.featured-tile article { height:100%; padding:20px; border-radius:10px; background:var(--home-bg); color:var(--home-text); transition:transform .18s; }
+.featured-tile:hover article { transform:translateY(-2px); }
+.featured-tile h3 { display:flex; align-items:center; gap:9px; font-size:20px; font-weight:680; overflow-wrap:anywhere; }
+.featured-tags { display:flex; flex-wrap:wrap; gap:6px; margin:9px 0; }
+.featured-tags span { border-radius:4px; padding:3px 7px; color:#4439d4; background:#edf0ff; font-size:12px; }
+.featured-tile p { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--home-muted); font-size:14px; }
+.featured-tile footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; border-top:1px solid var(--home-border); margin-top:14px; padding-top:13px; color:var(--home-muted); font-size:13px; }
+.featured-tile footer > span:last-child { display:flex; align-items:center; gap:4px; margin-left:auto; color:var(--lower-accent); }
+.featured-prices { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.featured-prices dt { color: var(--lower-muted); font-size: 12px; }
+.featured-prices dd { margin-top: 2px; color: var(--home-text); font-size: 16px; font-weight: 680; }
+.featured-prices small { margin-left: 2px; color: var(--lower-muted); font-size: 11px; font-weight: 400; }
+.provider-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
+.provider-tile {
+  display: grid;
+  grid-template-columns: 38px minmax(85px, 1fr) minmax(34px, 1.1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  padding: 14px;
+  border: 1px solid var(--home-border);
+  border-radius: 12px;
+  background: var(--home-bg);
+  transition: border-color .18s, box-shadow .18s;
+}
+.provider-symbol { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; background: var(--lower-surface); }
+.provider-label { min-width: 0; }
+.provider-tile strong, .provider-tile small { display: block; overflow-wrap: anywhere; }
+.provider-tile small { color: var(--lower-muted); font-size: 12px; margin-top: 3px; }
+.provider-tile > svg:last-child { color: var(--lower-accent); }
+.provider-bar { height: 5px; border-radius: 999px; background: var(--lower-icon-bg); }
+.provider-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#4a6ff6,#9271fa); }
+.market-section-link { display: flex; align-items: center; gap: 5px; width: fit-content; margin: 20px auto 0; color: var(--lower-accent); font-size: 14px; font-weight: 650; }
+.market-section-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.dark .market-home-hero { background:radial-gradient(ellipse at 80% 63%,#283760,transparent 55%),linear-gradient(180deg,#171e31,#151923); }
+.dark .market-home-copy { color:#f1f4ff; }
+.dark .market-lead,.dark .market-totals dt { color:#abb8d0; }
+.dark .market-home-art { opacity:.82; }
+.dark .market-secondary { background:#222a49; color:#c6cdff; border-color:#6c72c8; }
+.dark .featured-section,.dark .provider-section { background:#151923; }
+@media(max-width:1050px) { .market-home-shell,.market-home-section .home-container { padding-inline:32px; } .market-home-hero { min-height:515px; } .market-totals { gap:18px 22px; } }
+@media(max-width:760px) { .market-home-shell { grid-template-columns:minmax(0,1fr); gap:0; padding:37px 22px 10px; } .market-home-art { width:min(100%,520px); margin:-8px auto 0; } .market-home-copy h1 { font-size:clamp(32px,8vw,48px); } .market-totals { margin-top:25px; } .market-home-section .home-container { padding-inline:22px; } .market-home-section { padding:38px 0; } .provider-grid { grid-template-columns:minmax(0,1fr); } .market-home-section.start-section { padding-top:8px; } }
+@media(max-width:540px) { .featured-grid { grid-template-columns:minmax(0,1fr); } .featured-tile { padding:12px; } .featured-tile article { padding:16px; } .market-hero-actions { margin-top:20px; } .market-home-art { margin-top:0; } }
 </style>

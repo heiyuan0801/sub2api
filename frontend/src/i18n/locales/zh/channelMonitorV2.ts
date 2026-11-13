@@ -22,6 +22,17 @@ export default {
     otherModels: '其他模型',
     ignored: '忽略',
     currentUser: '当前用户',
+    channels: {
+      title: '渠道状态',
+      source: 'V2 被动用量 · 缓存率与可用率',
+      search: '搜索分组或厂商',
+      emptyFiltered: '没有符合筛选条件的分组。',
+      userRate: '用户倍率 {value}x',
+      refreshIn: '{seconds}s 后刷新',
+      timeline: '{group} 的可用率趋势',
+      history: '历史统计 · {count} 条',
+      historyEmpty: '这个时间范围暂无调用记录。',
+    },
     availability: {
       staleStatus: '数据过期',
       title: '模型可用率',
@@ -136,7 +147,7 @@ export default {
       nameFallback: '分组 #{id}',
       viewSettings: '筛选与展示',
       cardView: '渠道卡片',
-      details: '模型与错误明细',
+      details: '错误与用量明细',
     },
     ranges: { '90m': '90m', '24h': '24h', '7d': '7d', '30d': '30d' },
     filters: {
@@ -254,7 +265,7 @@ export default {
         health: '真实成功率单独判色；综合评分使用有效错误率、延迟和缓存。生图延迟用独立阈值，异常指标防止被平均为正常。',
         trend: '趋势可切换色块矩阵 / 折线图（错误率 · 缓存率 · 首 Token）',
         latency: '延迟展示 AVG · P50 · P90；不展示绝对请求数 / 错误数',
-        models: '平台仅由已勾选且有权查看的监控分组动态生成，模型取自这些分组下账号，无需配置渠道；白名单仅展示指定模型，留空展示全部，真实调用保留模型名，没有调用不判断成功率。',
+        models: '平台仅由已勾选且有权查看的监控分组动态生成，每张卡片汇总同厂商下的一个监控分组，模型白名单仍限制统计范围。没有调用时不判断可用率。',
       },
     },
     admin: {

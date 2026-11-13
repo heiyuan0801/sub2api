@@ -609,6 +609,8 @@ export default {
 
   // Channel Status (user-facing read-only view)
   channelStatus: {
+    websiteStatus: '网站状态',
+    opensInNewTab: '（在新标签页打开）',
     title: '渠道状态',
     description: '查看渠道可用性、延迟和近期状态',
     searchPlaceholder: '搜索渠道...',

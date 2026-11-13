@@ -2,42 +2,35 @@
   <AppLayout>
     <div class="availability-page space-y-5 pb-10">
       <header class="availability-header">
-        <div class="min-w-0">
-          <h1 class="text-2xl font-bold tracking-tight text-gray-950 dark:text-white">{{ t('channelMonitorV2.availability.title') }}</h1>
-          <p class="mt-3 text-xs leading-6 text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.availability.description') }}</p>
-        </div>
-        <div class="flex flex-col items-end gap-3">
-          <div class="flex flex-wrap items-center justify-end gap-3">
-            <div class="availability-ranges" role="group" :aria-label="t('channelMonitorV2.timeRange')">
-              <button v-for="option in ranges" :key="option.value" type="button" :class="{ selected: filter.range === option.value }" :aria-pressed="filter.range === option.value" @click="setRange(option.value)">{{ option.label }}</button>
-            </div>
-            <button class="availability-action" type="button" :disabled="loading || refreshing" @click="reload(false)">
-              <Icon name="refresh" size="sm" :class="{ 'animate-spin': loading || refreshing }" />
-              {{ t('common.refresh') }}
-            </button>
+        <div class="monitor-header-controls">
+          <h1 class="sr-only">{{ t('channelMonitorV2.channels.title') }}</h1>
+          <div class="availability-ranges" role="group" :aria-label="t('channelMonitorV2.timeRange')">
+            <button v-for="range in ranges" :key="range" type="button" :class="{ selected: filter.range === range }" :aria-pressed="filter.range === range" @click="setRange(range)">{{ t(`channelMonitorV2.ranges.${range}`) }}</button>
           </div>
-          <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400" aria-live="polite">
-            <template v-if="refreshing">{{ t('channelMonitorV2.updating') }}</template>
-            <template v-else-if="snapshot?.coverage.data_through">{{ t('channelMonitorV2.updatedTo', { time: formatTime(snapshot.coverage.data_through) }) }}</template>
-          </span>
+          <p class="monitor-source">{{ t(monitorDisabled ? 'channelMonitorV2.availability.disabled' : 'channelMonitorV2.channels.source') }}</p>
+        </div>
+        <div class="monitor-header-controls">
+          <div v-if="snapshot" class="availability-summary" :aria-label="t('channelMonitorV2.summaryAria')">
+            <span>{{ t('channelMonitorV2.cards.availabilityValue', { value: successValue(snapshot.metrics) }) }}</span>
+            <span aria-hidden="true">·</span>
+            <span>{{ t('channelMonitorV2.metrics.cacheRateValue', { value: cacheValue(snapshot.metrics) }) }}</span>
+          </div>
+          <button class="availability-settings" type="button" :aria-label="t('common.refresh')" :title="t('common.refresh')" :disabled="loading || refreshing" @click="reload(false)">
+            <Icon name="refresh" size="sm" :class="{ 'animate-spin': loading || refreshing }" />
+          </button>
+          <WebsiteStatusLink />
         </div>
       </header>
-
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span class="availability-source">{{ t('channelMonitorV2.availability.realCalls') }}</span>
-          <span class="inline-flex items-center gap-1.5">
-            <span class="h-1.5 w-1.5 rounded-full" :class="snapshot && !monitorDisabled && !dataStale ? 'bg-emerald-500' : 'bg-gray-400'" aria-hidden="true" />
-            {{ t(monitorDisabled ? 'channelMonitorV2.availability.disabled' : 'channelMonitorV2.availability.passive') }}
-          </span>
-          <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive">{{ t('channelMonitorV2.partialCoverage') }}</span>
-        </div>
-        <div v-if="isAdmin" class="flex flex-wrap gap-2">
-        <router-link to="/admin/ops?open_alert_rules=1" class="availability-settings"><Icon name="bell" size="sm" />{{ t('channelMonitorV2.preferences.alerts') }}</router-link>
-        <router-link to="/admin/channels/monitor" class="availability-settings">
-          <Icon name="cog" size="sm" />{{ t('channelMonitorV2.availability.settings') }}
-        </router-link>
-        </div>
+      <p class="sr-only" aria-live="polite">
+        <template v-if="refreshing">{{ t('channelMonitorV2.updating') }}</template>
+        <template v-else-if="snapshot?.coverage.data_through">{{ t('channelMonitorV2.updatedTo', { time: formatTime(snapshot.coverage.data_through) }) }}</template>
+      </p>
+      <div v-if="isAdmin || (snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive)" class="flex flex-wrap items-center justify-end gap-2">
+        <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive" class="mr-auto text-xs text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.partialCoverage') }}</span>
+        <template v-if="isAdmin">
+          <router-link to="/admin/ops?open_alert_rules=1" class="availability-settings"><Icon name="bell" size="sm" />{{ t('channelMonitorV2.preferences.alerts') }}</router-link>
+          <router-link to="/admin/channels/monitor" class="availability-settings"><Icon name="cog" size="sm" />{{ t('channelMonitorV2.availability.settings') }}</router-link>
+        </template>
       </div>
 
       <div v-if="loadError" class="availability-notice" role="alert">
@@ -63,46 +56,37 @@
         </div>
       </div>
 
-      <section class="availability-summary" :aria-label="t('channelMonitorV2.summaryAria')">
-        <div v-for="item in summaryStats" :key="item.key" class="availability-stat" :data-testid="`summary-${item.key}`">
-          <span class="availability-stat-icon" :class="item.tone"><Icon :name="item.icon" size="md" /></span>
-          <div class="min-w-0">
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ item.label }}</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums leading-none">{{ (loading && !matrix) || (dataStale && item.key !== 'total') ? '—' : item.count }}</p>
+      <section class="availability-workspace" :aria-label="t('channelMonitorV2.channels.title')">
+        <details class="channel-filters">
+          <summary>{{ t('channelMonitorV2.cards.viewSettings') }}<Icon name="chevronDown" size="xs" /></summary>
+          <div class="availability-platforms" role="group" :aria-label="t('channelMonitorV2.filters.platform')">
+            <button type="button" :class="{ selected: filter.platforms.length === 0 }" :aria-pressed="filter.platforms.length === 0" :disabled="!dimensionsLoaded" data-testid="platform-all" @click="selectPlatforms([])">{{ t('channelMonitorV2.filters.allPlatforms') }}</button>
+            <button v-for="platform in platformShortcuts" :key="platform.value" type="button" :class="{ selected: filter.platforms.length === 1 && filter.platforms[0] === platform.value }" :aria-pressed="filter.platforms.length === 1 && filter.platforms[0] === platform.value" :data-testid="`platform-${platform.value}`" @click="selectPlatforms([platform.value])">{{ platform.label }}</button>
           </div>
-        </div>
-      </section>
-
-      <section class="availability-workspace" :aria-label="t('channelMonitorV2.availability.title')">
-        <div class="availability-platforms" role="group" :aria-label="t('channelMonitorV2.filters.platform')">
-          <button type="button" :class="{ selected: filter.platforms.length === 0 }" :aria-pressed="filter.platforms.length === 0" :disabled="!dimensionsLoaded" data-testid="platform-all" @click="selectPlatforms([])">{{ t('channelMonitorV2.filters.allPlatforms') }}</button>
-          <button v-for="platform in platformShortcuts" :key="platform.value" type="button" :class="{ selected: filter.platforms.length === 1 && filter.platforms[0] === platform.value }" :aria-pressed="filter.platforms.length === 1 && filter.platforms[0] === platform.value" :data-testid="`platform-${platform.value}`" @click="selectPlatforms([platform.value])">{{ platform.label }}</button>
-        </div>
-        <div class="availability-toolbar monitor-toolbar">
-          <form class="availability-search" role="search" @submit.prevent="applySearch">
-            <label for="monitor-model-search" class="sr-only">{{ t('channelMonitorV2.availability.searchPlaceholder') }}</label>
-            <input id="monitor-model-search" v-model="searchDraft" type="search" class="input min-w-0 flex-1" :placeholder="t('channelMonitorV2.availability.searchPlaceholder')" @input="onSearchInput" />
-            <button type="submit" class="availability-action"><Icon name="search" size="sm" />{{ t('channelMonitorV2.availability.search') }}</button>
-          </form>
-          <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <Select v-model="sortOrder" :options="sortOptions" :aria-label="t('channelMonitorV2.preferences.sortLabel')" class="availability-status" />
-            <button type="button" class="availability-settings" :class="{ '!border-gray-900 !text-gray-950 dark:!border-gray-100 dark:!text-white': favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">{{ t('channelMonitorV2.preferences.favoritesOnly') }}</button>
-            <Select v-model="modelTypeFilter" :options="modelTypeOptions" :aria-label="t('channelMonitorV2.availability.modelType')" class="availability-status" />
-            <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.availability.allGroups')" :options="groupOptions" />
-            <FilterMultiSelect v-model="filter.models" compact :label="t('channelMonitorV2.filters.model')" :all-label="t('channelMonitorV2.filters.allModels')" :options="modelOptions" />
-            <Select v-model="statusFilter" :options="statusOptions" :aria-label="t('channelMonitorV2.availability.filterStatus')" class="availability-status" />
+          <div class="availability-toolbar monitor-toolbar">
+            <form class="availability-search" role="search" @submit.prevent="applySearch">
+              <label for="monitor-group-search" class="sr-only">{{ t('channelMonitorV2.channels.search') }}</label>
+              <input id="monitor-group-search" v-model="searchDraft" type="search" class="input min-w-0 flex-1" :placeholder="t('channelMonitorV2.channels.search')" @input="onSearchInput" />
+              <button type="submit" class="availability-action"><Icon name="search" size="sm" />{{ t('channelMonitorV2.availability.search') }}</button>
+            </form>
+            <div class="flex min-w-0 flex-wrap items-center gap-2">
+              <Select v-model="sortOrder" :options="sortOptions" :aria-label="t('channelMonitorV2.preferences.sortLabel')" class="availability-status" />
+              <button type="button" class="availability-settings" :class="{ '!border-gray-900 !text-gray-950 dark:!border-gray-100 dark:!text-white': favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">{{ t('channelMonitorV2.preferences.favoritesOnly') }}</button>
+              <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.availability.allGroups')" :options="groupOptions" />
+              <Select v-model="statusFilter" :options="statusOptions" :aria-label="t('channelMonitorV2.availability.filterStatus')" class="availability-status" />
+            </div>
           </div>
-        </div>
-        <div class="availability-legend">
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span v-for="item in legendItems" :key="item.state" class="inline-flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm" :class="`legend-${item.state}`" aria-hidden="true" />{{ item.label }}</span>
+          <div class="availability-legend">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span v-for="item in legendItems" :key="item.state" class="inline-flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm" :class="`legend-${item.state}`" aria-hidden="true" />{{ item.label }}</span>
+            </div>
+            <span v-if="summary.noData || summary.insufficient">{{ t('channelMonitorV2.availability.pendingSummary', { empty: summary.noData, insufficient: summary.insufficient }) }}</span>
+            <button v-if="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || favoritesOnly" type="button" class="underline underline-offset-4" @click="resetAllFilters">{{ t('channelMonitorV2.clearFilters') }}</button>
           </div>
-          <span v-if="summary.noData || summary.insufficient">{{ t('channelMonitorV2.availability.pendingSummary', { empty: summary.noData, insufficient: summary.insufficient }) }}</span>
-          <button v-if="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || modelTypeFilter !== 'all' || favoritesOnly" type="button" class="underline underline-offset-4" @click="resetAllFilters">{{ t('channelMonitorV2.clearFilters') }}</button>
-        </div>
+        </details>
         <div class="availability-results" :aria-busy="refreshing">
           <MonitorTrendChart v-if="trendView === 'line'" :trend="snapshot?.trend || []" :coverage="snapshot?.coverage || null" :loading="loading && !snapshot" />
-          <MonitorChannelCards v-else-if="matrix" :rows="visibleMatrixRows" :coverage="matrix.coverage" :health-mode="healthMode" :show-throughput="showThroughput" :loading="loading" :favorite-keys="favoriteKeys" :stale="dataStale" @toggle-favorite="toggleFavorite" @inspect="inspectIncident" :empty-description="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || modelTypeFilter !== 'all' || favoritesOnly ? t('channelMonitorV2.availability.emptyDescription') : undefined" @select-group="selectGroup" />
+          <MonitorChannelCards v-else-if="matrix" :rows="visibleMatrixRows" :coverage="matrix.coverage" :health-mode="healthMode" :show-throughput="showThroughput" :loading="loading" :favorite-keys="favoriteKeys" :stale="dataStale" :group-rates="groupRates" :refresh-seconds="refreshSeconds" @toggle-favorite="toggleFavorite" @inspect="inspectIncident" :empty-description="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || favoritesOnly ? t('channelMonitorV2.channels.emptyFiltered') : undefined" @select-group="selectGroup" />
           <div v-else-if="loading" class="min-h-[280px] space-y-4" aria-hidden="true">
             <div v-for="i in 3" :key="i" class="h-28 animate-pulse rounded-xl bg-gray-100 dark:bg-dark-800" />
           </div>
@@ -114,16 +98,14 @@
           <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-b-3xl px-5 py-3 text-xs font-medium text-gray-600 outline-offset-[-4px] hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-300 dark:hover:bg-dark-800 sm:px-6">
             <span class="flex items-center gap-2">
               <Icon name="filter" size="sm" />{{ t('channelMonitorV2.cards.viewSettings') }}
-              <span v-if="hasDimensionFilter" class="badge badge-gray">{{ t('channelMonitorV2.filters.selectedCount', { count: filter.platforms.length + filter.groupIds.length + filter.models.length }) }}</span>
+              <span v-if="hasDimensionFilter" class="badge badge-gray">{{ t('channelMonitorV2.filters.selectedCount', { count: filter.platforms.length + filter.groupIds.length }) }}</span>
             </span>
             <Icon name="chevronDown" size="sm" class="transition-transform group-open:rotate-180" />
           </summary>
           <div class="monitor-toolbar flex flex-wrap items-center gap-2 border-t border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
             <FilterMultiSelect v-model="selectedPlatformIds" compact :label="t('channelMonitorV2.filters.platform')" :all-label="t('channelMonitorV2.filters.allPlatforms')" :options="platformOptions" />
             <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.filters.allGroups')" :options="groupOptions" />
-            <FilterMultiSelect v-model="filter.models" compact :label="t('channelMonitorV2.filters.model')" :all-label="t('channelMonitorV2.filters.allModels')" :options="modelOptions" />
             <button type="button" class="btn btn-ghost btn-sm !px-2 !py-1 text-xs" :disabled="!hasDimensionFilter" @click="clearDimensions">{{ t('channelMonitorV2.clearFilters') }}</button>
-            <Select v-model="matrixGroupBy" :options="matrixGroupOptions" :placeholder="t('channelMonitorV2.groupBy.label')" class="monitor-toolbar-select w-full sm:w-44" />
             <div class="tabs inline-flex" role="group" :aria-label="t('channelMonitorV2.trendView.label')">
               <button type="button" class="tab !px-3 !py-1.5 text-xs" :class="trendView === 'pulse' ? 'tab-active' : ''" :aria-pressed="trendView === 'pulse'" @click="trendView = 'pulse'">{{ t('channelMonitorV2.cards.cardView') }}</button>
               <button type="button" class="tab !px-3 !py-1.5 text-xs" :class="trendView === 'line' ? 'tab-active' : ''" :aria-pressed="trendView === 'line'" @click="trendView = 'line'">{{ t('channelMonitorV2.trendView.line') }}</button>
@@ -212,53 +194,7 @@
           </nav>
         </div>
         <div class="min-h-0 max-h-[min(52vh,520px)] overflow-auto p-4 sm:p-5">
-          <div v-if="activeTab === 'models'" class="table-container border-0">
-            <table class="table monitor-table min-w-[720px]">
-              <thead>
-                <tr>
-                  <th>{{ t('channelMonitorV2.table.platformModel') }}</th>
-                  <th>{{ t('channelMonitorV2.metrics.successRate') }}</th>
-                  <th>{{ t('channelMonitorV2.metrics.ttftP50') }}</th>
-                  <th v-if="showThroughput">{{ t('channelMonitorV2.metrics.tps') }}</th>
-                  <th>{{ t('channelMonitorV2.metrics.cacheRate') }}</th>
-                  <th v-if="showThroughput">{{ t('channelMonitorV2.metrics.rpm') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="row in modelRows"
-                  :key="`${row.platform}:${row.model}`"
-                  class="cursor-pointer"
-                  @click="drillModel(row)"
-                >
-                  <td>
-                    <div class="flex items-center gap-2">
-                      <span :class="statusDot(row.health)" aria-hidden="true"></span>
-                      <div>
-                        <span class="block text-xs text-gray-500 dark:text-dark-400">{{ row.platform }}</span>
-                        <strong class="font-semibold text-gray-900 dark:text-white">
-                          {{ row.model === '__other__' ? t('channelMonitorV2.otherModels') : row.model }}
-                        </strong>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="block">{{ successValue(row.metrics, row) }}</span>
-                    <small class="text-xs text-gray-400">{{ t('channelMonitorV2.metrics.errorRateValue', { value: formatPercent(row.metrics.error_rate) }) }}</small>
-                  </td>
-                  <td>
-                    <span class="block">{{ formatMs(row.metrics.ttft.p50_ms) }}</span>
-                    <small class="text-xs text-gray-400">{{ latencyDetail(row.metrics.ttft) }}</small>
-                  </td>
-                  <td v-if="showThroughput" :title="exactTps(row.metrics.tpm)">{{ formatTps(row.metrics.tpm) }}</td>
-                  <td>{{ cacheValue(row.metrics, row) }}</td>
-                  <td v-if="showThroughput">{{ formatRate(row.metrics.rpm) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div v-else-if="activeTab === 'errors'" class="space-y-3">
+          <div v-if="activeTab === 'errors'" class="space-y-3">
             <div
               v-for="row in errorRows"
               :key="row.category"
@@ -388,6 +324,7 @@ import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import WebsiteStatusLink from '@/components/user/monitor/WebsiteStatusLink.vue'
 import Icon from '@/components/icons/Icon.vue'
 import Select from '@/components/common/Select.vue'
 import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
@@ -403,6 +340,8 @@ import { useAppStore } from '@/stores/app'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { isChannelMonitorThroughputHidden, isChannelMonitorUserRankingHidden } from '@/utils/featureFlags'
 import * as api from '@/api/channelMonitorV2'
+import { getAvailable, getUserGroupRates } from '@/api/groups'
+import { useChannelMonitorFormat } from '@/composables/useChannelMonitorFormat'
 import type {
   HealthState,
   MonitorCoverage,
@@ -410,11 +349,9 @@ import type {
   MonitorErrorRow,
   MonitorFilter,
   MonitorHealth,
-  MonitorMatrixGroupBy,
   MonitorMatrixRow,
   MonitorMetric,
   MonitorMatrixResponse,
-  MonitorModelRow,
   MonitorRange,
   MonitorSnapshot,
   MonitorUserRow,
@@ -427,12 +364,12 @@ import {
   formatMonitorThroughput,
   formatMonitorTokensPerSecond,
   tokensPerSecondFromTpm,
-  healthScoreClass,
   monitorErrorCategoryLabel,
   ttftDisplayState,
 } from '@/features/channel-monitor-v2/monitorFormat'
 
-type Tab = 'models' | 'errors' | 'users'
+type Tab = 'errors' | 'users'
+const MATRIX_GROUP_BY = 'platform_group' as const
 type HealthMode = 'overall' | 'success' | 'ttft' | 'cache'
 type TrendView = 'pulse' | 'line'
 
@@ -441,34 +378,19 @@ const router = useRouter()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 const { t, te, locale } = useI18n()
+const { providerLabel } = useChannelMonitorFormat()
 const isAdmin = computed(() => authStore.isAdmin)
 /** Admins always see RPM/TPM; users honor the hide-throughput system setting. */
 const showThroughput = computed(() => isAdmin.value || !isChannelMonitorThroughputHidden())
 /** Admins always see ranking; users honor the hide-user-ranking system setting. */
 const showUserRanking = computed(() => isAdmin.value || !isChannelMonitorUserRankingHidden())
 
-const ranges = computed(() => [
-  { value: '24h' as MonitorRange, label: t('channelMonitorV2.availability.range24h') },
-  { value: '7d' as MonitorRange, label: t('channelMonitorV2.availability.range7d') },
-  { value: '90m' as MonitorRange, label: t('channelMonitorV2.ranges.90m') },
-  { value: '30d' as MonitorRange, label: t('channelMonitorV2.ranges.30d') },
-])
+const ranges: MonitorRange[] = ['90m', '24h', '7d', '30d']
 const tabs = computed(() => {
-  const items: Array<{ value: Tab; label: string }> = [
-    { value: 'models', label: t('channelMonitorV2.tabs.models') },
-    { value: 'errors', label: t('channelMonitorV2.tabs.errors') },
-  ]
-  if (showUserRanking.value) {
-    items.push({ value: 'users', label: t('channelMonitorV2.tabs.users') })
-  }
+  const items: Array<{ value: Tab; label: string }> = [{ value: 'errors', label: t('channelMonitorV2.tabs.errors') }]
+  if (showUserRanking.value) items.push({ value: 'users', label: t('channelMonitorV2.tabs.users') })
   return items
 })
-const matrixGroupOptions = computed(() => [
-  { value: 'platform' as MonitorMatrixGroupBy, label: t('channelMonitorV2.groupBy.platform') },
-  { value: 'platform_group' as MonitorMatrixGroupBy, label: t('channelMonitorV2.groupBy.platformGroup') },
-  { value: 'platform_model' as MonitorMatrixGroupBy, label: t('channelMonitorV2.groupBy.platformModel') },
-  { value: 'platform_group_model' as MonitorMatrixGroupBy, label: t('channelMonitorV2.groupBy.platformGroupModel') },
-])
 const healthModeOptions = computed(() => [
   { value: 'overall' as HealthMode, label: t('channelMonitorV2.healthMode.overall') },
   { value: 'success' as HealthMode, label: t('channelMonitorV2.healthMode.success') },
@@ -484,17 +406,15 @@ const filter = ref<MonitorFilter>({
   range: parseRange(initialValue('range')),
   platforms: csv(initialValue('platform')),
   groupIds: csv(initialValue('group')).map(Number).filter(id => Number.isSafeInteger(id) && id > 0),
-  models: csv(initialValue('model')),
+  models: [],
 })
 const activeTab = ref<Tab>(parseTab(initialValue('tab'), showUserRanking.value))
-const matrixGroupBy = ref<MonitorMatrixGroupBy>(parseMatrixGroupBy(initialValue('group_by')))
 const healthMode = ref<HealthMode>(parseHealthMode(initialValue('health_mode')))
 const trendView = ref<TrendView>(parseTrendView(initialValue('trend_view')))
 const dimensions = ref<MonitorDimensions>({ platforms: [], groups: [], models: [] })
 const dimensionsLoaded = ref(false)
 const snapshot = ref<MonitorSnapshot | null>(null)
 const matrix = ref<MonitorMatrixResponse | null>(null)
-const modelRows = ref<MonitorModelRow[]>([])
 const errorRows = ref<MonitorErrorRow[]>([])
 const userRows = ref<MonitorUserRow[]>([])
 const loading = ref(false)
@@ -503,14 +423,20 @@ const refreshing = ref(false)
 const loadError = ref('')
 const monitorDisabled = ref(false)
 type AvailabilityStatus = 'all' | 'healthy' | 'warning' | 'critical' | 'noData' | 'insufficient'
-const searchDraft = ref(typeof initialValue('q') === 'string' ? String(initialValue('q')) : '')
+const legacyGrouping = initialValue('group_by')
+const searchDraft = ref(!['platform_group_model', 'platform_model'].includes(String(legacyGrouping)) && typeof initialValue('q') === 'string' ? String(initialValue('q')) : '')
 const appliedSearch = ref(searchDraft.value.trim())
 const statusFilter = ref<AvailabilityStatus>(parseStatus(initialValue('status')))
-type ModelTypeFilter = 'all' | 'text' | 'image'
-const modelTypeFilter = ref<ModelTypeFilter>(initialValue('model_type') === 'image' || initialValue('model_type') === 'text' ? initialValue('model_type') as ModelTypeFilter : 'all')
 const sortOrder = ref<MonitorSort>(['health', 'success', 'latency', 'name'].includes(String(initialValue('sort'))) ? initialValue('sort') as MonitorSort : 'health')
 const favoritesOnly = ref(initialValue('favorites_only') === true || initialValue('favorites_only') === '1')
-const favoriteKeys = ref<string[]>(saved.favorites || [])
+// Promote older model favorites to their corresponding channel group.
+const favoriteKeys = ref([...new Set((saved.favorites || []).flatMap(key => {
+  const [platform, , groupId] = JSON.parse(key)
+  return groupId ? [monitorRowKey({ platform, group_id: groupId })] : []
+}))])
+const groupRates = ref<Record<number, number>>({})
+const nextRefresh = ref(0)
+const refreshSeconds = computed(() => Math.max(0, Math.ceil((nextRefresh.value - now.value) / 1000)))
 const now = ref(Date.now())
 const freshness = computed(() => monitorFreshness(snapshot.value?.coverage, snapshot.value?.config.refresh_interval_seconds || 300, now.value))
 const dataStale = computed(() => !monitorDisabled.value && freshness.value.stale)
@@ -532,7 +458,7 @@ let sequence = 0
 let autoRefreshTimer: number | null = null
 
 const hasDimensionFilter = computed(
-  () => filter.value.platforms.length + filter.value.groupIds.length + filter.value.models.length > 0
+  () => filter.value.platforms.length + filter.value.groupIds.length > 0
 )
 // Full platform catalog (never pruned). Groups/models cascade by selected platforms
 // so choosing a platform narrows the other pickers without collapsing platforms.
@@ -556,14 +482,7 @@ const platformShortcuts = computed(() => {
 function selectPlatforms(platforms: string[]) {
   const groups = new Set(dimensions.value.groups.filter(item => groupInScope(item, platforms)).map(item => item.id))
   const groupIds = dimensionsLoaded.value ? filter.value.groupIds.filter(id => groups.has(id)) : filter.value.groupIds
-  const models = new Set(dimensions.value.models.filter(item => modelInScope(item, platforms, groupIds)).map(item => item.value))
-  // Apply the new scope together so no request uses an incompatible old group/model.
-  filter.value = {
-    ...filter.value,
-    platforms,
-    groupIds,
-    models: dimensionsLoaded.value ? filter.value.models.filter(model => models.has(model)) : filter.value.models,
-  }
+  filter.value = { ...filter.value, platforms, groupIds }
 }
 const selectedPlatformIds = computed({ get: () => filter.value.platforms, set: selectPlatforms })
 function groupInScope(item: MonitorDimensions['groups'][number], platforms: string[]) {
@@ -571,10 +490,6 @@ function groupInScope(item: MonitorDimensions['groups'][number], platforms: stri
   return item.platforms === undefined
     ? !item.platform || platforms.includes(item.platform)
     : item.platforms.some(platform => platforms.includes(platform))
-}
-function modelInScope(item: MonitorDimensions['models'][number], platforms: string[], groupIds: number[]) {
-  return (!platforms.length || !item.platform || platforms.includes(item.platform)) &&
-    (!groupIds.length || item.group_ids === undefined || item.group_ids.some(id => groupIds.includes(id)))
 }
 const groupOptions = computed(() =>
   (dimensions.value.groups || [])
@@ -584,59 +499,17 @@ const groupOptions = computed(() =>
       label: item.platform ? `${item.platform} / ${item.name || `#${item.id}`}` : item.name || `#${item.id}`,
     }))
 )
-const modelOptions = computed(() => {
-  // Model filters use real names across platforms, so repeated names must share
-  // one option while platform selection continues to narrow the request scope.
-  const options = new Map<string, { value: string; label: string; platforms: Set<string> }>()
-  for (const item of dimensions.value.models || []) {
-    if (!modelInScope(item, filter.value.platforms, filter.value.groupIds)) continue
-    const option = options.get(item.value) || { value: item.value, label: item.label, platforms: new Set<string>() }
-    if (item.platform) option.platforms.add(item.platform)
-    options.set(item.value, option)
-  }
-  return [...options.values()].map(item => ({
-    value: item.value,
-    label: item.platforms.size ? `${[...item.platforms].join(' / ')} / ${item.label}` : item.label,
-  }))
-})
 const selectedGroupIds = computed({
   get: () => filter.value.groupIds.map(String),
-  set: (value: string[]) => {
-    const groupIds = value.map(Number).filter((id) => Number.isInteger(id) && id > 0)
-    const models = new Set(dimensions.value.models.filter(item => modelInScope(item, filter.value.platforms, groupIds)).map(item => item.value))
-    filter.value = {
-      ...filter.value,
-      groupIds,
-      models: dimensionsLoaded.value ? filter.value.models.filter(model => models.has(model)) : filter.value.models,
-    }
-  },
+  set: (value: string[]) => { filter.value.groupIds = value.map(Number).filter(id => Number.isSafeInteger(id) && id > 0) },
 })
-// Wait for the full catalog before pruning saved filters. Once loaded, an empty
-// platform catalog also invalidates old group/model choices.
-watch(
-  [dimensionsLoaded, groupOptions, modelOptions],
-  () => {
-    if (!dimensionsLoaded.value) return
-    const groups = new Set(groupOptions.value.map((item) => item.value))
-    const groupIds = filter.value.groupIds.filter((id) => groups.has(String(id)))
-    if (groupIds.length !== filter.value.groupIds.length) {
-      filter.value.groupIds = groupIds
-    }
-    const allowedModels = new Set(modelOptions.value.map((item) => item.value))
-    const models = filter.value.models.filter((model) => allowedModels.has(model))
-    if (models.length !== filter.value.models.length) {
-      filter.value.models = models
-    }
-  },
-  { flush: 'post' },
-)
-const activeRowsEmpty = computed(() =>
-  activeTab.value === 'models'
-    ? modelRows.value.length === 0
-    : activeTab.value === 'errors'
-      ? errorRows.value.length === 0
-      : userRows.value.length === 0
-)
+watch([dimensionsLoaded, groupOptions], () => {
+  if (!dimensionsLoaded.value) return
+  const groups = new Set(groupOptions.value.map(item => item.value))
+  const groupIds = filter.value.groupIds.filter(id => groups.has(String(id)))
+  if (groupIds.length !== filter.value.groupIds.length) filter.value.groupIds = groupIds
+}, { flush: 'post' })
+const activeRowsEmpty = computed(() => (activeTab.value === 'errors' ? errorRows.value : userRows.value).length === 0)
 /** First-upgrade backfill toward 90m/24h/7d/30d; banner hides when backend omits bootstrap. */
 const bootstrapActive = computed(() => Boolean(snapshot.value?.coverage?.bootstrap?.active))
 const bootstrapPercent = computed(() => {
@@ -644,15 +517,7 @@ const bootstrapPercent = computed(() => {
   if (typeof raw !== 'number' || Number.isNaN(raw)) return 0
   return Math.min(100, Math.max(0, Math.round(raw)))
 })
-const matrixRows = computed(() => {
-  const items = matrix.value?.items || []
-  // platform_group views should only show real groups, never bare platform placeholders.
-  if (matrixGroupBy.value === 'platform_group' || matrixGroupBy.value === 'platform_group_model') {
-    return items.filter((row) => row.group_id != null && Number(row.group_id) > 0)
-  }
-  return items
-})
-
+const matrixRows = computed(() => (matrix.value?.items || []).filter(row => row.group_id && row.group_id > 0 && !row.model))
 
 function hasMetricData(metrics: MonitorMetric, row?: { metrics: MonitorMetric; buckets?: unknown[] }) {
   return metrics.has_data ?? Boolean(row?.buckets?.length || metrics.request_count > 0 || metrics.ttft.p50_ms != null || metrics.duration.p50_ms != null || (metrics.success_rate ?? 0) > 0 || metrics.error_rate > 0)
@@ -675,8 +540,7 @@ function parseStatus(value: unknown): AvailabilityStatus {
 const searchedMatrixRows = computed(() => {
   const query = appliedSearch.value.toLocaleLowerCase()
   return matrixRows.value.filter(row =>
-    (modelTypeFilter.value === 'all' || Boolean(row.is_image_model) === (modelTypeFilter.value === 'image')) &&
-    (!query || [row.model, row.platform, row.group_name].some(value => value?.toLocaleLowerCase().includes(query)))
+    !query || [row.platform, providerLabel(row.platform), row.group_name].some(value => value?.toLocaleLowerCase().includes(query))
   )
 })
 const visibleMatrixRows = computed(() => sortMonitorRows(searchedMatrixRows.value.filter(row =>
@@ -688,12 +552,6 @@ const summary = computed(() => {
   for (const row of searchedMatrixRows.value) { counts.total++; counts[rowAvailability(row)]++ }
   return counts
 })
-const summaryStats = computed(() => [
-  { key: 'total', label: t('channelMonitorV2.availability.total'), count: summary.value.total, icon: 'cube' as const, tone: 'stat-total' },
-  { key: 'healthy', label: t('channelMonitorV2.availability.healthy'), count: summary.value.healthy, icon: 'checkCircle' as const, tone: 'stat-healthy' },
-  { key: 'warning', label: t('channelMonitorV2.availability.warning'), count: summary.value.warning, icon: 'trendingUp' as const, tone: 'stat-warning' },
-  { key: 'critical', label: t('channelMonitorV2.availability.critical'), count: summary.value.critical, icon: 'exclamationCircle' as const, tone: 'stat-critical' },
-])
 const legendItems = computed(() => [
   { state: 'healthy', label: t('channelMonitorV2.availability.healthy') },
   { state: 'warning', label: t('channelMonitorV2.availability.warning') },
@@ -704,14 +562,9 @@ const statusOptions = computed(() => [
   { value: 'all', label: t('channelMonitorV2.availability.allStatuses') },
   ...(['healthy', 'warning', 'critical', 'noData', 'insufficient'] as const).map(value => ({ value, label: t(`channelMonitorV2.availability.${value}`) })),
 ])
-const modelTypeOptions = computed(() => [
-  { value: 'all', label: t('channelMonitorV2.availability.allModelTypes') },
-  { value: 'text', label: t('channelMonitorV2.availability.textModels') },
-  { value: 'image', label: t('channelMonitorV2.availability.imageModels') },
-])
 function applySearch() { appliedSearch.value = searchDraft.value.trim() }
 function onSearchInput() { if (!searchDraft.value) appliedSearch.value = '' }
-function resetAllFilters() { searchDraft.value = ''; appliedSearch.value = ''; statusFilter.value = 'all'; modelTypeFilter.value = 'all'; favoritesOnly.value = false; clearDimensions() }
+function resetAllFilters() { searchDraft.value = ''; appliedSearch.value = ''; statusFilter.value = 'all'; favoritesOnly.value = false; clearDimensions() }
 function selectGroup(row: MonitorMatrixRow) {
   if (row.group_id) selectedGroupIds.value = [String(row.group_id)]
 }
@@ -742,7 +595,7 @@ async function loadIncident() {
   const scoped: MonitorFilter = {
     range: filter.value.range, platforms: [row.platform],
     groupIds: row.group_id ? [row.group_id] : [...filter.value.groupIds],
-    models: row.model ? [row.model] : [...filter.value.models], ...incidentWindow.value,
+    models: [], ...incidentWindow.value,
   }
   incidentLoading.value = true
   incidentError.value = ''
@@ -751,7 +604,7 @@ async function loadIncident() {
   incidentHealth.value = null
   try {
     const [metrics, errors] = await Promise.all([
-      api.getMatrix(scoped, matrixGroupBy.value, isAdmin.value, request.signal),
+      api.getMatrix(scoped, MATRIX_GROUP_BY, isAdmin.value, request.signal),
       api.getErrors(scoped, isAdmin.value, request.signal),
     ])
     if (id !== incidentSequence) return
@@ -772,7 +625,7 @@ function handleLoadFailure(error: unknown, id: number) {
   if (id !== sequence || e.name === 'AbortError' || e.name === 'CanceledError' || e.code === 'ERR_CANCELED') return
   monitorDisabled.value = e.reason === 'CHANNEL_MONITOR_DISABLED'
   loadError.value = extractApiErrorMessage(error, t('channelMonitorV2.loadFailed'))
-  if (monitorDisabled.value) { closeIncident(); snapshot.value = null; matrix.value = null; modelRows.value = []; errorRows.value = []; userRows.value = [] }
+  if (monitorDisabled.value) { closeIncident(); snapshot.value = null; matrix.value = null; errorRows.value = []; userRows.value = [] }
   scheduleAutoRefresh()
 }
 function onVisibilityChange() {
@@ -783,22 +636,10 @@ function csv(value: unknown) {
   return Array.isArray(value) ? value.map(String).filter(Boolean) : typeof value === 'string' ? value.split(',').filter(Boolean) : []
 }
 function parseRange(value: unknown): MonitorRange {
-  return ['90m', '24h', '7d', '30d'].includes(String(value)) ? (value as MonitorRange) : '24h'
-}
-function parseMatrixGroupBy(value: unknown): MonitorMatrixGroupBy {
-  const allowed: MonitorMatrixGroupBy[] = [
-    'platform',
-    'platform_group',
-    'platform_model',
-    'platform_group_model',
-  ]
-  return allowed.includes(value as MonitorMatrixGroupBy)
-    ? (value as MonitorMatrixGroupBy)
-    : 'platform_group_model'
+  return ['90m', '24h', '7d', '30d'].includes(String(value)) ? (value as MonitorRange) : '90m'
 }
 function parseTab(value: unknown, allowUsers: boolean): Tab {
-  const allowed: Tab[] = allowUsers ? ['models', 'errors', 'users'] : ['models', 'errors']
-  return allowed.includes(value as Tab) ? (value as Tab) : 'models'
+  return value === 'users' && allowUsers ? 'users' : 'errors'
 }
 function parseHealthMode(value: unknown): HealthMode {
   const allowed: HealthMode[] = ['overall', 'success', 'ttft', 'cache']
@@ -810,8 +651,7 @@ function parseTrendView(value: unknown): TrendView {
 function persistPreferences() {
   savePreferences(preferenceKey(authStore.user?.id), {
     range: filter.value.range, platform: filter.value.platforms, group: filter.value.groupIds,
-    model: filter.value.models, q: appliedSearch.value, status: statusFilter.value,
-    model_type: modelTypeFilter.value, group_by: matrixGroupBy.value, health_mode: healthMode.value,
+    q: appliedSearch.value, status: statusFilter.value, group_by: MATRIX_GROUP_BY, health_mode: healthMode.value,
     trend_view: trendView.value, tab: activeTab.value, sort: sortOrder.value,
     favorites_only: favoritesOnly.value, favorites: favoriteKeys.value,
   })
@@ -826,14 +666,12 @@ function syncQuery() {
     query: {
       q: appliedSearch.value || undefined,
       status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
-      model_type: modelTypeFilter.value !== 'all' ? modelTypeFilter.value : undefined,
       sort: sortOrder.value !== 'health' ? sortOrder.value : undefined,
       favorites_only: favoritesOnly.value ? '1' : undefined,
       range: filter.value.range,
       platform: filter.value.platforms.join(',') || undefined,
       group: filter.value.groupIds.join(',') || undefined,
-      model: filter.value.models.join(',') || undefined,
-      group_by: matrixGroupBy.value,
+      group_by: MATRIX_GROUP_BY,
       health_mode: healthMode.value,
       trend_view: trendView.value === 'line' ? 'line' : undefined,
       tab: activeTab.value,
@@ -857,7 +695,7 @@ async function loadDimensions(signal?: AbortSignal, id = sequence) {
 async function loadMetrics(signal?: AbortSignal, id = sequence) {
   const [nextSnapshot, nextMatrix] = await Promise.all([
     api.getSnapshot(filter.value, isAdmin.value, signal),
-    api.getMatrix(filter.value, matrixGroupBy.value, isAdmin.value, signal),
+    api.getMatrix(filter.value, MATRIX_GROUP_BY, isAdmin.value, signal),
   ])
   if (id !== sequence) return
   now.value = Date.now()
@@ -916,10 +754,7 @@ async function reloadMetricsOnly(silent = true) {
 async function loadTab(signal?: AbortSignal, id = sequence) {
   tabLoading.value = true
   try {
-    if (activeTab.value === 'models') {
-      const result = await api.getModels(filter.value, isAdmin.value, signal)
-      if (id === sequence && activeTab.value === 'models') modelRows.value = result.items || []
-    } else if (activeTab.value === 'errors') {
+    if (activeTab.value === 'errors') {
       const result = await api.getErrors(filter.value, isAdmin.value, signal)
       if (id === sequence && activeTab.value === 'errors') errorRows.value = result.items || []
     } else if (showUserRanking.value) {
@@ -957,15 +792,12 @@ function scheduleAutoRefresh() {
   const seconds = bootstrapActive.value
     ? 10
     : snapshot.value?.config?.refresh_interval_seconds || 300
+  nextRefresh.value = Date.now() + seconds * 1000
   autoRefreshTimer = window.setInterval(() => {
     if (document.visibilityState !== 'hidden' && !loading.value && !refreshing.value) {
       void reload(true)
     }
   }, Math.max(bootstrapActive.value ? 10 : 60, seconds) * 1000)
-}
-function drillModel(row: MonitorModelRow) {
-  selectPlatforms([row.platform])
-  filter.value.models = [row.model]
 }
 function formatRate(value: number) {
   return formatMonitorThroughput(value)
@@ -1007,25 +839,13 @@ function latencyKpiSecondary(metric: {
   return formatLatencyKpiSecondary(metric.avg_ms, metric.p90_ms, metric.p95_ms)
 }
 function formatTime(value: string) {
+  if (!Number.isFinite(Date.parse(value))) return '—'
   return new Intl.DateTimeFormat(locale.value || undefined, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
-}
-function statusDot(health?: MonitorHealth | HealthState) {
-  if (dataStale.value) return 'status-dot health-unknown'
-  if (!health || typeof health === 'string') {
-    return `status-dot health-${health || 'unknown'}`
-  }
-  // Prefer multi-band score when available; otherwise fall back to the coarse
-  // overall state for mixed-version/older payloads.
-  const klass =
-    health.score != null
-      ? healthScoreClass(health, 'overall', 0)
-      : `health-${health.overall || 'unknown'}`
-  return `status-dot ${klass}`
 }
 function errorLabel(value: string) {
   const key = `channelMonitorV2.errorCategories.${value}`
@@ -1051,10 +871,6 @@ watch(
   },
   { deep: true }
 )
-watch(matrixGroupBy, () => {
-  syncQuery()
-  void reloadMetricsOnly(true)
-})
 watch(healthMode, syncQuery)
 watch(trendView, syncQuery)
 watch(activeTab, () => {
@@ -1063,15 +879,19 @@ watch(activeTab, () => {
 })
 watch(showUserRanking, (allowed) => {
   if (!allowed && activeTab.value === 'users') {
-    activeTab.value = 'models'
+    activeTab.value = 'errors'
   }
 })
-watch([appliedSearch, statusFilter, modelTypeFilter, sortOrder, favoritesOnly], syncQuery)
+watch([appliedSearch, statusFilter, sortOrder, favoritesOnly], syncQuery)
 watch(favoriteKeys, persistPreferences)
 onMounted(() => {
-  freshnessTimer = window.setInterval(() => { now.value = Date.now() }, 15_000)
+  freshnessTimer = window.setInterval(() => { now.value = Date.now() }, 1000)
   document.addEventListener('visibilitychange', onVisibilityChange)
   void reload(false)
+  void Promise.allSettled([getAvailable(), getUserGroupRates()]).then(([groups, overrides]) => {
+    const baseRates = groups.status === 'fulfilled' ? Object.fromEntries(groups.value.map(group => [group.id, group.rate_multiplier])) : {}
+    groupRates.value = { ...baseRates, ...(overrides.status === 'fulfilled' ? overrides.value : {}) }
+  })
 })
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibilityChange)
@@ -1083,89 +903,75 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.availability-page { color: #171717; }
-.availability-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: .25rem 0 .5rem; }
-.availability-ranges { display: flex; flex-wrap: wrap; align-items: center; gap: .125rem; border: 1px solid #e5e5e5; border-radius: 9999px; background: #fff; padding: .25rem; }
-.availability-ranges button { border-radius: 9999px; padding: .375rem .75rem; color: #737373; font-size: .75rem; white-space: nowrap; }
-.availability-ranges button.selected { background: #171717; color: #fff; font-weight: 600; }
-.availability-action { display: inline-flex; flex: none; min-height: 2.25rem; align-items: center; justify-content: center; gap: .4rem; border: 1px solid #171717; border-radius: .5rem; background: #171717; padding: .5rem .75rem; color: #fff; font-size: .75rem; font-weight: 600; }
-.availability-action:hover:not(:disabled) { background: #404040; }
-.availability-action:disabled { cursor: wait; opacity: .55; }
-.availability-action:focus-visible, .availability-ranges button:focus-visible, .availability-settings:focus-visible { outline: 2px solid #737373; outline-offset: 3px; }
-.availability-source { border-radius: 9999px; background: #171717; padding: .4rem .85rem; color: #fff; font-weight: 600; }
-.availability-settings { display: inline-flex; flex: none; align-items: center; gap: .4rem; border: 1px solid #e5e5e5; border-radius: .5rem; background: #fff; padding: .4rem .65rem; color: #262626; font-size: .75rem; }
-.availability-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
-.availability-stat { display: flex; min-width: 0; align-items: center; gap: .85rem; border: 1px solid #e5e5e5; border-radius: .875rem; background: #fff; padding: 1.25rem; }
-.availability-stat-icon { display: inline-flex; width: 2.5rem; height: 2.5rem; flex: none; align-items: center; justify-content: center; border-radius: 9999px; color: #fff; }
-.stat-total { background: #171717; }
-.stat-healthy, .legend-healthy { background: #00b982; }
-.stat-warning, .legend-warning { background: #ff9500; }
-.stat-critical, .legend-critical { background: #ff2d42; }
-.legend-unknown { background: #d4d4d4; }
-.availability-workspace { min-width: 0; border: 1px solid #e5e5e5; border-radius: .875rem; background: #fff; }
-.availability-platforms { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; border-bottom: 1px solid #ededed; padding: 1rem 1.25rem; }
-.availability-platforms button { border: 1px solid #e5e5e5; border-radius: 9999px; padding: .45rem .9rem; color: #525252; font-size: .75rem; white-space: nowrap; transition: background-color .15s, color .15s; }
-.availability-platforms button:hover { background: #f5f5f5; }
-.availability-platforms button.selected { border-color: #171717; background: #171717; color: #fff; font-weight: 600; }
-.availability-platforms button:focus-visible { outline: 2px solid #737373; outline-offset: 3px; }
-.availability-toolbar { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1.25rem; }
+.availability-page {
+  --channel-text: #171a22;
+  --channel-muted: #636874;
+  --channel-border: #e0e1e5;
+  --channel-surface: #fff;
+  --channel-subtle: #f3f4f6;
+  --channel-gap: #cbd0d8;
+  max-width: 104rem;
+  margin-inline: auto;
+  color: var(--channel-text);
+}
+.dark .availability-page {
+  --channel-text: #f4f5f9;
+  --channel-muted: #aab2c0;
+  --channel-border: #343843;
+  --channel-surface: #191b23;
+  --channel-subtle: #252833;
+  --channel-gap: #535968;
+}
+.availability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .65rem 1rem;
+  padding: .65rem .85rem;
+  border: 1px solid var(--channel-border);
+  border-radius: 10px;
+  background: var(--channel-surface);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+.monitor-header-controls, .availability-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .45rem .8rem;
+  min-width: 0;
+  color: var(--channel-muted);
+  font-size: .8rem;
+}
+.availability-summary { gap: .25rem; font-variant-numeric: tabular-nums; }
+.availability-ranges { display: flex; align-items: center; gap: .1rem; border-radius: 9px; background: var(--channel-subtle); padding: .2rem; }
+.availability-ranges button { border: 1px solid transparent; border-radius: 7px; padding: .3rem .68rem; color: var(--channel-muted); font-size: .8rem; white-space: nowrap; }
+.availability-ranges button.selected { border-color: var(--channel-border); background: var(--channel-surface); color: var(--channel-text); font-weight: 650; box-shadow: 0 1px 2px rgb(15 23 42 / 8%); }
+.availability-action, .availability-settings { display: inline-flex; flex: none; min-height: 2rem; align-items: center; justify-content: center; gap: .35rem; border: 1px solid var(--channel-border); border-radius: 6px; background: var(--channel-surface); padding: .35rem .6rem; color: var(--channel-text); font-size: .75rem; font-weight: 600; }
+.availability-action:hover:not(:disabled), .availability-settings:hover:not(:disabled) { background: var(--channel-subtle); }
+.availability-settings:disabled { cursor: wait; opacity: .6; }
+.availability-action:focus-visible, .availability-ranges button:focus-visible, .availability-settings:focus-visible { outline: 2px solid var(--channel-muted); outline-offset: 2px; }
+.availability-workspace, .availability-results { min-width: 0; }
+.channel-filters { margin-bottom: 1rem; color: var(--channel-muted); }
+.channel-filters summary { display: flex; width: fit-content; align-items: center; gap: .4rem; cursor: pointer; border-radius: 5px; font-size: .75rem; }
+.channel-filters[open] { border-bottom: 1px solid var(--channel-border); padding-bottom: .55rem; }
+.availability-platforms, .availability-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin-top: .65rem; }
+.availability-platforms button { border: 1px solid var(--channel-border); border-radius: 7px; padding: .35rem .65rem; color: var(--channel-muted); font-size: .75rem; }
+.availability-platforms button:hover, .availability-platforms button.selected { background: var(--channel-subtle); color: var(--channel-text); }
+.availability-platforms button.selected { font-weight: 650; }
+.availability-toolbar { min-width: 0; justify-content: space-between; }
 .availability-search { display: flex; width: min(100%, 26rem); min-width: 0; align-items: center; gap: .5rem; }
-.availability-search input { height: 2.25rem; border-radius: .5rem; font-size: .8125rem; }
-.availability-status { min-width: 10rem; max-width: 100%; }
-.availability-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.5rem; border-top: 1px solid #ededed; padding: .75rem 1.25rem; color: #737373; font-size: .6875rem; }
-.availability-results { min-width: 0; border-top: 1px solid #ededed; padding: 1.25rem; }
+.availability-search input { min-height: 2rem; border-radius: 6px; font-size: .8125rem; }
+.availability-status { max-width: 100%; }
+.availability-legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .7rem; font-size: .6875rem; }
+.legend-healthy { background: #00976e; }
+.legend-warning { background: #f9c32f; }
+.legend-critical { background: #ef4444; }
+.legend-unknown { background: var(--channel-gap); }
 .availability-notice { display: flex; align-items: flex-start; gap: .75rem; border: 1px solid #fcd34d; border-radius: .75rem; background: #fffbeb; padding: 1rem; color: #92400e; font-size: .8125rem; }
-.availability-advanced { border: 1px solid #e5e5e5; border-radius: .875rem; background: #fff; }
-.dark .availability-page { color: #f5f5f5; }
-.dark .availability-ranges, .dark .availability-settings, .dark .availability-stat, .dark .availability-workspace, .dark .availability-advanced { border-color: #404040; background: #262626; }
-.dark .availability-legend, .dark .availability-results, .dark .availability-platforms { border-color: #404040; }
-.dark .availability-platforms button { border-color: #525252; color: #d4d4d4; }
-.dark .availability-platforms button:hover { background: #404040; }
-.dark .availability-platforms button.selected { border-color: #f5f5f5; background: #f5f5f5; color: #171717; }
-.dark .availability-ranges button { color: #a3a3a3; }
-.dark .availability-ranges button.selected, .dark .availability-action, .dark .availability-source, .dark .stat-total { background: #f5f5f5; color: #171717; }
-.dark .availability-settings { color: #e5e5e5; }
-.dark .availability-legend { color: #a3a3a3; }
 .dark .availability-notice { border-color: #92400e; background: #451a03; color: #fde68a; }
-@media (max-width: 768px) {
-  .availability-header { flex-direction: column; gap: 1rem; }
-  .availability-header > div:last-child { width: 100%; align-items: flex-start; }
-  .availability-header > div:last-child > div { justify-content: flex-start; }
-  .availability-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .availability-stat { gap: .625rem; padding: 1rem; }
-  .availability-toolbar { align-items: stretch; padding: 1rem; }
-  .availability-platforms { padding: 1rem; }
-  .availability-search { width: 100%; }
-  .availability-results { padding: .875rem; }
-  .availability-legend { padding: .75rem 1rem; }
-}
+.availability-advanced { border: 1px solid var(--channel-border); border-radius: .875rem; background: var(--channel-surface); }
 @media (prefers-reduced-motion: reduce) { .availability-page :deep(*) { animation: none !important; transition: none !important; } }
-.status-dot {
-  display: inline-block;
-  height: 0.5rem;
-  width: 0.5rem;
-  flex: none;
-  border-radius: 9999px;
-}
-/* Multi-stop green → yellow → red score bands */
-.health-score10 { background: #16a34a; }
-.health-score9  { background: #22c55e; }
-.health-score8  { background: #4ade80; }
-.health-score7  { background: #a3e635; }
-.health-score6  { background: #facc15; }
-.health-score5  { background: #fbbf24; }
-.health-score4  { background: #f59e0b; }
-.health-score3  { background: #f97316; }
-.health-score2  { background: #fb7185; }
-.health-score1  { background: #f87171; }
-.health-score0  { background: rgb(239, 67, 67); }
-.health-healthy  { background: #22c55e; }
-.health-warning  { background: #f59e0b; }
-.health-critical { background: #ef4444; }
-.health-unknown  { background: #9ca3af; }
-.matrix-select {
-  min-width: 10rem;
-}
 details > summary::-webkit-details-marker {
   display: none;
 }

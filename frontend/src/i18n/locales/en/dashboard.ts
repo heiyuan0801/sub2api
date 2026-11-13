@@ -604,6 +604,8 @@ export default {
 
   // Channel Status (user-facing read-only view)
   channelStatus: {
+    websiteStatus: 'Website status',
+    opensInNewTab: '(opens in a new tab)',
     title: 'Channel Status',
     description: 'Inspect channel availability, latency and recent status',
     searchPlaceholder: 'Search channels...',

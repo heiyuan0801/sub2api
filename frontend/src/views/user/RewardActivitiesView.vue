@@ -50,9 +50,8 @@
               <span class="reward-wheel-center" />
             </div>
             <ol class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-              <li v-for="(prize, index) in prizes" :key="index" class="flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5">
+              <li v-for="(prize, index) in prizes" :key="index" class="rounded-lg border px-2.5 py-1.5">
                 <span class="min-w-0 break-words">{{ index + 1 }}. {{ prize.name || prizeLabel(prize.reward_cents) }}</span>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">{{ probability(prize.weight) }}</span>
               </li>
             </ol>
             <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -99,8 +98,6 @@ const checkInShortfall = computed(() => status.value ? Math.max(0, status.value.
 const wheelShortfall = computed(() => status.value
   ? Math.max(0, status.value.config.wheel.threshold_cents - Math.max(0, status.value.spent_cents - status.value.draw_spend_used_cents))
   : 0)
-const totalWeight = computed(() => prizes.value.reduce((sum, prize) => sum + prize.weight, 0))
-const probability = (weight: number) => new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 2 }).format(weight / totalWeight.value)
 const wheelGradient = computed(() => {
   const colors = ['#1e5f50', '#2c4c82', '#7f4a37', '#5a4381', '#256676', '#576b34']
   return `conic-gradient(${prizes.value.map((_, index) => {

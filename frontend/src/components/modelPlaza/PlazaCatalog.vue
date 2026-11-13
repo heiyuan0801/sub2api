@@ -1,138 +1,124 @@
 <template>
-  <div class="model-catalog" :style="{
-    '--catalog-input-label': JSON.stringify(t('publicSite.models.inputLabel')),
-    '--catalog-output-label': JSON.stringify(t('publicSite.models.outputLabel'))
-  }">
-    <div class="catalog-toolbar">
-      <Button variant="outline" size="sm"
-        type="button"
-        class="catalog-button filter-button"
-        :disabled="loading || error"
-        :aria-expanded="filterOpen"
-        @click="filterOpen = true"
-      >
-        <Icon name="filter" size="sm" />
-        <span>{{ t('publicSite.models.filter') }}</span>
-        <span v-if="activeFilterCount" class="filter-count">{{ activeFilterCount }}</span>
-      </Button>
-      <div class="catalog-search">
-        <Icon name="search" size="sm" />
-        <label for="public-model-search" class="sr-only">{{ t('publicSite.models.searchLabel') }}</label>
-        <input
-          id="public-model-search"
-          ref="searchInput"
-          v-model="searchQuery"
-          type="search"
-          :placeholder="t('publicSite.models.searchPlaceholder')"
-          autocomplete="off"
-        />
-        <kbd>⌘ K</kbd>
-      </div>
-    </div>
-
+  <div class="model-catalog">
     <div class="catalog-page">
       <header class="catalog-hero">
-        <Badge variant="outline" class="mb-5">{{ t('design.modelsEyebrow') }}</Badge>
-        <h1>{{ t('publicSite.models.title') }}</h1>
-        <p>{{ t('publicSite.models.subtitle') }}</p>
+        <div>
+          <h1>{{ t('publicSite.market.heading') }}</h1>
+          <p>{{ t('publicSite.models.subtitle') }}</p>
+        </div>
+        <RouterLink v-if="!descriptionHtml" to="/home#api-example" class="market-guide"><Icon name="document" size="sm" />{{ t('publicSite.nav.apiDocs') }}</RouterLink>
+        <Button v-else variant="ghost" size="sm" @click="descriptionOpen = !descriptionOpen" :aria-expanded="descriptionOpen" aria-controls="market-description">
+          <Icon name="document" size="sm" />{{ t('publicSite.models.priceDescription') }}
+        </Button>
       </header>
-
-      <nav v-if="!loading && !error" class="mb-6 flex flex-wrap gap-2" :aria-label="t('publicSite.models.provider')">
-        <Button :variant="selectedPlatform === 'all' ? 'default' : 'outline'" size="sm" :aria-pressed="selectedPlatform === 'all'" @click="selectedPlatform = 'all'">{{ t('publicSite.models.allProviders') }}</Button>
-        <Button v-for="platform in platforms" :key="platform" :variant="selectedPlatform === platform ? 'default' : 'outline'" size="sm" :aria-pressed="selectedPlatform === platform" :disabled="!platformEnabled(platform)" @click="selectedPlatform = platform"><PlatformIcon :platform="platform as GroupPlatform" size="sm" />{{ platformLabel(platform) }}</Button>
-      </nav>
-
-      <details v-if="descriptionHtml" class="catalog-description">
-        <summary>{{ t('publicSite.models.priceDescription') }} <Icon name="chevronDown" size="sm" /></summary>
+      <div v-if="descriptionHtml" v-show="descriptionOpen" id="market-description" class="catalog-description">
         <div class="description-markdown" v-html="descriptionHtml"></div>
-      </details>
-
-      <div v-if="loading" class="catalog-state" role="status" aria-live="polite">
-        <span class="catalog-spinner"></span>
-        <span class="sr-only">{{ t('common.loading') }}</span>
       </div>
-      <div v-else-if="error" class="catalog-state catalog-error" role="alert">
-        <Icon name="exclamationCircle" size="lg" />
-        <p>{{ t('modelPlaza.loadFailed') }}</p>
-      </div>
-      <template v-else>
-        <div class="catalog-summary">
-          <div class="summary-provider">
-            <span class="provider-initial" aria-hidden="true">
-              <PlatformIcon v-if="selectedPlatform !== 'all'" :platform="selectedPlatform as GroupPlatform" size="lg" />
-              <span v-else>A</span>
-            </span>
-            <div>
-              <h2>{{ selectedPlatform === 'all' ? t('publicSite.models.allProviders') : platformLabel(selectedPlatform) }}</h2>
-              <p>{{ t('publicSite.models.modelCount', { count: uniqueModelCount }) }}<span v-if="filteredGroups.length"> · {{ t('publicSite.models.groupCount', { count: filteredGroups.length }) }}</span></p>
-            </div>
-          </div>
-          <div class="summary-actions">
-            <Button variant="outline" size="sm" type="button" class="catalog-icon-button" :title="t('publicSite.models.exportCsv')" :aria-label="t('publicSite.models.exportCsvLabel')" :disabled="!entries.length" @click="exportCsv">
-              <Icon name="download" size="sm" />
-            </Button>
-            <Button variant="outline" size="sm" type="button" class="catalog-button rate-toggle" :class="{ active: showRate }" :aria-pressed="showRate" @click="showRate = !showRate">
-              <span class="rate-switch" aria-hidden="true"><span></span></span> {{ t('publicSite.models.rate') }}
-            </Button>
-            <div class="catalog-view-switch" role="group" :aria-label="t('publicSite.models.viewMode')">
-              <button type="button" :class="{ active: viewMode === 'cards' }" :aria-pressed="viewMode === 'cards'" :aria-label="t('publicSite.models.cardView')" @click="viewMode = 'cards'">
-                <Icon name="grid" size="sm" />
-              </button>
-              <button type="button" :class="{ active: viewMode === 'table' }" :aria-pressed="viewMode === 'table'" :aria-label="t('publicSite.models.tableView')" @click="viewMode = 'table'">
-                <Icon name="menu" size="sm" />
-              </button>
-            </div>
-          </div>
-        </div>
 
-        <p v-if="!isAuthenticated" class="catalog-anonymous">{{ t('modelPlaza.anonymousHint') }}</p>
+      <div class="market-layout">
+        <aside class="market-sidebar">
+          <h2>{{ t('publicSite.models.modelCount', { count: uniqueModelCount }) }}</h2>
+          <nav v-if="!loading && !error" :aria-label="t('publicSite.models.filterModels')">
+            <details open>
+              <summary>{{ t('publicSite.market.type') }}<Icon name="chevronDown" size="xs" /></summary>
+              <button v-for="mode in modes" :key="mode" type="button" :aria-pressed="selectedMode === mode" @click="selectedMode = mode">{{ modeLabel(mode) }}</button>
+            </details>
+            <details open>
+              <summary>{{ t('publicSite.models.provider') }}<Icon name="chevronDown" size="xs" /></summary>
+              <button type="button" :aria-pressed="selectedPlatform === 'all'" @click="selectedPlatform = 'all'">{{ t('publicSite.models.allProviders') }}</button>
+              <button v-for="platform in platforms" :key="platform" type="button" :aria-pressed="selectedPlatform === platform" :disabled="!platformEnabled(platform)" @click="selectedPlatform = platform">
+                <PlatformIcon :platform="platform as GroupPlatform" size="sm" />{{ platformLabel(platform) }}
+              </button>
+            </details>
+            <details open>
+              <summary>{{ t('publicSite.models.group') }}<Icon name="chevronDown" size="xs" /></summary>
+              <select v-model="selectedGroupId" :aria-label="t('publicSite.models.group')">
+                <option value="all">{{ t('publicSite.models.allGroups') }}</option>
+                <option v-for="group in groupOptions" :key="group.id" :value="group.id" :disabled="!groupEnabled(group)">{{ group.name }}</option>
+              </select>
+            </details>
+            <details open>
+              <summary>{{ t('publicSite.models.rate') }}<Icon name="chevronDown" size="xs" /></summary>
+              <select v-model="selectedRate" :aria-label="t('publicSite.models.rate')">
+                <option value="all">{{ t('publicSite.models.allRates') }}</option>
+                <option v-for="rate in rates" :key="rate" :value="rate" :disabled="!rateEnabled(rate)">{{ rate }}x</option>
+              </select>
+            </details>
+            <button v-if="activeFilterCount" type="button" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</button>
+          </nav>
+        </aside>
 
-        <div v-if="!entries.length" class="catalog-state catalog-empty">
-          <Icon name="search" size="lg" />
-          <p>{{ searchQuery.trim() || activeFilterCount ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}</p>
-          <Button variant="outline" size="sm" v-if="searchQuery.trim() || activeFilterCount" type="button" class="catalog-button" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</Button>
-        </div>
-        <div v-else-if="viewMode === 'cards'" class="catalog-grid">
-          <Card v-for="entry in entries" :key="entry.key" class="catalog-card">
-            <div class="card-actions">
-              <button type="button" :title="t('publicSite.models.copyName')" :aria-label="t('publicSite.models.copyNameLabel', { model: entry.model.name })" @click="copyToClipboard(entry.model.name)">
-                <Icon name="copy" size="sm" />
-              </button>
-              <button type="button" :title="t('publicSite.models.priceDetails')" :aria-label="t('publicSite.models.priceDetailsLabel', { model: entry.model.name })" @click="selectedEntry = entry">
-                <Icon name="externalLink" size="sm" />
-              </button>
+        <section class="market-results" :aria-label="t('publicSite.market.heading')">
+          <div class="catalog-toolbar">
+            <Button variant="outline" size="sm" type="button" class="catalog-button filter-button" :disabled="loading || error" :aria-expanded="filterOpen" @click="filterOpen = true">
+              <Icon name="filter" size="sm" />{{ t('publicSite.models.filter') }}
+              <span v-if="activeFilterCount" class="filter-count">{{ activeFilterCount }}</span>
+            </Button>
+            <select v-if="viewMode === 'cards'" v-model="sortOrder" class="market-sort" :aria-label="t('publicSite.market.sort')">
+              <option value="default">{{ t('publicSite.market.defaultSort') }}</option>
+              <option value="latest">{{ t('publicSite.market.latest') }}</option>
+              <option value="name">{{ t('publicSite.market.byName') }}</option>
+            </select>
+            <div class="catalog-search">
+              <Icon name="search" size="sm" />
+              <label for="public-model-search" class="sr-only">{{ t('publicSite.models.searchLabel') }}</label>
+              <input id="public-model-search" ref="searchInput" v-model="searchQuery" type="search" :placeholder="t('publicSite.market.search')" autocomplete="off" />
             </div>
-            <button type="button" class="card-main" @click="selectedEntry = entry">
-              <span class="card-provider" aria-hidden="true"><PlatformIcon :platform="entry.model.platform as GroupPlatform" size="lg" /></span>
-              <h3>{{ entry.model.name }}</h3>
-            </button>
-            <!-- The existing price table owns every calculation, including user/media rates and tiers. -->
-            <div class="card-price" :class="{ 'media-price': isMedia(entry.model) }" :aria-label="isMedia(entry.model) ? t('publicSite.models.mediaPriceLabel') : t('publicSite.models.tokenPriceLabel')">
-              <PlazaModelPricingTable v-bind="pricingProps(entry)" />
-            </div>
-            <p class="card-description" :title="entry.group.description">
-              {{ entry.group.description || platformLabel(entry.model.platform) }}
-            </p>
-            <footer class="card-footer">
-              <div class="card-badges">
-                <span>{{ billingLabel(entry.model) }}</span>
-                <span v-if="entry.model.pricing?.intervals?.length">{{ t('publicSite.models.tieredPricing') }}</span>
-                <span v-if="entry.model.time_pricing?.periods.length">{{ t('publicSite.models.timePricing') }}</span>
-                <span v-if="entry.group.subscription_type === 'subscription'">{{ t('publicSite.models.subscription') }}</span>
-                <span v-if="entry.group.is_exclusive">{{ t('publicSite.models.exclusive') }}</span>
+            <div class="summary-actions">
+              <Button variant="outline" size="sm" type="button" class="catalog-icon-button" :title="t('publicSite.models.exportCsv')" :aria-label="t('publicSite.models.exportCsvLabel')" :disabled="!entries.length" @click="exportCsv"><Icon name="download" size="sm" /></Button>
+              <Button variant="outline" size="sm" type="button" class="catalog-button rate-toggle" :aria-pressed="showRate" @click="showRate = !showRate">{{ t('publicSite.models.rate') }}</Button>
+              <div class="catalog-view-switch" role="group" :aria-label="t('publicSite.models.viewMode')">
+                <button type="button" :class="{ active: viewMode === 'cards' }" :aria-pressed="viewMode === 'cards'" :aria-label="t('publicSite.models.cardView')" @click="viewMode = 'cards'"><Icon name="grid" size="sm" /></button>
+                <button type="button" :class="{ active: viewMode === 'table' }" :aria-pressed="viewMode === 'table'" :aria-label="t('publicSite.models.tableView')" @click="viewMode = 'table'"><Icon name="menu" size="sm" /></button>
               </div>
-              <span class="card-group" :title="entry.group.name">{{ entry.group.name }}<template v-if="showRate"> · {{ entryRate(entry) }}x</template></span>
-            </footer>
-          </Card>
-        </div>
-        <div v-else class="catalog-tables">
-          <PlazaGroupSection v-for="group in filteredGroups" :key="group.id" :group="group" />
-        </div>
+            </div>
+          </div>
 
-        <p v-if="entries.length && viewMode === 'cards'" class="catalog-price-note">{{ t('publicSite.models.priceNote') }}</p>
-      </template>
+          <div v-if="loading" class="catalog-state" role="status" aria-live="polite"><span class="catalog-spinner"></span><span class="sr-only">{{ t('common.loading') }}</span></div>
+          <div v-else-if="error" class="catalog-state catalog-error" role="alert"><Icon name="exclamationCircle" size="lg" /><p>{{ t('modelPlaza.loadFailed') }}</p></div>
+          <template v-else>
+            <div v-if="!entries.length" class="catalog-state catalog-empty">
+              <Icon name="search" size="lg" />
+              <p>{{ searchQuery.trim() || activeFilterCount ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}</p>
+              <Button v-if="searchQuery.trim() || activeFilterCount" variant="outline" size="sm" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</Button>
+            </div>
+            <div v-else-if="viewMode === 'cards'" class="catalog-grid">
+              <article v-for="{ entry, groupCount } in cards" :key="entry.key" class="catalog-card">
+                <div class="market-card-heading">
+                  <button type="button" class="card-main" @click="selectedEntry = entry">
+                    <PlatformIcon :platform="entry.model.platform as GroupPlatform" size="md" />
+                    <h3>{{ entry.model.name }}</h3>
+                  </button>
+                  <button type="button" class="market-copy" :aria-label="t('publicSite.models.copyNameLabel', { model: entry.model.name })" :title="t('publicSite.models.copyName')" @click="copyToClipboard(entry.model.name)"><Icon name="copy" size="sm" /></button>
+                </div>
+                <div class="card-badges">
+                  <span>{{ platformLabel(entry.model.platform) }}</span><span>{{ modeLabel(entry.prices.mode) }}</span>
+                  <span v-if="entry.model.time_pricing?.periods.length">{{ t('publicSite.models.timePricing') }}</span>
+                  <span v-if="entry.group.is_exclusive">{{ t('publicSite.models.exclusive') }}</span>
+                </div>
+                <p class="card-description">{{ entry.group.description || entry.group.name }}</p>
+                <dl class="market-metrics">
+                  <template v-if="entry.prices.mode === BILLING_MODE_TOKEN">
+                    <div><dt>{{ t('publicSite.market.input') }}</dt><dd>{{ formatCatalogPrice(entry.prices.input, 1_000_000) }}<small v-if="entry.prices.input != null">/M</small></dd></div>
+                    <div><dt>{{ t('publicSite.market.output') }}</dt><dd>{{ formatCatalogPrice(entry.prices.output, 1_000_000) }}<small v-if="entry.prices.output != null">/M</small></dd></div>
+                    <div><dt>{{ t('publicSite.market.cache') }}</dt><dd>{{ formatCatalogPrice(entry.prices.cache, 1_000_000) }}<small v-if="entry.prices.cache != null">/M</small></dd></div>
+                  </template>
+                  <div v-else><dt>{{ billingLabel(entry.model) }}</dt><dd>{{ formatCatalogPrice(entry.prices.request) }}</dd></div>
+                  <div><dt>{{ t(showRate ? 'publicSite.models.rate' : 'publicSite.market.billing') }}</dt><dd>{{ showRate ? entryRate(entry) + 'x' : billingLabel(entry.model) }}</dd></div>
+                </dl>
+                <footer class="card-footer">
+                  <span class="card-group" :title="entry.group.name">{{ entry.group.name }}<template v-if="groupCount > 1"> · {{ t('publicSite.models.groupCount', { count: groupCount }) }}</template></span>
+                  <button type="button" :aria-label="t('publicSite.models.priceDetailsLabel', { model: entry.model.name })" @click="selectedEntry = entry">{{ t('publicSite.market.details') }} <Icon name="arrowRight" size="xs" /></button>
+                </footer>
+              </article>
+            </div>
+            <div v-else class="catalog-tables"><PlazaGroupSection v-for="group in filteredGroups" :key="group.id" :group="group" /></div>
+            <p v-if="entries.length && viewMode === 'cards'" class="catalog-price-note">{{ t('publicSite.market.priceNote') }}</p>
+            <p v-if="!isAuthenticated" class="catalog-price-note">{{ t('modelPlaza.anonymousHint') }}</p>
+          </template>
+        </section>
+      </div>
     </div>
-
     <dialog
       ref="filterDialog"
       class="catalog-filter-dialog"
@@ -147,6 +133,12 @@
       </header>
       <div class="catalog-dialog-body">
         <div class="catalog-filter-content">
+        <section>
+          <h3>{{ t('publicSite.market.type') }}</h3>
+          <div class="catalog-filter-pills">
+            <button v-for="mode in modes" :key="mode" type="button" :class="{ selected: selectedMode === mode }" :aria-pressed="selectedMode === mode" @click="selectedMode = mode">{{ modeLabel(mode) }}</button>
+          </div>
+        </section>
         <section>
           <h3>{{ t('publicSite.models.provider') }}</h3>
           <div class="manufacturer-options">
@@ -197,7 +189,7 @@
         <Button variant="outline" size="sm" type="button" class="catalog-icon-button" :aria-label="t('publicSite.models.closeDetails')" @click="selectedEntry = null"><Icon name="x" size="md" /></Button>
       </header>
       <div class="catalog-dialog-body">
-        <PlazaGroupSection v-if="selectedEntry" :group="{ ...selectedEntry.group, models: [selectedEntry.model] }" />
+        <PlazaGroupSection v-for="entry in detailEntries" :key="entry.key" :group="{ ...entry.group, models: [entry.model] }" />
       </div>
       <footer class="catalog-dialog-footer">
         <Button variant="outline" size="sm" v-if="selectedEntry" type="button" class="catalog-button" @click="copyToClipboard(selectedEntry.model.name)"><Icon name="copy" size="sm" /> {{ t('publicSite.models.copyName') }}</Button>
@@ -208,8 +200,6 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -219,29 +209,29 @@ import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { useAuthStore } from '@/stores/auth'
-import { useAppStore } from '@/stores/app'
 import { platformLabel } from '@/utils/platformColors'
-import { formatPeakRateWindow, hasPeakRate, serverTimezoneLabel } from '@/utils/peak-rate'
 import { BILLING_MODE_IMAGE, BILLING_MODE_TOKEN, BILLING_MODE_VIDEO } from '@/constants/channel'
 import type { ModelPlazaGroup, ModelPlazaResponse, PlazaModel } from '@/api/modelPlaza'
 import type { GroupPlatform } from '@/types'
-import PlazaModelPricingTable from './PlazaModelPricingTable.vue'
+import { catalogPrices, formatCatalogPrice, groupRate, modelRate } from './catalogPricing'
 import PlazaGroupSection from './PlazaGroupSection.vue'
 
 const props = defineProps<{ response: ModelPlazaResponse | null; loading: boolean; error?: boolean }>()
-interface CatalogEntry { key: string; group: ModelPlazaGroup; model: PlazaModel }
+interface CatalogEntry { key: string; group: ModelPlazaGroup; model: PlazaModel; prices: ReturnType<typeof catalogPrices> }
 const { t } = useI18n()
 const route = useRoute()
 const authStore = useAuthStore()
-const appStore = useAppStore()
 const { copyToClipboard } = useClipboard()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const selectedPlatform = ref('all')
+const selectedMode = ref('all')
+const sortOrder = ref('default')
+const descriptionOpen = ref(false)
 const selectedGroupId = ref<number | 'all'>('all')
 const selectedRate = ref<number | 'all'>('all')
 const searchQuery = ref(typeof route.query.search === 'string' ? route.query.search : '')
 watch(() => route.query.search, search => {
-  if (typeof search === 'string') searchQuery.value = search
+  searchQuery.value = typeof search === 'string' ? search : ''
 })
 const searchInput = ref<HTMLInputElement | null>(null)
 const filterOpen = ref(false)
@@ -251,11 +241,13 @@ const detailDialog = ref<HTMLDialogElement | null>(null)
 const showRate = ref(false)
 const viewMode = ref<'cards' | 'table'>('cards')
 const groups = computed(() => props.response?.groups ?? [])
-const effectiveRate = (group: ModelPlazaGroup) => group.user_rate_multiplier ?? group.rate_multiplier
+const effectiveRate = groupRate
+const modes = computed(() => ['all', ...new Set(groups.value.flatMap(group => group.models.map(model => model.pricing?.billing_mode || BILLING_MODE_TOKEN)))])
+const latestOrder = computed(() => new Map((props.response?.latest_models ?? []).map((model, index) => [modelKey(model), index])))
 const platforms = computed(() => [...new Set(groups.value.map(group => group.platform).filter(Boolean))].sort())
 const groupOptions = computed(() => groups.value.map(group => ({ id: group.id, name: group.name, platform: group.platform, rate: effectiveRate(group) })))
 const rates = computed(() => [...new Set(groups.value.map(effectiveRate))].sort((a, b) => a - b))
-const activeFilterCount = computed(() => Number(selectedPlatform.value !== 'all') + Number(selectedGroupId.value !== 'all') + Number(selectedRate.value !== 'all'))
+const activeFilterCount = computed(() => Number(selectedMode.value !== 'all') + Number(selectedPlatform.value !== 'all') + Number(selectedGroupId.value !== 'all') + Number(selectedRate.value !== 'all'))
 const descriptionHtml = computed(() => {
   const description = props.response?.description?.trim()
   return description ? DOMPurify.sanitize(marked.parse(description) as string) : ''
@@ -278,6 +270,7 @@ watch(groups, () => {
   if (selectedPlatform.value !== 'all' && !platforms.value.includes(selectedPlatform.value)) selectedPlatform.value = 'all'
   if (selectedGroupId.value !== 'all' && !groups.value.some(group => group.id === selectedGroupId.value)) selectedGroupId.value = 'all'
   if (selectedRate.value !== 'all' && !rates.value.includes(selectedRate.value)) selectedRate.value = 'all'
+  if (!modes.value.includes(selectedMode.value)) selectedMode.value = 'all'
   selectedEntry.value = null
 })
 
@@ -285,12 +278,41 @@ const filteredGroups = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return groups.value
     .filter(group => (selectedPlatform.value === 'all' || group.platform === selectedPlatform.value) && (selectedGroupId.value === 'all' || group.id === selectedGroupId.value) && (selectedRate.value === 'all' || effectiveRate(group) === selectedRate.value))
-    .map(group => ({ ...group, models: query ? group.models.filter(model => model.name.toLowerCase().includes(query)) : group.models }))
+    .map(group => ({ ...group, models: group.models.filter(model => {
+      const matchesMode = selectedMode.value === 'all' || selectedMode.value === (model.pricing?.billing_mode || BILLING_MODE_TOKEN)
+      const matchesQuery = !query || [model.name, group.name, model.platform, platformLabel(model.platform)].some(value => value.toLowerCase().includes(query))
+      return matchesMode && matchesQuery
+    }) }))
     .filter(group => group.models.length > 0)
     .sort((a, b) => effectiveRate(a) - effectiveRate(b) || a.name.localeCompare(b.name))
 })
-const entries = computed<CatalogEntry[]>(() => filteredGroups.value.flatMap(group => group.models.map(model => ({ key: `${group.id}:${model.platform}:${model.name}`, group, model }))))
-const uniqueModelCount = computed(() => new Set(entries.value.map(entry => entry.model.name)).size)
+const entries = computed<CatalogEntry[]>(() => {
+  const rows = filteredGroups.value.flatMap(group => group.models.map(model => ({
+    key: `${group.id}:${model.platform}:${model.name}`, group, model, prices: catalogPrices(model, group),
+  })))
+  if (sortOrder.value === 'name') rows.sort((a, b) => a.model.name.localeCompare(b.model.name))
+  if (sortOrder.value === 'latest') {
+    const order = (model: PlazaModel) => latestOrder.value.get(modelKey(model)) ?? Number.MAX_SAFE_INTEGER
+    rows.sort((a, b) => order(a.model) - order(b.model))
+  }
+  return rows
+})
+function modelKey(model: Pick<PlazaModel, 'platform' | 'name'>) {
+  return model.platform + ':' + model.name
+}
+const entriesByModel = computed(() => {
+  const grouped = new Map<string, CatalogEntry[]>()
+  for (const entry of entries.value) {
+    const key = modelKey(entry.model)
+    const items = grouped.get(key)
+    if (items) items.push(entry)
+    else grouped.set(key, [entry])
+  }
+  return grouped
+})
+const cards = computed(() => [...entriesByModel.value.values()].map(items => ({ entry: items[0], groupCount: items.length })))
+const uniqueModelCount = computed(() => entriesByModel.value.size)
+const detailEntries = computed(() => selectedEntry.value ? entriesByModel.value.get(modelKey(selectedEntry.value.model)) ?? [] : [])
 
 function platformEnabled(platform: string) {
   return groupOptions.value.some(group => group.platform === platform && (selectedGroupId.value === 'all' || group.id === selectedGroupId.value) && (selectedRate.value === 'all' || group.rate === selectedRate.value))
@@ -303,12 +325,17 @@ function rateEnabled(rate: number) {
 }
 function resetFilters() {
   selectedPlatform.value = 'all'
+  selectedMode.value = 'all'
   selectedGroupId.value = 'all'
   selectedRate.value = 'all'
   searchQuery.value = ''
 }
-function isMedia(model: PlazaModel) {
-  return (model.pricing?.billing_mode || BILLING_MODE_TOKEN) !== BILLING_MODE_TOKEN
+function modeLabel(mode: string) {
+  if (mode === 'all') return t('publicSite.market.allTypes')
+  if (mode === BILLING_MODE_IMAGE) return t('publicSite.market.images')
+  if (mode === BILLING_MODE_VIDEO) return t('publicSite.market.video')
+  if (mode === BILLING_MODE_TOKEN) return t('publicSite.market.text')
+  return t('publicSite.models.requestBilling')
 }
 function billingLabel(model: PlazaModel) {
   switch (model.pricing?.billing_mode) {
@@ -318,24 +345,8 @@ function billingLabel(model: PlazaModel) {
     default: return t('publicSite.models.tokenBilling')
   }
 }
-function entryRate({ group, model }: CatalogEntry) {
-  if (model.pricing?.billing_mode === BILLING_MODE_IMAGE && group.image_rate_independent) return group.image_rate_multiplier
-  if (model.pricing?.billing_mode === BILLING_MODE_VIDEO && group.video_rate_independent) return Math.max(0, group.video_rate_multiplier ?? 1)
-  return effectiveRate(group)
-}
-function pricingProps({ group, model }: CatalogEntry) {
-  return {
-    models: [model],
-    platform: group.platform,
-    rateMultiplier: group.rate_multiplier,
-    userRateMultiplier: group.user_rate_multiplier ?? null,
-    imageRateIndependent: group.image_rate_independent,
-    imageRateMultiplier: group.image_rate_multiplier,
-    videoRateIndependent: group.video_rate_independent,
-    videoRateMultiplier: group.video_rate_multiplier,
-    peakWindow: hasPeakRate(group) ? formatPeakRateWindow(group, serverTimezoneLabel(appStore.cachedPublicSettings?.server_utc_offset)) : '',
-    peakRateMultiplier: group.peak_rate_multiplier
-  }
+function entryRate({ model, group }: CatalogEntry) {
+  return modelRate(model, group)
 }
 function onShortcut(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && !filterOpen.value && !selectedEntry.value) {
@@ -383,156 +394,75 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.model-catalog { --catalog-bg: #fff; --catalog-text: #18181b; --catalog-muted: #919195; --catalog-border: #eeeeef; --catalog-soft: #f7f7f8; color: var(--catalog-text); background: var(--catalog-bg); }
-.catalog-toolbar { height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px; border-bottom: 1px solid #f3f3f3; }
-.catalog-button, .catalog-icon-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 11px; border: 1px solid var(--catalog-border); border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--catalog-text); background: var(--catalog-bg); transition: background .15s, border-color .15s; }
-.catalog-button:hover, .catalog-icon-button:hover { background: var(--catalog-soft); border-color: #d4d4d8; }
-.catalog-button:disabled, .catalog-icon-button:disabled, .catalog-filter-content button:disabled { cursor: not-allowed; opacity: .35; }
-.catalog-button:focus-visible, .catalog-icon-button:focus-visible, .model-catalog button:focus-visible, .catalog-filter-content button:focus-visible { outline: 2px solid #737373; outline-offset: 3px; }
-.filter-button { height: 30px; font-size: 12px; }
-.filter-count { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 4px; background: var(--catalog-text); color: var(--catalog-bg); font-size: 10px; }
-.catalog-search { display: flex; align-items: center; gap: 8px; width: 315px; height: 34px; padding: 0 10px; border: 1px solid var(--catalog-border); border-radius: 8px; color: #b0b0b6; background: var(--catalog-soft); }
-.catalog-search:focus-within { border-color: #a1a1aa; }
-.catalog-search input { width: 100%; min-width: 0; border: 0; background: transparent; padding: 0; outline: none; box-shadow: none; font-size: 12px; color: var(--catalog-text); }
-.catalog-search input::placeholder { color: #a1a1aa; }
-.catalog-search kbd { flex-shrink: 0; font-family: inherit; font-size: 10px; line-height: 18px; color: #a1a1aa; }
-.catalog-page { max-width: 1440px; margin: 0 auto; padding: 0 16px 70px; }
-.catalog-hero { padding: 57px 16px 65px; text-align: center; }
-.catalog-hero h1 { margin: 0; font-size: 36px; font-weight: 700; line-height: 1.3; letter-spacing: -1.2px; color: var(--catalog-text); }
-.catalog-hero p { margin: 17px 0 0; font-size: 14px; line-height: 1.7; color: #89898e; }
-.catalog-description { margin: -24px 0 22px; border: 1px solid var(--catalog-border); border-radius: 12px; font-size: 13px; }
-.catalog-description summary { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; color: var(--catalog-muted); cursor: pointer; list-style: none; }
-.catalog-description summary::-webkit-details-marker { display: none; }
-.description-markdown { padding: 0 16px 16px; line-height: 1.7; overflow-wrap: anywhere; }
-.description-markdown :deep(p) { margin: 8px 0; }
-.description-markdown :deep(a) { text-decoration: underline; text-underline-offset: 3px; }
-.description-markdown :deep(ul) { padding-left: 20px; list-style: disc; }
-.description-markdown :deep(ol) { padding-left: 20px; list-style: decimal; }
-.description-markdown :deep(h1), .description-markdown :deep(h2), .description-markdown :deep(h3) { margin: 12px 0 6px; font-weight: 600; }
-.catalog-summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 12px 16px; border: 1px solid var(--catalog-border); border-radius: 16px; }
-.summary-provider { display: flex; align-items: center; min-width: 0; gap: 12px; }
-.summary-provider > div { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; gap: 3px 8px; }
-.provider-initial { display: flex; align-items: center; justify-content: center; flex: 0 0 40px; width: 40px; height: 40px; border-radius: 12px; background: var(--catalog-soft); font: 700 19px/1 Arial, sans-serif; }
-.provider-initial > span { display: grid; place-items: center; width: 25px; height: 25px; border: 1.5px solid currentColor; border-radius: 50%; font-size: 16px; }
-.summary-provider h2 { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.5; }
-.summary-provider p { margin: 0; color: var(--catalog-muted); font-size: 11px; }
-.summary-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.catalog-icon-button { width: 32px; padding: 0; border: 0; color: #8c8c92; }
-.rate-toggle { height: 30px; color: #71717a; }
-.rate-toggle.active { color: var(--catalog-text); background: var(--catalog-soft); border-color: #b4b4bb; }
-.rate-switch { display: inline-flex; align-items: center; width: 28px; height: 17px; padding: 2px; border-radius: 999px; background: var(--catalog-soft); }
-.rate-switch > span { width: 13px; height: 13px; border-radius: 50%; background: var(--catalog-bg); box-shadow: 0 1px 2px #00000012; transition: transform .15s; }
-.rate-toggle.active .rate-switch { background: var(--catalog-text); }
-.rate-toggle.active .rate-switch > span { transform: translateX(11px); }
-.catalog-view-switch { display: flex; padding: 3px; height: 32px; border: 1px solid var(--catalog-border); border-radius: 8px; background: var(--catalog-soft); }
-.catalog-view-switch button { display: grid; place-items: center; width: 30px; border-radius: 5px; color: #a1a1aa; }
-.catalog-view-switch button.active { color: var(--catalog-text); background: var(--catalog-bg); box-shadow: 0 1px 3px #0000000b; }
-.catalog-anonymous { margin: 10px 2px 0; color: var(--catalog-muted); font-size: 11px; line-height: 1.6; }
-.catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
-.catalog-card { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 264px; padding: 32px 18px 0; border: 1px solid var(--catalog-border); border-radius: 16px; background: var(--catalog-bg); transition: border-color .2s, box-shadow .2s; }
-.catalog-card:hover { border-color: #d9d9dd; box-shadow: 0 3px 14px #00000004; }
-.card-main { width: 100%; text-align: center; }
-.card-provider { display: flex; justify-content: center; height: 42px; color: var(--catalog-text); }
-.card-provider :deep(svg) { width: 32px; height: 32px; }
-.card-main h3 { overflow: hidden; margin: 10px 0 0; font-size: 16px; font-weight: 650; line-height: 24px; letter-spacing: -.2px; text-overflow: ellipsis; white-space: nowrap; }
-.card-actions { position: absolute; display: flex; gap: 4px; top: 12px; right: 12px; opacity: 0; transition: opacity .15s; }
-.catalog-card:hover .card-actions, .catalog-card:focus-within .card-actions { opacity: 1; }
-.card-actions button { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; color: #85858e; background: var(--catalog-bg); }
-.card-actions button:hover { background: var(--catalog-soft); color: var(--catalog-text); }
-.card-price { margin: 9px auto 0; max-width: 100%; font-size: 12px; }
-.card-price :deep(.plaza-pricing-table) { overflow: visible; }
-.card-price :deep(table) { display: block; width: auto; min-width: 0; font-size: 12px; }
-.card-price :deep(colgroup), .card-price :deep(thead), .card-price :deep(tbody tr:not(:first-child)), .card-price :deep(tbody td) { display: none; }
-.card-price :deep(tbody) { display: block; }
-.card-price :deep(tbody tr:first-child) { display: flex; justify-content: center; align-items: baseline; gap: 10px; border: 0; background: transparent; }
-.card-price :deep(tbody tr:first-child td.pz-cell:nth-child(2)), .card-price :deep(tbody tr:first-child td.pz-cell:nth-child(3)) { display: block; padding: 0; border: 0; background: none; color: var(--catalog-text); font-family: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; }
-.card-price :deep(tbody tr:first-child td.pz-cell:nth-child(2))::before { content: var(--catalog-input-label); color: var(--catalog-muted); font-weight: 400; }
-.card-price :deep(tbody tr:first-child td.pz-cell:nth-child(3))::before { content: var(--catalog-output-label); color: var(--catalog-muted); font-weight: 400; }
-.card-price :deep(tbody tr:first-child td.pz-cell:nth-child(3))::after { content: ' / M'; color: var(--catalog-muted); font-weight: 400; font-size: 10px; }
-.card-price :deep(tbody tr:first-child td.pz-cell > div:not(:first-child)), .card-price :deep(tbody tr:first-child td.pz-cell > div > span:first-child) { display: none; }
-.card-price.media-price :deep(tbody tr:first-child td.pz-cell)::before { content: ''; }
-.card-price.media-price :deep(tbody tr:first-child td.pz-cell > div > span:first-child) { display: inline-flex; }
-.card-price.media-price :deep(tbody tr:first-child td.pz-cell > div) { justify-content: center; }
-.card-description { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; max-width: 90%; margin: 14px auto 16px; color: var(--catalog-muted); font-size: 11px; line-height: 17px; text-align: center; overflow-wrap: anywhere; }
-.card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; margin-top: auto; border-top: 1px solid var(--catalog-border); color: var(--catalog-muted); font-size: 10px; }
-.card-badges { display: flex; gap: 5px; min-width: 0; flex-wrap: wrap; padding: 8px 0; }
-.card-badges > span { padding: 2px 5px; border-radius: 4px; background: var(--catalog-soft); white-space: nowrap; }
-.card-group { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.catalog-tables { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; }
-.catalog-tables :deep(section), .catalog-detail-dialog :deep(section) { border-color: var(--catalog-border); box-shadow: none; filter: grayscale(1); }
-.catalog-tables :deep(.plaza-pricing-table), .catalog-detail-dialog :deep(.plaza-pricing-table) { --plaza-accent: #52525b !important; }
-.catalog-price-note { margin: 24px 0 0; text-align: center; font-size: 11px; line-height: 1.7; color: var(--catalog-muted); }
-.catalog-state { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; min-height: 280px; padding: 24px; color: var(--catalog-muted); text-align: center; font-size: 13px; }
-.catalog-error { color: #b91c1c; }
-.catalog-empty { margin-top: 24px; border: 1px dashed var(--catalog-border); border-radius: 16px; }
-.catalog-spinner { width: 25px; height: 25px; border: 2px solid var(--catalog-border); border-top-color: var(--catalog-text); border-radius: 50%; animation: catalog-spin .8s linear infinite; }
-@keyframes catalog-spin { to { transform: rotate(360deg); } }
-.catalog-filter-dialog, .catalog-detail-dialog { --catalog-bg: #fff; --catalog-text: #18181b; --catalog-muted: #919195; --catalog-border: #eeeeef; --catalog-soft: #f7f7f8; }
-.catalog-filter-dialog, .catalog-detail-dialog { padding: 0; color: var(--catalog-text); background: var(--catalog-bg); border: 1px solid var(--catalog-border); }
-.catalog-filter-dialog::backdrop, .catalog-detail-dialog::backdrop { background: #0006; }
-.catalog-filter-dialog { position: fixed; inset: 0 auto 0 0; width: min(384px, 100vw); max-width: 384px; height: 100dvh; max-height: 100dvh; margin: 0; border: 0; border-radius: 0; }
-.catalog-filter-dialog[open], .catalog-detail-dialog[open] { display: flex; flex-direction: column; }
-.catalog-dialog-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 14px 22px; border-bottom: 1px solid var(--catalog-border); }
-.catalog-dialog-header h2 { min-width: 0; margin: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
-.catalog-dialog-body { min-height: 0; overflow-y: auto; padding: 26px 22px; }
-.catalog-filter-dialog .catalog-dialog-body { flex: 1; }
-.catalog-dialog-footer { flex-shrink: 0; padding: 16px 22px; border-top: 1px solid var(--catalog-border); }
-:global(html.catalog-modal-open) { overflow: hidden; }
-.catalog-filter-content section + section { margin-top: 32px; }
-.catalog-filter-content h3 { margin: 0 0 14px; color: var(--catalog-text); font-size: 12px; font-weight: 600; }
-.manufacturer-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.manufacturer-options button { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px 10px; border: 1px solid var(--catalog-border); border-radius: 8px; color: #71717a; background: var(--catalog-bg); text-align: left; font-size: 12px; overflow-wrap: anywhere; }
-.manufacturer-letter { display: inline-grid; place-items: center; width: 16px; height: 16px; border: 1px solid currentColor; border-radius: 50%; font: 600 11px/1 Arial, sans-serif; }
-.catalog-filter-pills { display: flex; flex-wrap: wrap; gap: 8px; }
-.catalog-filter-pills button { min-height: 32px; padding: 6px 10px; border: 1px solid var(--catalog-border); border-radius: 7px; color: #71717a; font-size: 11px; background: var(--catalog-bg); }
-.catalog-filter-pills button span { margin-left: 3px; opacity: .7; }
-.catalog-filter-content button.selected { color: var(--catalog-bg); border-color: var(--catalog-text); background: var(--catalog-text); font-weight: 500; }
-.catalog-filter-content button:not(:disabled):hover { border-color: #b7b7bf; }
-.filter-footer { display: flex; justify-content: space-between; gap: 10px; }
-.catalog-button-dark { color: #fff; border-color: #202023; background: #202023; }
-.catalog-button-dark:hover { border-color: #3f3f46; background: #3f3f46; }
-.catalog-detail-dialog { position: fixed; inset: 0; width: min(1280px, calc(100vw - 32px)); max-width: none; max-height: 90dvh; margin: auto; border-radius: 16px; }
-.catalog-detail-dialog .catalog-dialog-body { padding: 16px; }
-.dark .model-catalog, .dark .catalog-filter-dialog, .dark .catalog-detail-dialog { --catalog-bg: #101011; --catalog-text: #f4f4f5; --catalog-muted: #8d8d96; --catalog-border: #29292c; --catalog-soft: #1b1b1e; }
-.dark .catalog-toolbar { border-color: #252528; }
-@media (min-width: 1200px) { .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1536px) { .catalog-toolbar { padding-right: max(16px, calc((100vw - 1408px) / 2)); padding-left: max(16px, calc((100vw - 1408px) / 2)); } }
-@media (max-width: 640px) {
-  .catalog-search { width: min(265px, calc(100vw - 112px)); }
-  .catalog-search kbd { display: none; }
-  .catalog-page { padding-right: 14px; padding-left: 14px; }
-  .catalog-hero { padding: 45px 0 47px; }
-  .catalog-hero h1 { font-size: 30px; }
-  .catalog-hero p { font-size: 12px; }
-  .catalog-summary { gap: 10px; padding: 12px; border-radius: 12px; }
-  .summary-provider { gap: 8px; }
-  .summary-provider h2 { font-size: 13px; }
-  .summary-provider p { font-size: 10px; }
-  .summary-actions { gap: 4px; }
-  .summary-actions .catalog-icon-button { width: 25px; }
-  .rate-toggle { padding: 0 6px; font-size: 11px; }
-  .rate-toggle :deep(svg) { display: none; }
-  .provider-initial { width: 32px; height: 32px; flex-basis: 32px; border-radius: 9px; }
-  .catalog-view-switch button { width: 25px; }
-  .catalog-grid { grid-template-columns: minmax(0, 1fr); margin-top: 16px; }
-  .catalog-card { min-height: 264px; }
-  .card-actions { opacity: 1; }
-  .catalog-detail-dialog .catalog-dialog-body { padding: 8px; }
-}
-@media (prefers-reduced-motion: reduce) { .catalog-spinner { animation: none; } .catalog-card, .card-actions, .rate-switch > span { transition: none; } }
-
-.model-catalog { --catalog-bg: hsl(var(--background)); --catalog-text: hsl(var(--foreground)); --catalog-muted: hsl(var(--muted-foreground)); --catalog-border: hsl(var(--border)); --catalog-soft: hsl(var(--muted)); }
-.catalog-toolbar { height: auto; min-height: 72px; max-width: 1200px; margin: 0 auto; padding: 16px 24px; border-bottom: 0; }
-.catalog-page { max-width: 1200px; padding: 0 24px 60px; }
-.catalog-hero { padding: 36px 0 48px; text-align: left; }
-.catalog-hero h1 { font-weight: 600; font-size: 42px; letter-spacing: -.045em; }
-.catalog-hero p { font-size: 15px; margin-top: 12px; }
-.catalog-search { width: min(400px, 60vw); border-radius: 7px; border-color: var(--catalog-border); background: var(--catalog-bg); }
-.catalog-summary { border-radius: 10px; background: var(--catalog-soft); box-shadow: none; }
-.catalog-grid { gap: 16px; }
-.catalog-card { border-radius: 12px; min-height: 260px; box-shadow: 0 1px 3px #00000004; }
-.catalog-card:hover { transform: none; border-color: hsl(var(--ring)); box-shadow: 0 4px 14px #00000005; }
-.card-main { padding-top: 26px; }
-.card-description { font-size: 12px; }
-@media (max-width: 640px) { .catalog-toolbar { padding: 16px; } .catalog-page { padding: 0 16px 40px; } .catalog-hero { padding: 24px 0 32px; } .catalog-hero h1 { font-size: 32px; } }
+.model-catalog { --surface:#fff; --ink:#151922; --muted:#68758b; --line:#dfe5ee; --soft:#f3f5fb; --accent:#4b4cf3; color:var(--ink); background:linear-gradient(180deg,#edf2ff 0, var(--surface) 70px); }
+.dark .model-catalog { --surface:#151922; --ink:#edf0f9; --muted:#9da8be; --line:#303949; --soft:#202637; --accent:#aeb1ff; background:linear-gradient(180deg,#1d2543 0,var(--surface) 90px); }
+.catalog-page { max-width:1536px; margin:auto; padding:34px 48px 72px; }
+.catalog-hero { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:40px; }
+.catalog-hero h1 { font-size:30px; font-weight:750; letter-spacing:-.035em; line-height:1.2; }
+.catalog-hero p { color:var(--muted); font-size:14px; margin-top:14px; }
+.market-guide { display:flex; align-items:center; gap:6px; font-size:13px; white-space:nowrap; padding:6px 0; }
+.market-guide:hover { color:var(--accent); }
+.catalog-description { border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:-22px 0 24px; font-size:14px; overflow-wrap:anywhere; }
+.description-markdown :deep(a) { text-decoration:underline; }
+.market-layout { display:grid; grid-template-columns:200px minmax(0,1fr); gap:24px; }
+.market-sidebar h2 { font-size:18px; font-weight:650; margin:1px 0 22px; }
+.market-sidebar details { margin-bottom:20px; }
+.market-sidebar summary { display:flex; justify-content:space-between; cursor:pointer; align-items:center; color:var(--muted); font-size:13px; margin:0 0 9px; list-style:none; }
+.market-sidebar summary::-webkit-details-marker { display:none; }
+.market-sidebar button { width:100%; text-align:left; display:flex; gap:8px; align-items:center; padding:7px 8px; border-radius:6px; font-size:13px; overflow-wrap:anywhere; }
+.market-sidebar button:hover, .market-sidebar button[aria-pressed="true"] { color:var(--accent); background:var(--soft); }
+.market-sidebar button:disabled { opacity:.4; }
+.market-sidebar select, .market-sort { min-width:0; min-height:34px; border:1px solid var(--line); border-radius:6px; padding:4px 10px; color:var(--ink); background:var(--surface); font-size:13px; }
+.market-sidebar select { width:100%; }
+.catalog-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:16px; }
+.catalog-search { display:flex; align-items:center; gap:7px; width:min(320px,100%); min-height:34px; padding:0 10px; border:1px solid var(--line); border-radius:6px; color:var(--muted); background:var(--surface); }
+.catalog-search:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
+.catalog-search input { width:100%; min-width:0; border:0; padding:0; background:transparent; color:var(--ink); box-shadow:none; outline:none; font-size:13px; }
+.catalog-search input::placeholder { color:var(--muted); }
+.summary-actions { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.catalog-view-switch { display:flex; gap:2px; border-radius:7px; padding:2px; background:var(--soft); }
+.catalog-view-switch button { padding:6px 9px; border-radius:5px; color:var(--muted); }
+.catalog-view-switch .active { background:var(--surface); color:var(--ink); box-shadow:0 1px 5px #172e6b1c; }
+.filter-button { display:none; }
+.filter-count { border-radius:4px; padding:0 4px; color:var(--accent); background:var(--soft); }
+.catalog-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.catalog-card { min-height:328px; display:flex; flex-direction:column; min-width:0; border:1px solid var(--line); border-radius:12px; padding:20px; background:var(--surface); box-shadow:0 2px 8px #1c274305; transition:border-color .18s, box-shadow .18s; }
+.catalog-card:hover { border-color:var(--accent); box-shadow:0 5px 18px #3e52a116; }
+.market-card-heading { display:flex; align-items:center; gap:6px; }
+.card-main { display:flex; align-items:center; gap:10px; min-width:0; text-align:left; flex:1; }
+.card-main h3 { font-size:18px; font-weight:650; overflow-wrap:anywhere; }
+.market-copy { color:var(--muted); border-radius:6px; padding:4px; }
+.market-copy:hover { background:var(--soft); color:var(--accent); }
+.card-badges { display:flex; flex-wrap:wrap; gap:5px; margin:12px 0; }
+.card-badges span { font-size:12px; line-height:20px; padding:0 7px; background:var(--soft); border-radius:4px; }
+.card-description { color:var(--muted); font-size:13px; min-height:38px; line-height:19px; margin-bottom:15px; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; overflow-wrap:anywhere; }
+.market-metrics { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px 10px; border-top:1px solid var(--line); padding:14px 0; margin-top:auto; }
+.market-metrics dt { color:var(--muted); font-size:12px; }
+.market-metrics dd { margin-top:4px; font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.market-metrics small { margin-left:2px; font-weight:400; color:var(--muted); }
+.card-footer { display:flex; align-items:center; justify-content:space-between; gap:9px; border-top:1px solid var(--line); padding-top:13px; font-size:12px; color:var(--muted); }
+.card-group { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.card-footer button { display:inline-flex; flex-shrink:0; gap:3px; align-items:center; color:var(--accent); }
+.catalog-price-note { margin-top:14px; font-size:12px; color:var(--muted); }
+.catalog-tables { display:grid; gap:15px; }
+.catalog-state { display:grid; place-content:center; justify-items:center; gap:12px; min-height:250px; border:1px dashed var(--line); border-radius:12px; color:var(--muted); font-size:14px; }
+.catalog-spinner { width:30px; height:30px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:market-spin .8s linear infinite; }
+@keyframes market-spin { to { transform:rotate(360deg); } }
+.catalog-filter-dialog, .catalog-detail-dialog { position:fixed; inset:0; margin:auto; width:min(calc(100% - 26px),600px); max-height:calc(100dvh - 36px); padding:0; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); }
+.catalog-detail-dialog { width:min(calc(100% - 26px),1160px); }
+.catalog-filter-dialog::backdrop, .catalog-detail-dialog::backdrop { background:#14192c70; }
+.catalog-dialog-header, .catalog-dialog-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
+.catalog-dialog-footer { border-top:1px solid var(--line); border-bottom:0; }
+.catalog-dialog-header h2 { overflow-wrap:anywhere; font-weight:650; }
+.catalog-dialog-body { display:grid; gap:12px; padding:16px; }
+.catalog-filter-content { display:grid; gap:18px; }
+.catalog-filter-content h3 { font-size:13px; margin-bottom:8px; color:var(--muted); }
+.catalog-filter-pills, .manufacturer-options, .filter-footer { display:flex; flex-wrap:wrap; gap:8px; }
+.catalog-filter-content button { display:flex; gap:6px; align-items:center; border:1px solid var(--line); border-radius:7px; padding:5px 9px; font-size:13px; }
+.catalog-filter-content button.selected { background:var(--soft); border-color:var(--accent); color:var(--accent); }
+.catalog-filter-content button:disabled { opacity:.4; }
+:global(html.catalog-modal-open) { overflow:hidden; }
+@media (max-width:1190px) { .catalog-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .catalog-page { padding-inline:30px; } }
+@media (max-width:800px) { .market-layout { grid-template-columns:minmax(0,1fr); } .market-sidebar { display:none; } .filter-button { display:inline-flex; } .catalog-page { padding:27px 18px 52px; } .catalog-hero { margin-bottom:24px; } }
+@media (max-width:530px) { .catalog-grid { grid-template-columns:minmax(0,1fr); } .catalog-search { flex:1; order:-1; width:100%; flex-basis:100%; } .catalog-hero h1 { font-size:25px; } .market-sort { max-width:120px; } }
 </style>

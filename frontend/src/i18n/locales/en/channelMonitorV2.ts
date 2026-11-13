@@ -22,6 +22,17 @@ export default {
     otherModels: 'Other models',
     ignored: 'Ignored',
     currentUser: 'Current user',
+    channels: {
+      title: 'Channel status',
+      source: 'V2 passive monitoring · Cache and availability',
+      search: 'Search groups or providers',
+      emptyFiltered: 'No groups match these filters.',
+      userRate: 'User rate {value}x',
+      refreshIn: 'Refresh in {seconds}s',
+      timeline: 'Availability timeline for {group}',
+      history: 'Historical intervals · {count}',
+      historyEmpty: 'No calls recorded in this time range.',
+    },
     availability: {
       staleStatus: 'Stale data',
       title: 'Model availability',
@@ -136,7 +147,7 @@ export default {
       nameFallback: 'Group #{id}',
       viewSettings: 'Filters and display',
       cardView: 'Channel cards',
-      details: 'Model and error details',
+      details: 'Errors and usage',
     },
     ranges: { '90m': '90m', '24h': '24h', '7d': '7d', '30d': '30d' },
     filters: {
@@ -257,7 +268,7 @@ export default {
         health: 'Health color weights: error rate 60% + first-token P50 20% + cache rate 20% (thresholds configurable above)',
         trend: 'Trend can switch between pulse matrix and line chart (error · cache · first token)',
         latency: 'Latency shows AVG · P50 · P90; absolute request / error counts are not shown',
-        models: 'Platforms come only from selected monitored groups the user can access, with models supported by their accounts and no channel setup. Whitelists show only listed models; empty lists show all supported models and real called names. Success rates are undetermined without calls.',
+        models: 'Each card aggregates one monitored group under its provider. Model allowlists still limit which calls are counted. Availability is omitted when there are no calls.',
       },
     },
     admin: {

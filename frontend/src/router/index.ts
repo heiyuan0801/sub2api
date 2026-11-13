@@ -40,6 +40,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/models',
+    alias: '/model-market',
     redirect: (to) => ({ path: '/model-plaza', query: to.query, hash: to.hash })
   },
   {
@@ -801,8 +802,8 @@ const router = createRouter({
     if (savedPosition) {
       return savedPosition
     }
-    if (_to.name === 'Home' && _to.hash === '#quick-start') {
-      return { el: '#quick-start', top: 80 }
+    if (_to.name === 'Home' && (_to.hash === '#quick-start' || _to.hash === '#api-example')) {
+      return { el: _to.hash, top: 80 }
     }
     // Scroll to top for new routes
     return { top: 0 }

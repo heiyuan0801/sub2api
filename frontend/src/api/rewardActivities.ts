@@ -2,9 +2,12 @@ import { apiClient } from './client'
 
 export type RewardActivityKind = 'check_in' | 'wheel'
 
-export interface RewardPrize {
+interface RewardPrizeSummary {
   name: string
   reward_cents: number
+}
+
+export interface RewardPrize extends RewardPrizeSummary {
   weight: number
 }
 
@@ -35,7 +38,10 @@ export interface RewardActivityClaim {
 }
 
 export interface RewardActivityStatus {
-  config: RewardActivityConfig
+  config: {
+    check_in: RewardActivityConfig['check_in']
+    wheel: Omit<RewardActivityConfig['wheel'], 'prizes'> & { prizes: RewardPrizeSummary[] }
+  }
   day: string
   spent_cents: number
   checked_in: boolean

@@ -2,8 +2,8 @@
   <BaseDialog :show="show" :title="t('channelMonitorV2.incident.title')" width="wide" @close="emit('close')">
     <div v-if="row" class="incident-content">
       <div class="incident-heading">
-        <h4>{{ row.model === '__other__' ? t('channelMonitorV2.otherModels') : row.model || t('channelMonitorV2.availability.modelFallback') }}<span v-if="row.is_image_model" class="incident-model-tag">{{ t('channelMonitorV2.availability.imageModel') }}</span></h4>
-        <p>{{ row.platform }} · {{ row.group_name || (row.group_id ? t('channelMonitorV2.availability.groupFallback', { id: row.group_id }) : t('channelMonitorV2.availability.allGroups')) }}</p>
+        <h4>{{ row.model === '__other__' ? t('channelMonitorV2.otherModels') : row.model || groupLabel }}<span v-if="row.is_image_model" class="incident-model-tag">{{ t('channelMonitorV2.availability.imageModel') }}</span></h4>
+        <p>{{ row.platform }}<template v-if="row.model"> · {{ groupLabel }}</template></p>
       </div>
       <p class="incident-period">{{ t('channelMonitorV2.incident.period') }}: {{ periodLabel }}</p>
       <p v-if="stale" class="incident-warning" role="status">{{ t('channelMonitorV2.freshness.title') }} · {{ t('channelMonitorV2.availability.historical') }}</p>
@@ -69,6 +69,7 @@ const props = withDefaults(defineProps<{
 }>(), { coverage: null, window: null, loading: false, error: '', errors: () => [], isAdmin: false, stale: false })
 const emit = defineEmits<{ close: []; retry: [] }>()
 const { t, te, locale } = useI18n()
+const groupLabel = computed(() => props.row?.group_name || (props.row?.group_id ? t('channelMonitorV2.availability.groupFallback', { id: props.row.group_id }) : t('channelMonitorV2.availability.allGroups')))
 const selectedBucket = computed(() => {
   if (!props.window) return undefined
   const start = Date.parse(props.window.start)

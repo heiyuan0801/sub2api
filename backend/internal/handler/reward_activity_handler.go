@@ -11,6 +11,34 @@ type RewardActivityHandler struct {
 	service *service.RewardActivityService
 }
 
+type rewardActivityUserPrize struct {
+	Name        string `json:"name"`
+	RewardCents int64  `json:"reward_cents"`
+}
+
+type rewardActivityUserWheel struct {
+	Enabled        bool                      `json:"enabled"`
+	ThresholdCents int64                     `json:"threshold_cents"`
+	DailyLimit     int                       `json:"daily_limit"`
+	Prizes         []rewardActivityUserPrize `json:"prizes"`
+}
+
+type rewardActivityUserConfig struct {
+	CheckIn service.RewardCheckInConfig `json:"check_in"`
+	Wheel   rewardActivityUserWheel     `json:"wheel"`
+}
+
+type rewardActivityUserStatus struct {
+	Config             rewardActivityUserConfig      `json:"config"`
+	Day                string                        `json:"day"`
+	SpentCents         int64                         `json:"spent_cents"`
+	CheckedIn          bool                          `json:"checked_in"`
+	DrawsUsed          int                           `json:"draws_used"`
+	DrawSpendUsedCents int64                         `json:"draw_spend_used_cents"`
+	DrawsAvailable     int                           `json:"draws_available"`
+	History            []service.RewardActivityClaim `json:"history"`
+}
+
 func NewRewardActivityHandler(service *service.RewardActivityService) *RewardActivityHandler {
 	return &RewardActivityHandler{service: service}
 }
@@ -22,9 +50,27 @@ func (h *RewardActivityHandler) Status(c *gin.Context) {
 		return
 	}
 	status, err := h.service.Status(c.Request.Context(), subject.UserID)
-	if !response.ErrorFrom(c, err) {
-		response.Success(c, status)
+	if response.ErrorFrom(c, err) {
+		return
 	}
+	// The user only needs prize labels and amounts. Keep the original order for prize_index.
+	wheel := status.Config.Wheel
+	prizes := make([]rewardActivityUserPrize, len(wheel.Prizes))
+	for i, prize := range wheel.Prizes {
+		prizes[i] = rewardActivityUserPrize{Name: prize.Name, RewardCents: prize.RewardCents}
+	}
+	response.Success(c, rewardActivityUserStatus{
+		Config: rewardActivityUserConfig{
+			CheckIn: status.Config.CheckIn,
+			Wheel: rewardActivityUserWheel{
+				Enabled: wheel.Enabled, ThresholdCents: wheel.ThresholdCents,
+				DailyLimit: wheel.DailyLimit, Prizes: prizes,
+			},
+		},
+		Day: status.Day, SpentCents: status.SpentCents, CheckedIn: status.CheckedIn,
+		DrawsUsed: status.DrawsUsed, DrawSpendUsedCents: status.DrawSpendUsedCents,
+		DrawsAvailable: status.DrawsAvailable, History: status.History,
+	})
 }
 
 func (h *RewardActivityHandler) CheckIn(c *gin.Context) {
