@@ -1,10 +1,7 @@
 <template>
-  <div class="card">
-    <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-      <h2 class="text-lg font-semibold text-foreground">{{ t('dashboard.recentUsage') }}</h2>
-      <span class="badge badge-gray">{{ t('dashboard.last7Days') }}</span>
-    </div>
-    <div class="p-6">
+  <SectionCard :title="t('dashboard.recentUsage')">
+    <template #actions><span class="badge badge-gray">{{ t('dashboard.last7Days') }}</span></template>
+    <div>
       <div v-if="loading" class="flex items-center justify-center py-12">
         <LoadingSpinner size="lg" />
       </div>
@@ -12,7 +9,7 @@
         <EmptyState :title="t('dashboard.noUsageRecords')" :description="t('dashboard.startUsingApi')" />
       </div>
       <div v-else class="space-y-3">
-        <div v-for="log in data" :key="log.id" class="flex items-center justify-between rounded-xl bg-gray-50 p-4 transition-colors hover:bg-muted dark:bg-dark-800/50">
+        <div v-for="log in data" :key="log.id" class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/35 px-3 py-2">
           <div class="flex items-center gap-4">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/15">
               <Icon name="beaker" size="md" class="text-brand" />
@@ -37,13 +34,13 @@
         </router-link>
       </div>
     </div>
-  </div>
+  </SectionCard>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import { EmptyState, SectionCard } from '@/components/page'
 import Icon from '@/components/icons/Icon.vue'
 import { formatDateTime } from '@/utils/format'
 import type { UsageLog } from '@/types'

@@ -3,7 +3,7 @@
     <TablePageLayout>
       <template #filters>
         <div class="flex flex-col gap-3">
-          <div class="flex flex-wrap items-center gap-3">
+          <Toolbar>
             <SearchInput
               v-model="filterSearch"
               :placeholder="t('keys.searchPlaceholder')"
@@ -22,13 +22,13 @@
               :options="statusFilterOptions"
               @update:model-value="onStatusFilterChange"
             />
-          </div>
+          </Toolbar>
           <EndpointPopover
             v-if="publicSettings?.api_base_url || (publicSettings?.custom_endpoints?.length ?? 0) > 0"
             :api-base-url="publicSettings?.api_base_url || ''"
             :custom-endpoints="publicSettings?.custom_endpoints || []"
           />
-          <div v-if="selectedIds.length" class="flex flex-wrap items-center gap-3 text-sm">
+          <div v-if="selectedIds.length" class="flex flex-wrap items-center gap-2 rounded-lg border border-brand/25 bg-brand/5 px-3 py-2 text-sm">
             <span class="text-gray-600 dark:text-gray-300">
               {{ t('keys.bulkEdit.selectedCount', { count: selectedIds.length }) }}
             </span>
@@ -48,52 +48,54 @@
       </template>
 
       <template #actions>
-        <div class="flex justify-end gap-3">
-          <button
-            @click="loadApiKeys"
-            :disabled="loading"
-            class="btn btn-secondary"
-            :title="t('common.refresh')"
-          >
-            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-          </button>
-          <div class="relative" ref="columnDropdownRef">
+        <PageHeader :title="t('keys.title')" :description="t('keys.description')">
+          <template #actions>
             <button
-              @click="showColumnDropdown = !showColumnDropdown"
-              class="btn btn-secondary px-2 md:px-3"
-              :title="t('keys.columnSettings')"
+              @click="loadApiKeys"
+              :disabled="loading"
+              class="btn btn-secondary"
+              :title="t('common.refresh')"
             >
-              <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-              <span class="hidden md:inline">{{ t('keys.columnSettings') }}</span>
+              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
             </button>
-            <div
-              v-if="showColumnDropdown"
-              class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg"
-            >
+            <div class="relative" ref="columnDropdownRef">
               <button
-                v-for="col in toggleableColumns"
-                :key="col.key"
-                @click="toggleColumn(col.key)"
-                class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                @click="showColumnDropdown = !showColumnDropdown"
+                class="btn btn-secondary px-2 md:px-3"
+                :title="t('keys.columnSettings')"
               >
-                <span>{{ col.label }}</span>
-                <Icon
-                  v-if="isColumnVisible(col.key)"
-                  name="check"
-                  size="sm"
-                  class="text-brand"
-                  :stroke-width="2"
-                />
+                <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
+                </svg>
+                <span class="hidden md:inline">{{ t('keys.columnSettings') }}</span>
               </button>
+              <div
+                v-if="showColumnDropdown"
+                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg"
+              >
+                <button
+                  v-for="col in toggleableColumns"
+                  :key="col.key"
+                  @click="toggleColumn(col.key)"
+                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-muted dark:text-foreground"
+                >
+                  <span>{{ col.label }}</span>
+                  <Icon
+                    v-if="isColumnVisible(col.key)"
+                    name="check"
+                    size="sm"
+                    class="text-brand"
+                    :stroke-width="2"
+                  />
+                </button>
+              </div>
             </div>
-          </div>
-          <button @click="showCreateModal = true" class="btn btn-primary" data-tour="keys-create-btn">
-            <Icon name="plus" size="md" class="mr-2" />
-            {{ t('keys.createKey') }}
-          </button>
-        </div>
+            <button @click="showCreateModal = true" class="btn btn-primary" data-tour="keys-create-btn">
+              <Icon name="plus" size="md" class="mr-2" />
+              {{ t('keys.createKey') }}
+            </button>
+          </template>
+        </PageHeader>
       </template>
 
       <template #table>
@@ -462,9 +464,14 @@
             <EmptyState
               :title="t('keys.noKeysYet')"
               :description="t('keys.createFirstKey')"
-              :action-text="t('keys.createKey')"
-              @action="showCreateModal = true"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="showCreateModal = true">
+                  <Icon name="plus" size="sm" class="mr-1.5" />
+                  {{ t('keys.createKey') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
       </template>
@@ -1230,6 +1237,7 @@
 </template>
 
 <script setup lang="ts">
+import { EmptyState, PageHeader, Toolbar } from '@/components/page'
 	import { ref, reactive, computed, watch, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 	import { useI18n } from 'vue-i18n'
 	import { useAppStore } from '@/stores/app'
@@ -1240,15 +1248,14 @@ import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 const { t } = useI18n()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
 import BulkEditKeysModal from '@/components/keys/BulkEditKeysModal.vue'
 import AggregateKeyGroups from '@/components/keys/AggregateKeyGroups.vue'
 import MagpieImportModal from '@/components/keys/MagpieImportModal.vue'
-	import DataTable from '@/components/common/DataTable.vue'
+	import DataTable from '@/components/page/AdminDataTable.vue'
 	import Pagination from '@/components/common/Pagination.vue'
 	import BaseDialog from '@/components/common/BaseDialog.vue'
 	import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-	import EmptyState from '@/components/common/EmptyState.vue'
 	import Select from '@/components/common/Select.vue'
 	import SearchInput from '@/components/common/SearchInput.vue'
 	import Icon from '@/components/icons/Icon.vue'
@@ -2154,35 +2161,20 @@ onUnmounted(() => {
 
 <style>
 /* Scope the reference treatment to the API-key editor; other dialogs retain their theme. */
-.key-editor-dialog {
-  --key-accent: #0d9488;
-  --key-border: #cbd5e1;
-  max-height: calc(100dvh - 32px);
-  border-radius: 8px;
-}
-.key-editor-dialog .modal-header { padding: 22px 24px; }
-.key-editor-dialog .modal-body { padding: 20px 24px 24px; scrollbar-width: thin; }
-.key-editor-dialog .modal-footer { padding: 16px 24px; background: #f5f6f7; border-radius: 0 0 8px 8px; }
+.key-editor-dialog { --key-border: hsl(var(--border)); }
+.key-editor-dialog .modal-header { padding: 16px 20px; }
+.key-editor-dialog .modal-body { padding: 16px 20px 20px; scrollbar-width: thin; }
+.key-editor-dialog .modal-footer { padding: 12px 20px; background: hsl(var(--muted) / .35); border-radius: 0 0 0.75rem 0.75rem; }
 .key-editor-dialog .input-label { font-weight: 500; }
 .key-editor-dialog .input,
-.key-editor-dialog .select-trigger { min-height: 42px; border-color: #b4c2d0; border-radius: 8px; box-shadow: none; }
+.key-editor-dialog .select-trigger { min-height: 38px; border-color: var(--key-border); border-radius: 8px; box-shadow: none; }
 .key-editor-dialog .input:focus,
-.key-editor-dialog .select-trigger:focus-visible { border-color: var(--key-accent); outline: 2px solid #0d948826; outline-offset: 2px; }
+.key-editor-dialog .select-trigger:focus-visible { border-color: hsl(var(--brand)); outline: 2px solid hsl(var(--brand) / .25); outline-offset: 2px; }
 .key-editor-dialog .input-hint { font-size: 12px; line-height: 1.5; }
-.key-editor-dialog .key-provider-card { min-height: 96px; justify-content: center; gap: 8px; border-radius: 8px; border-color: var(--key-border); }
-.key-editor-dialog .peer:checked ~ .key-provider-card { background: #f0fdfa; border-color: #14b8a6; box-shadow: 0 0 0 1px #14b8a6; }
-.key-editor-dialog .key-provider-check { background: #14b8a6; }
+.key-editor-dialog .key-provider-card { min-height: 80px; justify-content: center; gap: 6px; border-radius: 8px; border-color: var(--key-border); }
+.key-editor-dialog .peer:checked ~ .key-provider-card { background: hsl(var(--brand) / .08); border-color: hsl(var(--brand)); }
+.key-editor-dialog .key-provider-check { background: hsl(var(--brand)); color: hsl(var(--brand-foreground)); }
 .key-editor-dialog .key-group-control { margin-top: 8px; }
-.key-editor-dialog .modal-footer .btn { min-height: 42px; border-radius: 8px; padding: 9px 20px; }
-.key-editor-dialog .modal-footer .btn-primary { background: var(--key-accent); border-color: var(--key-accent); color: white; }
-.key-editor-dialog .modal-footer .btn-primary:hover { background: #0f766e; }
-.key-editor-dialog .modal-footer .btn-secondary { background: white; border-color: #d8e0e8; }
-.dark .key-editor-dialog { --key-border: #374151; }
-.dark .key-editor-dialog .modal-footer { background: #171b22; }
-.dark .key-editor-dialog .input,
-.dark .key-editor-dialog .select-trigger { border-color: #4b5563; }
-.dark .key-editor-dialog .peer:checked ~ .key-provider-card { background: #0d94881a; }
-.dark .key-editor-dialog .modal-footer .btn-secondary { background: #202630; border-color: #4b5563; }
 @media (max-width: 400px) {
   .key-editor-dialog .modal-body { padding: 16px; }
   .key-editor-dialog .key-provider-card { padding-inline: 4px; }
