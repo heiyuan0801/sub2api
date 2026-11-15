@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <div class="grid grid-cols-2 lg:grid-cols-4" :class="adminPresentation ? 'admin-usage-metrics gap-3' : 'gap-4'">
     <Card class="usage-metric relative flex min-w-0 flex-col gap-3 p-5">
       <div class="metric-icon">
         <Icon name="document" size="md" />
@@ -100,6 +100,7 @@ const props = withDefaults(defineProps<{
   stats: (AdminUsageStatsResponse | UsageStatsResponse) | null
   showAccountCost?: boolean
   strikeStandardCost?: boolean
+  adminPresentation?: boolean
 }>(), {
   showAccountCost: true,
   strikeStandardCost: false,
@@ -133,4 +134,10 @@ const cacheDetailLabel = () => t('usage.cacheBreakdown')
 .usage-metric > div:last-child { @apply w-full min-w-0; }
 .usage-metric > div:last-child > p:first-child { @apply mb-3 pr-10 text-sm font-medium text-muted-foreground; }
 .metric-value { @apply mb-2 text-3xl font-semibold tracking-tight text-foreground; font-variant-numeric: tabular-nums; }
+
+/* Keep the compact admin cards visually aligned with Page StatCard. */
+.admin-usage-metrics .usage-metric { @apply gap-1.5 rounded-lg border-border px-4 pb-3 pt-3.5 shadow-none; }
+.admin-usage-metrics .metric-icon { @apply right-3 top-3 p-1.5; }
+.admin-usage-metrics .usage-metric > div:last-child > p:first-child { @apply mb-1.5 pr-8 text-xs; }
+.admin-usage-metrics .metric-value { @apply mb-2 text-2xl font-medium; }
 </style>

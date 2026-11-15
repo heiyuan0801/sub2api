@@ -137,6 +137,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'vue-chartjs'
+import { useChartColors } from '@/design/useChartColors'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import UserBreakdownSubTable from './UserBreakdownSubTable.vue'
 import type { EndpointStat, UserBreakdownItem } from '@/types'
@@ -155,6 +156,7 @@ const props = withDefaults(
     upstreamEndpointStats?: EndpointStat[]
     endpointPathStats?: EndpointStat[]
     loading?: boolean
+    semanticColors?: boolean
     title?: string
     metric?: DistributionMetric
     source?: EndpointSource
@@ -211,7 +213,8 @@ const toggleBreakdown = async (endpoint: string) => {
   }
 }
 
-const chartColors = [
+const { seriesColor } = useChartColors()
+const legacyColors = [
   '#3b82f6',
   '#10b981',
   '#f59e0b',
@@ -225,6 +228,12 @@ const chartColors = [
   '#06b6d4',
   '#a855f7'
 ]
+function chartPalette(count: number) {
+  return props.semanticColors
+    ? Array.from({ length: count }, (_, index) => seriesColor(index))
+    : legacyColors.slice(0, count)
+}
+
 
 const displayEndpointStats = computed(() => {
   const sourceStats = props.source === 'upstream'
@@ -248,7 +257,7 @@ const chartData = computed(() => {
         data: displayEndpointStats.value.map((item) =>
           props.metric === 'actual_cost' ? item.actual_cost : item.total_tokens
         ),
-        backgroundColor: chartColors.slice(0, displayEndpointStats.value.length),
+        backgroundColor: chartPalette(displayEndpointStats.value.length),
         borderWidth: 0
       }
     ]

@@ -17,14 +17,15 @@
       </button>
     </div>
     <div class="overflow-auto">
-      <DataTable
+      <component
+        :is="adminPresentation ? AdminDataTable : LegacyDataTable"
         :columns="columns"
         :data="data"
         :loading="loading"
         :server-side-sort="serverSideSort"
         :default-sort-key="defaultSortKey"
         :default-sort-order="defaultSortOrder"
-        @sort="(key, order) => $emit('sort', key, order)"
+        @sort="forwardSort"
       >
         <template #cell-user="{ row }">
           <div class="text-sm">
@@ -312,8 +313,11 @@
           <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
         </template>
 
-        <template #empty><EmptyState :message="t('usage.noRecords')" /></template>
-      </DataTable>
+        <template #empty>
+          <EmptyState v-if="adminPresentation" :title="t('usage.noRecords')" />
+          <LegacyEmptyState v-else :message="t('usage.noRecords')" />
+        </template>
+      </component>
     </div>
   </div>
 
@@ -597,8 +601,10 @@ function accountBilled(row: { total_cost?: number | null; account_stats_cost?: n
 
 
 import UsageCacheRate from '@/components/usage/UsageCacheRate.vue'
-import DataTable from '@/components/common/DataTable.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import AdminDataTable from '@/components/page/AdminDataTable.vue'
+import LegacyDataTable from '@/components/common/DataTable.vue'
+import LegacyEmptyState from '@/components/common/EmptyState.vue'
+import { EmptyState } from '@/components/page'
 import IpGeoCell from '@/components/common/IpGeoCell.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { fetchBatch, getEntry } from '@/utils/ipGeoLookup'
@@ -616,6 +622,7 @@ interface Props {
   showUpstreamEndpoint?: boolean
   /** 嵌入统一卡片内使用：去掉自身卡片外观 */
   flat?: boolean
+  adminPresentation?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -632,6 +639,9 @@ const emit = defineEmits<{
   sort: [key: string, order: 'asc' | 'desc']
   ipGeoBatchFailed: []
 }>()
+function forwardSort(key: string, order: 'asc' | 'desc') {
+  emit('sort', key, order)
+}
 const { t } = useI18n()
 const appStore = useAppStore()
 const copiedRequestId = ref<string | null>(null)

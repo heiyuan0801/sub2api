@@ -1,236 +1,81 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
+    <div class="space-y-4">
+      <PageHeader :title="t('admin.dashboard.title')" :description="t('admin.dashboard.description')" />
       <!-- Loading State -->
       <div v-if="loading" class="flex items-center justify-center py-12">
         <LoadingSpinner />
       </div>
 
       <template v-else-if="stats">
-        <!-- Row 1: Core Stats -->
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <!-- Total API Keys -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="key" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.apiKeys') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  {{ stats.total_api_keys }}
-                </p>
-                <p class="text-xs text-green-600 dark:text-green-400">
-                  {{ stats.active_api_keys }} {{ t('common.active') }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Service Accounts -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="server" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.accounts') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  {{ stats.total_accounts }}
-                </p>
-                <p class="text-xs">
-                  <span class="text-green-600 dark:text-green-400"
-                    >{{ stats.normal_accounts }} {{ t('common.active') }}</span
-                  >
-                  <span v-if="stats.error_accounts > 0" class="ml-1 text-red-500"
-                    >{{ stats.error_accounts }} {{ t('common.error') }}</span
-                  >
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Today Requests -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="chart" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.todayRequests') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  {{ stats.today_requests }}
-                </p>
-                <p class="text-xs text-muted-foreground">
-                  {{ t('common.total') }}: {{ formatNumber(stats.total_requests) }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- New Users Today -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="userPlus" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.users') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  +{{ stats.today_new_users }}
-                </p>
-                <p class="text-xs text-muted-foreground">
-                  {{ t('common.total') }}: {{ formatNumber(stats.total_users) }}
-                </p>
-              </div>
-            </div>
-          </div>
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard :label="t('admin.dashboard.apiKeys')" :value="stats.total_api_keys" :icon="KeyRound">
+            <template #footer><span class="text-success">{{ stats.active_api_keys }} {{ t('common.active') }}</span></template>
+          </StatCard>
+          <StatCard :label="t('admin.dashboard.accounts')" :value="stats.total_accounts" :icon="Server">
+            <template #footer>
+              <span class="text-success">{{ stats.normal_accounts }} {{ t('common.active') }}</span>
+              <span v-if="stats.error_accounts > 0" class="text-danger">{{ stats.error_accounts }} {{ t('common.error') }}</span>
+            </template>
+          </StatCard>
+          <StatCard
+            :label="t('admin.dashboard.todayRequests')"
+            :value="stats.today_requests"
+            :icon="ChartNoAxesCombined"
+            :description="`${t('common.total')}: ${formatNumber(stats.total_requests)}`"
+          />
+          <StatCard
+            :label="t('admin.dashboard.users')"
+            :value="`+${stats.today_new_users}`"
+            :icon="UserRoundPlus"
+            :description="`${t('common.total')}: ${formatNumber(stats.total_users)}`"
+          />
         </div>
 
-        <!-- Row 2: Token Stats -->
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <!-- Today Tokens -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="cube" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.todayTokens') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  {{ formatTokens(stats.today_tokens) }}
-                </p>
-                <p class="text-xs">
-                  <span
-                    class="text-green-600 dark:text-green-400"
-                    :title="t('admin.dashboard.actual')"
-                    >${{ formatCost(stats.today_actual_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-orange-500 dark:text-orange-400"
-                    :title="t('admin.dashboard.accountCost')"
-                    >${{ formatCost(stats.today_account_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-gray-400 dark:text-gray-500"
-                    :title="t('admin.dashboard.standard')"
-                    >${{ formatCost(stats.today_cost) }}</span
-                  >
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Total Tokens -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="database" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.totalTokens') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  {{ formatTokens(stats.total_tokens) }}
-                </p>
-                <p class="text-xs">
-                  <span
-                    class="text-green-600 dark:text-green-400"
-                    :title="t('admin.dashboard.actual')"
-                    >${{ formatCost(stats.total_actual_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-orange-500 dark:text-orange-400"
-                    :title="t('admin.dashboard.accountCost')"
-                    >${{ formatCost(stats.total_account_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-gray-400 dark:text-gray-500"
-                    :title="t('admin.dashboard.standard')"
-                    >${{ formatCost(stats.total_cost) }}</span
-                  >
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Performance (RPM/TPM) -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="bolt" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div class="flex-1">
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.performance') }}
-                </p>
-                <div class="flex items-baseline gap-2">
-                  <p class="text-xl font-bold text-foreground">
-                    {{ formatTokens(stats.rpm) }}
-                  </p>
-                  <span class="text-xs text-muted-foreground">RPM</span>
-                </div>
-                <div class="flex items-baseline gap-2">
-                  <p class="text-sm font-semibold text-foreground">
-                    {{ formatTokens(stats.tpm) }}
-                  </p>
-                  <span class="text-xs text-muted-foreground">TPM</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Avg Response Time -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-muted p-2">
-                <Icon name="clock" size="md" class="text-gray-700 dark:text-gray-200" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-muted-foreground">
-                  {{ t('admin.dashboard.avgResponse') }}
-                </p>
-                <p class="text-xl font-bold text-foreground">
-                  {{ formatDuration(stats.average_duration_ms) }}
-                </p>
-                <p class="text-xs text-muted-foreground">
-                  {{ stats.active_users }} {{ t('admin.dashboard.activeUsers') }}
-                </p>
-              </div>
-            </div>
-          </div>
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <StatCard :label="t('admin.dashboard.todayTokens')" :value="formatTokens(stats.today_tokens)" :icon="Box">
+            <template #footer>
+              <span class="text-success" :title="t('admin.dashboard.actual')">${{ formatCost(stats.today_actual_cost) }}</span>
+              <span class="text-muted-foreground">/</span>
+              <span class="text-warning" :title="t('admin.dashboard.accountCost')">${{ formatCost(stats.today_account_cost) }}</span>
+              <span class="text-muted-foreground">/</span>
+              <span class="text-muted-foreground" :title="t('admin.dashboard.standard')">${{ formatCost(stats.today_cost) }}</span>
+            </template>
+          </StatCard>
+          <StatCard :label="t('admin.dashboard.totalTokens')" :value="formatTokens(stats.total_tokens)" :icon="Database">
+            <template #footer>
+              <span class="text-success" :title="t('admin.dashboard.actual')">${{ formatCost(stats.total_actual_cost) }}</span>
+              <span class="text-muted-foreground">/</span>
+              <span class="text-warning" :title="t('admin.dashboard.accountCost')">${{ formatCost(stats.total_account_cost) }}</span>
+              <span class="text-muted-foreground">/</span>
+              <span class="text-muted-foreground" :title="t('admin.dashboard.standard')">${{ formatCost(stats.total_cost) }}</span>
+            </template>
+          </StatCard>
+          <StatCard
+            :label="t('admin.dashboard.performance')"
+            :value="formatTokens(stats.rpm)"
+            :icon="Zap"
+            unit="RPM"
+            :description="`${formatTokens(stats.tpm)} TPM`"
+          />
+          <StatCard
+            :label="t('admin.dashboard.avgResponse')"
+            :value="formatDuration(stats.average_duration_ms)"
+            :icon="Clock"
+            :description="`${stats.active_users} ${t('admin.dashboard.activeUsers')}`"
+          />
         </div>
 
         <!-- Quick Actions -->
-        <div class="card p-4">
-          <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-foreground">
-              {{ t('admin.dashboard.quickActions') }}
-            </h2>
-          </div>
+        <SectionCard :title="t('admin.dashboard.quickActions')">
           <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
             <button
               v-if="canUseBatchImage"
               type="button"
-              class="group flex items-center gap-3 rounded-lg bg-gray-50 p-3 text-left transition-colors hover:bg-muted dark:bg-dark-800/50"
+              class="group flex items-center gap-3 rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted"
               @click="router.push('/batch-image')"
             >
-              <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-gray-700 dark:text-gray-200">
+              <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Icon name="sparkles" size="md" :stroke-width="2" />
               </span>
               <span class="min-w-0 flex-1">
@@ -245,10 +90,10 @@
             </button>
             <button
               type="button"
-              class="group flex items-center gap-3 rounded-lg bg-gray-50 p-3 text-left transition-colors hover:bg-muted dark:bg-dark-800/50"
+              class="group flex items-center gap-3 rounded-lg bg-muted/40 p-3 text-left transition-colors hover:bg-muted"
               @click="router.push('/admin/groups')"
             >
-              <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-gray-700 dark:text-gray-200">
+              <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
                 <Icon name="grid" size="md" :stroke-width="2" />
               </span>
               <span class="min-w-0 flex-1">
@@ -262,15 +107,15 @@
               <Icon name="chevronRight" size="sm" class="text-gray-400 group-hover:text-foreground" />
             </button>
           </div>
-        </div>
+        </SectionCard>
 
         <!-- Charts Section -->
         <div class="space-y-6">
           <!-- Date Range Filter -->
-          <div class="card p-4">
-            <div class="flex flex-wrap items-center gap-4">
+          <SectionCard>
+            <Toolbar>
               <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                <span class="text-sm font-medium text-muted-foreground"
                   >{{ t('admin.dashboard.timeRange') }}:</span
                 >
                 <DateRangePicker
@@ -279,11 +124,13 @@
                   @change="onDateRangeChange"
                 />
               </div>
-              <button @click="loadDashboardStats" :disabled="chartsLoading" class="btn btn-secondary">
-                {{ t('common.refresh') }}
-              </button>
-              <div class="ml-auto flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+              <template #actions>
+                <button type="button" @click="loadDashboardStats" :disabled="chartsLoading" class="btn btn-secondary">
+                  {{ t('common.refresh') }}
+                </button>
+              </template>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-muted-foreground"
                   >{{ t('admin.dashboard.granularity') }}:</span
                 >
                 <div class="w-28">
@@ -294,12 +141,13 @@
                   />
                 </div>
               </div>
-            </div>
-          </div>
+            </Toolbar>
+          </SectionCard>
 
           <!-- Charts Grid -->
           <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ModelDistributionChart
+              semantic-colors
               :model-stats="modelStats"
               :enable-ranking-view="true"
               :ranking-items="rankingItems"
@@ -313,34 +161,28 @@
               :end-date="endDate"
               @ranking-click="goToUserUsage"
             />
-            <TokenUsageTrend :trend-data="trendData" :loading="chartsLoading" />
+            <TokenUsageTrend semantic-colors :trend-data="trendData" :loading="chartsLoading" />
           </div>
 
           <!-- User Usage Trend (Full Width) -->
-          <div class="card p-4">
-            <div class="mb-4 flex items-center justify-between gap-3">
-              <h3 class="text-sm font-semibold text-foreground">{{ t('admin.dashboard.recentUsage') }} (Top 12)</h3>
+          <SectionCard :title="`${t('admin.dashboard.recentUsage')} (Top 12)`">
+            <template #actions>
               <div class="flex gap-1" role="group" :aria-label="t('admin.dashboard.recentUsage')">
                 <button v-for="metric in (['tokens', 'actual_cost'] as const)" :key="metric" type="button"
-                  class="rounded px-2 py-1 text-xs" :class="userTrendMetric === metric ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300'"
+                  class="rounded px-2 py-1 text-xs" :class="userTrendMetric === metric ? 'bg-brand text-brand-foreground' : 'text-muted-foreground hover:bg-muted'"
                   :aria-pressed="userTrendMetric === metric" @click="setUserTrendMetric(metric)">
                   {{ t(metric === 'tokens' ? 'admin.dashboard.tokens' : 'admin.dashboard.actualSpending') }}
                 </button>
               </div>
-            </div>
+            </template>
             <div class="h-64">
               <div v-if="userTrendLoading" class="flex h-full items-center justify-center">
                 <LoadingSpinner size="md" />
               </div>
               <Line v-else-if="userTrendChartData" :data="userTrendChartData" :options="lineOptions" />
-              <div
-                v-else
-                class="flex h-full items-center justify-center text-sm text-muted-foreground"
-              >
-                {{ t('admin.dashboard.noDataAvailable') }}
-              </div>
+              <EmptyState v-else :title="t('admin.dashboard.noDataAvailable')" />
             </div>
-          </div>
+          </SectionCard>
         </div>
       </template>
     </div>
@@ -363,6 +205,8 @@ import type {
   UserSpendingRankingItem
 } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import { Box, ChartNoAxesCombined, Clock, Database, KeyRound, Server, UserRoundPlus, Zap } from '@lucide/vue'
+import { EmptyState, PageHeader, SectionCard, StatCard, Toolbar } from '@/components/page'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import Icon from '@/components/icons/Icon.vue'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
@@ -370,6 +214,7 @@ import Select from '@/components/common/Select.vue'
 import ModelDistributionChart from '@/components/charts/ModelDistributionChart.vue'
 import TokenUsageTrend from '@/components/charts/TokenUsageTrend.vue'
 import { useBatchImageAccess } from '@/composables/useBatchImageAccess'
+import { useChartColors } from '@/design/useChartColors'
 
 import {
   Chart as ChartJS,
@@ -444,15 +289,10 @@ const granularityOptions = computed(() => [
   { value: 'hour', label: t('admin.dashboard.hour') }
 ])
 
-// Dark mode detection
-const isDarkMode = computed(() => {
-  return document.documentElement.classList.contains('dark')
-})
-
-// Chart colors
+const { color, seriesColor } = useChartColors()
 const chartColors = computed(() => ({
-  text: isDarkMode.value ? '#e5e7eb' : '#374151',
-  grid: isDarkMode.value ? '#374151' : '#e5e7eb'
+  text: color('foreground'),
+  grid: color('border')
 }))
 
 // Line chart options (for user trend chart)
@@ -548,26 +388,11 @@ const userTrendChartData = computed(() => {
   })
 
   const sortedDates = Array.from(allDates).sort()
-  const colors = [
-    '#3b82f6',
-    '#10b981',
-    '#f59e0b',
-    '#ef4444',
-    '#8b5cf6',
-    '#ec4899',
-    '#14b8a6',
-    '#f97316',
-    '#6366f1',
-    '#84cc16',
-    '#06b6d4',
-    '#a855f7'
-  ]
-
   const datasets = Array.from(userGroups.values()).map((group, idx) => ({
     label: group.name,
     data: sortedDates.map((date) => group.data.get(date) || 0),
-    borderColor: colors[idx % colors.length],
-    backgroundColor: `${colors[idx % colors.length]}20`,
+    borderColor: seriesColor(idx),
+    backgroundColor: seriesColor(idx, 0.125),
     fill: false,
     tension: 0.3
   }))

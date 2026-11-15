@@ -112,6 +112,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import { Doughnut } from 'vue-chartjs'
+import { useChartColors } from '@/design/useChartColors'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import UserBreakdownSubTable from './UserBreakdownSubTable.vue'
 import type { GroupStat, UserBreakdownItem } from '@/types'
@@ -126,6 +127,7 @@ type DistributionMetric = 'tokens' | 'actual_cost'
 const props = withDefaults(defineProps<{
   groupStats: GroupStat[]
   loading?: boolean
+  semanticColors?: boolean
   metric?: DistributionMetric
   showMetricToggle?: boolean
   enableBreakdown?: boolean
@@ -175,7 +177,8 @@ const toggleBreakdown = async (type: string, id: number | string) => {
   }
 }
 
-const chartColors = [
+const { seriesColor } = useChartColors()
+const legacyColors = [
   '#3b82f6',
   '#10b981',
   '#f59e0b',
@@ -187,6 +190,12 @@ const chartColors = [
   '#6366f1',
   '#84cc16'
 ]
+function chartPalette(count: number) {
+  return props.semanticColors
+    ? Array.from({ length: count }, (_, index) => seriesColor(index))
+    : legacyColors.slice(0, count)
+}
+
 
 const displayGroupStats = computed(() => {
   if (!props.groupStats?.length) return []
@@ -203,7 +212,7 @@ const chartData = computed(() => {
     datasets: [
       {
         data: displayGroupStats.value.map((g) => toFiniteNumber(props.metric === 'actual_cost' ? g.actual_cost : g.total_tokens)),
-        backgroundColor: chartColors.slice(0, displayGroupStats.value.length),
+        backgroundColor: chartPalette(displayGroupStats.value.length),
         borderWidth: 0
       }
     ]

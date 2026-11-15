@@ -1,5 +1,5 @@
 <template>
-  <BaseDialog :show="show" :title="t('admin.usage.cleanup.title')" width="wide" @close="handleClose">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show" :title="t('admin.usage.cleanup.title')" width="wide" @close="handleClose">
     <div class="space-y-4">
       <UsageFilters
         v-model="localFilters"
