@@ -1,74 +1,40 @@
 <template>
-  <div
-    class="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4 dark:from-dark-900 dark:to-dark-800"
-  >
-    <div class="w-full max-w-2xl">
-      <!-- Logo & Title -->
-      <div class="mb-8 text-center">
-        <div
-          class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg"
-        >
-          <Icon name="cog" size="xl" class="text-white" />
-        </div>
-        <h1 class="text-3xl font-bold text-foreground">{{ t('setup.title') }}</h1>
-        <p class="mt-2 text-muted-foreground">{{ t('setup.description') }}</p>
-      </div>
+  <AuthFlowFrame>
+    <div class="space-y-4 sm:space-y-5">
+      <PageHeader :title="t('setup.title')" :description="t('setup.description')">
+        <template #badge>
+          <span class="inline-flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-brand">
+            <Icon name="cog" size="sm" aria-hidden="true" />
+          </span>
+        </template>
+      </PageHeader>
 
-      <!-- Progress Steps -->
-      <div class="mb-8">
-        <div class="flex items-center justify-center">
-          <template v-for="(step, index) in steps" :key="step.id">
-            <div class="flex items-center">
-              <div
-                :class="[
-                  'flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all',
-                  currentStep > index
-                    ? 'bg-brand text-brand-foreground'
-                    : currentStep === index
-                      ? 'bg-brand text-brand-foreground ring-4 ring-primary-100 dark:ring-primary-900'
-                      : 'bg-gray-200 text-muted-foreground dark:bg-dark-700'
-                ]"
-              >
-                <Icon
-                  v-if="currentStep > index"
-                  name="check"
-                  size="md"
-                  :stroke-width="2"
-                />
-                <span v-else>{{ index + 1 }}</span>
-              </div>
-              <span
-                class="ml-2 hidden text-sm font-medium sm:inline"
-                :class="
-                  currentStep >= index
-                    ? 'text-foreground'
-                    : 'text-gray-400 dark:text-dark-500'
-                "
-              >
-                {{ step.title }}
-              </span>
-            </div>
-            <div
-              v-if="index < steps.length - 1"
-              class="mx-2 h-0.5 w-6 sm:mx-3 sm:w-12"
-              :class="currentStep > index ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-700'"
-            ></div>
-          </template>
-        </div>
-      </div>
+      <ol class="grid list-none grid-cols-4 gap-1 rounded-lg border border-border bg-card p-1.5 sm:gap-2">
+        <li
+          v-for="(step, index) in steps"
+          :key="step.id"
+          class="flex min-w-0 flex-col items-center gap-1 rounded-md p-1.5 text-center sm:flex-row sm:gap-2 sm:text-left"
+          :class="currentStep === index ? 'bg-brand/10 text-foreground' : 'text-muted-foreground'"
+          :aria-current="currentStep === index ? 'step' : undefined"
+        >
+          <span
+            class="inline-flex size-6 shrink-0 items-center justify-center rounded-md border text-xs font-semibold tabular-nums"
+            :class="currentStep === index
+              ? 'border-brand bg-brand text-brand-foreground'
+              : currentStep > index ? 'border-success/20 bg-success/10 text-success' : 'border-border bg-muted'"
+          >
+            <Icon v-if="currentStep > index" name="check" size="sm" aria-hidden="true" />
+            <span v-else>{{ index + 1 }}</span>
+          </span>
+          <span class="min-w-0 break-words text-xs leading-snug sm:font-medium">{{ step.title }}</span>
+        </li>
+      </ol>
 
       <!-- Step Content -->
-      <div class="rounded-2xl bg-card p-8 shadow-xl">
+      <SectionCard class="[&>div]:p-5 sm:[&>div]:p-6 [&>footer]:px-5 sm:[&>footer]:px-6">
         <!-- Step 1: Database -->
         <div v-if="currentStep === 0" class="space-y-6">
-          <div class="mb-6 text-center">
-            <h2 class="text-xl font-semibold text-foreground">
-              {{ t('setup.database.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {{ t('setup.database.description') }}
-            </p>
-          </div>
+          <PageHeader as="h2" :title="t('setup.database.title')" :description="t('setup.database.description')" />
 
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -91,7 +57,7 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between rounded-xl border border-border p-3">
+          <div class="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
               <p class="text-sm font-medium text-foreground">
                 {{ t("setup.redis.enableTls") }}
@@ -173,7 +139,7 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            <Icon v-else-if="dbConnected" name="check" size="md" class="mr-2 text-green-500" :stroke-width="2" />
+            <Icon v-else-if="dbConnected" name="check" size="md" class="mr-2 text-success" :stroke-width="2" />
             {{
               testingDb
                 ? t('setup.status.testing')
@@ -186,14 +152,7 @@
 
         <!-- Step 2: Redis -->
         <div v-if="currentStep === 1" class="space-y-6">
-          <div class="mb-6 text-center">
-            <h2 class="text-xl font-semibold text-foreground">
-              {{ t('setup.redis.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {{ t('setup.redis.description') }}
-            </p>
-          </div>
+          <PageHeader as="h2" :title="t('setup.redis.title')" :description="t('setup.redis.description')" />
 
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -246,7 +205,7 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between rounded-xl border border-border p-3">
+          <div class="flex items-center justify-between rounded-lg border border-border p-3">
             <div>
               <p class="text-sm font-medium text-foreground">
                 {{ t("setup.redis.enableTls") }}
@@ -287,7 +246,7 @@
               v-else-if="redisConnected"
               name="check"
               size="md"
-              class="mr-2 text-green-500"
+              class="mr-2 text-success"
               :stroke-width="2"
             />
             {{
@@ -302,14 +261,7 @@
 
         <!-- Step 3: Admin -->
         <div v-if="currentStep === 2" class="space-y-6">
-          <div class="mb-6 text-center">
-            <h2 class="text-xl font-semibold text-foreground">
-              {{ t('setup.admin.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {{ t('setup.admin.description') }}
-            </p>
-          </div>
+          <PageHeader as="h2" :title="t('setup.admin.title')" :description="t('setup.admin.description')" />
 
           <div>
             <label class="input-label">{{ t('setup.admin.email') }}</label>
@@ -350,17 +302,10 @@
 
         <!-- Step 4: Complete -->
         <div v-if="currentStep === 3" class="space-y-6">
-          <div class="mb-6 text-center">
-            <h2 class="text-xl font-semibold text-foreground">
-              {{ t('setup.ready.title') }}
-            </h2>
-            <p class="mt-1 text-sm text-muted-foreground">
-              {{ t('setup.ready.description') }}
-            </p>
-          </div>
+          <PageHeader as="h2" :title="t('setup.ready.title')" :description="t('setup.ready.description')" />
 
           <div class="space-y-4">
-            <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
+            <div class="rounded-lg border border-border bg-muted/50 p-4">
               <h3 class="mb-2 text-sm font-medium text-muted-foreground">
                 {{ t('setup.ready.database') }}
               </h3>
@@ -371,7 +316,7 @@
               </p>
             </div>
 
-            <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
+            <div class="rounded-lg border border-border bg-muted/50 p-4">
               <h3 class="mb-2 text-sm font-medium text-muted-foreground">
                 {{ t('setup.ready.redis') }}
               </h3>
@@ -380,7 +325,7 @@
               </p>
             </div>
 
-            <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-700">
+            <div class="rounded-lg border border-border bg-muted/50 p-4">
               <h3 class="mb-2 text-sm font-medium text-muted-foreground">
                 {{ t('setup.ready.adminEmail') }}
               </h3>
@@ -392,23 +337,25 @@
         <!-- Error Message -->
         <div
           v-if="errorMessage"
-          class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800/50 dark:bg-red-900/20"
+          role="alert"
+          class="mt-5 rounded-lg border border-danger/25 bg-danger/10 p-4"
         >
           <div class="flex items-start gap-3">
-            <Icon name="exclamationCircle" size="md" class="flex-shrink-0 text-red-500" />
-            <p class="text-sm text-red-700 dark:text-red-400">{{ errorMessage }}</p>
+            <Icon name="exclamationCircle" size="md" class="flex-shrink-0 text-danger" />
+            <p class="text-sm text-danger">{{ errorMessage }}</p>
           </div>
         </div>
 
         <!-- Success Message -->
         <div
           v-if="installSuccess"
-          class="mt-6 rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-800/50 dark:bg-green-900/20"
+          role="status"
+          class="mt-5 rounded-lg border border-success/25 bg-success/10 p-4"
         >
           <div class="flex items-start gap-3">
             <svg
               v-if="!serviceReady"
-              class="h-5 w-5 flex-shrink-0 animate-spin text-green-500"
+              class="h-5 w-5 flex-shrink-0 animate-spin text-success"
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -426,12 +373,12 @@
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            <Icon v-else name="checkCircle" size="md" class="flex-shrink-0 text-green-500" />
+            <Icon v-else name="checkCircle" size="md" class="flex-shrink-0 text-success" />
             <div>
-              <p class="text-sm font-medium text-green-700 dark:text-green-400">
+              <p class="text-sm font-medium text-success">
                 {{ t('setup.status.completed') }}
               </p>
-              <p class="mt-1 text-sm text-green-600 dark:text-green-500">
+              <p class="mt-1 text-sm text-success">
                 {{
                   serviceReady
                     ? t('setup.status.redirecting')
@@ -443,62 +390,67 @@
         </div>
 
         <!-- Navigation Buttons -->
-        <div class="mt-8 flex justify-between">
-          <button
-            v-if="currentStep > 0 && !installSuccess"
-            @click="currentStep--"
-            class="btn btn-secondary"
-          >
-            <Icon name="chevronLeft" size="sm" class="mr-2" :stroke-width="2" />
-            {{ t('common.back') }}
-          </button>
-          <div v-else></div>
-
-          <button
-            v-if="currentStep < 3"
-            @click="nextStep"
-            :disabled="!canProceed"
-            class="btn btn-primary"
-          >
-            {{ t('common.next') }}
-            <Icon name="chevronRight" size="sm" class="ml-2" :stroke-width="2" />
-          </button>
-
-          <button
-            v-else-if="!installSuccess"
-            @click="performInstall"
-            :disabled="installing"
-            class="btn btn-primary"
-          >
-            <svg
-              v-if="installing"
-              class="-ml-1 mr-2 h-4 w-4 animate-spin"
-              fill="none"
-              viewBox="0 0 24 24"
+        <template #footer>
+          <div class="flex flex-wrap justify-between gap-2">
+            <button
+              v-if="currentStep > 0 && !installSuccess"
+              @click="currentStep--"
+              class="btn btn-secondary"
             >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            {{ installing ? t('setup.status.installing') : t('setup.status.completeInstallation') }}
-          </button>
-        </div>
-      </div>
+              <Icon name="chevronLeft" size="sm" class="mr-2" :stroke-width="2" />
+              {{ t('common.back') }}
+            </button>
+            <div v-else></div>
+
+            <button
+              v-if="currentStep < 3"
+              @click="nextStep"
+              :disabled="!canProceed"
+              class="btn btn-primary"
+            >
+              {{ t('common.next') }}
+              <Icon name="chevronRight" size="sm" class="ml-2" :stroke-width="2" />
+            </button>
+
+            <button
+              v-else-if="!installSuccess"
+              @click="performInstall"
+              :disabled="installing"
+              class="btn btn-primary"
+            >
+              <svg
+                v-if="installing"
+                class="-ml-1 mr-2 h-4 w-4 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              {{ installing ? t('setup.status.installing') : t('setup.status.completeInstallation') }}
+            </button>
+          </div>
+        </template>
+      </SectionCard>
     </div>
-  </div>
+  </AuthFlowFrame>
 </template>
 
 <script setup lang="ts">
+import AuthFlowFrame from '@/components/auth/AuthFlowFrame.vue'
+import PageHeader from '@/components/page/PageHeader.vue'
+import SectionCard from '@/components/page/SectionCard.vue'
 import { ref, reactive, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { testDatabase, testRedis, install, type InstallRequest } from '@/api/setup'
