@@ -292,8 +292,8 @@
                 <PlatformTypeBadge :platform="row.platform" :type="row.type"
                   :auth-mode="getOpenAIAuthMode(row)"
                   :plan-type="getAccountPlanType(row)"
-                  :privacy-mode="row.extra?.privacy_mode || row.parent_privacy_mode"
-                  :subscription-expires-at="row.credentials?.subscription_expires_at || row.parent_subscription_expires_at" />
+                  :privacy-mode="accountBadgeString(row.extra?.privacy_mode, row.parent_privacy_mode)"
+                  :subscription-expires-at="accountBadgeString(row.credentials?.subscription_expires_at, row.parent_subscription_expires_at)" />
                 <span
                   v-if="getAntigravityTierLabel(row)"
                   :class="['inline-block rounded px-1.5 py-0.5 text-[10px] font-medium', getAntigravityTierClass(row)]"
@@ -538,7 +538,7 @@
 <script setup lang="ts">
 import AccountCallMetricsCell from '@/components/account/AccountCallMetricsCell.vue'
 import UpstreamBalanceCell from '@/components/account/UpstreamBalanceCell.vue'
-import { defineAsyncComponent, ref, reactive, computed, onMounted, onUnmounted, toRaw, watch } from 'vue'
+import { defineAsyncComponent, ref, shallowRef, reactive, computed, onMounted, onUnmounted, toRaw, watch } from 'vue'
 import { useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
@@ -608,7 +608,12 @@ const accountGroupsForRow = (account: Pick<AccountListItem, 'group_ids'>): Admin
   return groupIDs.map(id => groupsByID.value.get(id)).filter((group): group is AdminGroup => Boolean(group))
 }
 const accountTableRef = ref<HTMLElement | null>(null)
-const dataTableRef = ref<InstanceType<typeof DataTable> | null>(null)
+// Badge values in provider metadata are optional strings.
+function accountBadgeString(value: unknown, inherited?: string): string | undefined {
+  return typeof value === 'string' && value ? value : inherited
+}
+
+const dataTableRef = shallowRef<InstanceType<typeof DataTable> | null>(null)
 type AccountBulkEditTarget =
   | {
       mode: 'selected'

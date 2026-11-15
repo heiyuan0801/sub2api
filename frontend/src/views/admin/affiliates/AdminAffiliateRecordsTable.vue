@@ -41,6 +41,7 @@
         >
           <template #cell-inviter="{ row }">
             <UserCell
+              v-if="'inviter_id' in row"
               :id="row.inviter_id"
               :email="row.inviter_email"
               :username="row.inviter_username"
@@ -49,7 +50,7 @@
             />
           </template>
           <template #cell-invitee="{ row }">
-            <span v-if="row.invitee_id == null" class="text-sm text-muted-foreground">-</span>
+            <span v-if="!('invitee_id' in row) || row.invitee_id == null" class="text-sm text-muted-foreground">-</span>
             <UserCell
               v-else
               :id="row.invitee_id"
@@ -61,6 +62,7 @@
           </template>
           <template #cell-user="{ row }">
             <UserCell
+              v-if="'ledger_id' in row"
               :id="row.user_id"
               :email="row.user_email"
               :username="row.username"
@@ -69,53 +71,53 @@
             />
           </template>
           <template #cell-aff_code="{ row }">
-            <span class="font-mono text-sm text-foreground">{{ row.aff_code || '-' }}</span>
+            <span class="font-mono text-sm text-foreground">{{ ('aff_code' in row && row.aff_code) || '-' }}</span>
           </template>
           <template #cell-order="{ row }">
-            <span v-if="row.order_id == null" class="text-sm text-muted-foreground">-</span>
+            <span v-if="!('order_id' in row) || row.order_id == null" class="text-sm text-muted-foreground">-</span>
             <div v-else class="space-y-0.5">
               <div class="font-mono text-sm text-foreground">#{{ row.order_id }}</div>
               <div class="max-w-56 truncate text-sm text-muted-foreground">{{ row.out_trade_no }}</div>
             </div>
           </template>
           <template #cell-payment_type="{ row }">
-            <template v-if="row.payment_type">{{ t('payment.methods.' + row.payment_type, row.payment_type) }}</template>
+            <template v-if="'order_id' in row && row.payment_type">{{ t('payment.methods.' + row.payment_type, row.payment_type) }}</template>
             <span v-else class="text-sm text-muted-foreground">-</span>
           </template>
           <template #cell-order_status="{ row }">
-            <OrderStatusBadge v-if="row.order_status" :status="row.order_status" />
+            <OrderStatusBadge v-if="'order_id' in row && row.order_status" :status="row.order_status" />
             <span v-else class="text-sm text-muted-foreground">-</span>
           </template>
           <template #cell-total_rebate="{ row }">
-            <AmountText :value="row.total_rebate" />
+            <AmountText v-if="'aff_code' in row" :value="row.total_rebate" />
           </template>
           <template #cell-order_amount="{ row }">
-            <NullableAmountText :value="row.order_amount" />
+            <NullableAmountText v-if="'order_id' in row" :value="row.order_amount" />
           </template>
           <template #cell-pay_amount="{ row }">
-            <span v-if="row.pay_amount == null" class="text-sm text-muted-foreground">-</span>
+            <span v-if="!('order_id' in row) || row.pay_amount == null" class="text-sm text-muted-foreground">-</span>
             <span v-else class="text-sm text-foreground">¥{{ formatAmount(row.pay_amount) }}</span>
           </template>
           <template #cell-rebate_amount="{ row }">
-            <AmountText :value="row.rebate_amount" strong />
+            <AmountText v-if="'order_id' in row" :value="row.rebate_amount" strong />
           </template>
           <template #cell-action="{ row }">
-            <StatusBadge :label="outflowTypeLabel(row.action)" :tone="row.action === 'withdraw' ? 'warning' : 'brand'" />
+            <StatusBadge v-if="'ledger_id' in row" :label="outflowTypeLabel(row.action)" :tone="row.action === 'withdraw' ? 'warning' : 'brand'" />
           </template>
           <template #cell-amount="{ row }">
-            <AmountText :value="row.amount" strong />
+            <AmountText v-if="'ledger_id' in row" :value="row.amount" strong />
           </template>
           <template #cell-balance_after="{ row }">
-            <NullableAmountText :value="row.balance_after" />
+            <NullableAmountText v-if="'ledger_id' in row" :value="row.balance_after" />
           </template>
           <template #cell-available_quota_after="{ row }">
-            <NullableAmountText :value="row.available_quota_after" />
+            <NullableAmountText v-if="'ledger_id' in row" :value="row.available_quota_after" />
           </template>
           <template #cell-frozen_quota_after="{ row }">
-            <NullableAmountText :value="row.frozen_quota_after" />
+            <NullableAmountText v-if="'ledger_id' in row" :value="row.frozen_quota_after" />
           </template>
           <template #cell-history_quota_after="{ row }">
-            <NullableAmountText :value="row.history_quota_after" />
+            <NullableAmountText v-if="'ledger_id' in row" :value="row.history_quota_after" />
           </template>
           <template #cell-created_at="{ row }">
             <span class="text-sm text-foreground">{{ formatDateTime(row.created_at) }}</span>

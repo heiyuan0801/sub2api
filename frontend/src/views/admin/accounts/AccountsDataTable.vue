@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, type VNode } from 'vue'
+import { computed, shallowRef, type VNode } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef, RowSelectionState, SortingState } from '@tanstack/vue-table'
 import type { Virtualizer } from '@tanstack/vue-virtual'
@@ -34,9 +34,10 @@ const slots = defineSlots<{
   // Legacy cell slots use a mixture of API fields and presentation-only columns.
   [key: `cell-${string}`]: (props: { row: AccountListItem; value: any; expanded: boolean }) => VNode[]
 }>()
-const legacySlotNames = Object.keys(slots).filter(name => name.startsWith('cell-') || name.startsWith('header-')) as (`header-${string}` | `cell-${string}`)[]
+const legacyHeaderSlots = Object.keys(slots).filter((name): name is `header-${string}` => name.startsWith('header-'))
+const legacyCellSlots = Object.keys(slots).filter((name): name is `cell-${string}` => name.startsWith('cell-'))
 const { t } = useI18n()
-const desktopTable = ref<TableApi | null>(null)
+const desktopTable = shallowRef<TableApi | null>(null)
 
 const definitions = computed<ColumnDef<AccountListItem>[]>(() => props.columns.map(column => ({
   id: column.key,
@@ -127,7 +128,10 @@ defineExpose({
       :default-sort-key="sortKey"
       :default-sort-order="sortOrder"
     >
-      <template v-for="name in legacySlotNames" :key="name" #[name]="slotProps">
+      <template v-for="name in legacyHeaderSlots" :key="name" #[name]="slotProps">
+        <slot :name="name" v-bind="slotProps" />
+      </template>
+      <template v-for="name in legacyCellSlots" :key="name" #[name]="slotProps">
         <slot :name="name" v-bind="slotProps" />
       </template>
       <template #empty><EmptyState :title="t('empty.noData')" /></template>

@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import { computed, onMounted, ref, useSlots, watch } from 'vue'
+<script setup lang="ts" generic="Row extends Record<string, any>">
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
 import type { ColumnDef, RowSelectionState, SortingState } from '@tanstack/vue-table'
@@ -11,7 +11,6 @@ import EmptyState from './EmptyState.vue'
 defineOptions({ name: 'DataTable' })
 
 // Keep the existing admin list contract while the table markup moves to TanStack.
-type Row = Record<string, any>
 type RowKey = string | number
 type SortOrder = 'asc' | 'desc'
 type SortState = { key: string; order: SortOrder }
@@ -48,7 +47,15 @@ const emit = defineEmits<{
   selectionChange: [keys: RowKey[]]
 }>()
 
-const slots = useSlots()
+const slots = defineSlots<{
+  [name: `cell-${string}`]: (props: { row: Row; value: any; expanded: boolean }) => unknown
+  [name: `header-${string}`]: (props: { column: Column; sortKey: string; sortOrder: SortOrder }) => unknown
+  empty?: () => unknown
+}>()
+// Dynamic columns can be synthetic or nested, so cell values intentionally keep
+// the legacy untyped value contract. The row itself retains the caller's type.
+const headerSlots = computed(() => props.columns.map(({ key }) => `header-${key}` as const).filter(name => Boolean(slots[name])))
+const cellSlots = computed(() => props.columns.map(({ key }) => `cell-${key}` as const).filter(name => Boolean(slots[name])))
 const { t } = useI18n()
 const desktop = useMediaQuery('(min-width: 768px)')
 // The mobile cards and lists with measured expandable actions keep their existing renderer.
@@ -127,7 +134,10 @@ const columns = computed<ColumnDef<Row>[]>(() => props.columns.map(column => ({
   header: column.label,
   enableSorting: Boolean(column.sortable)
 })))
-const customHeaders = computed(() => props.columns.filter(column => slots[`header-${column.key}`]).map(column => column.key))
+const customHeaders = computed(() => headerSlots.value.map(name => name.slice('header-'.length)))
+function columnForKey(id: string): Column {
+  return columnById.value.get(id) ?? { key: id, label: id }
+}
 function columnClass(id: string) {
   const column = columnById.value.get(id)
   if (!column) return
@@ -192,9 +202,13 @@ defineExpose({ sortedData, resolveRowKey })
       @sort="changeSort" @row-click="emit('rowClick', $event)"
       @update:selected-keys="emit('update:selectedKeys', $event)" @selection-change="emit('selectionChange', $event)"
     >
-      <template v-for="(_, slotName) in $slots" #[slotName]="slotProps">
-        <slot :name="slotName" v-bind="slotProps ?? {}" />
+      <template v-for="slotName in headerSlots" #[slotName]="slotProps">
+        <slot :name="slotName" v-bind="slotProps" />
       </template>
+      <template v-for="slotName in cellSlots" #[slotName]="slotProps">
+        <slot :name="slotName" v-bind="slotProps" />
+      </template>
+      <template v-if="$slots.empty" #empty><slot name="empty" /></template>
     </LegacyDataTable>
     <UiDataTable
       v-else
@@ -211,7 +225,7 @@ defineExpose({ sortedData, resolveRowKey })
     >
       <template #column-header="{ header }">
         <slot
-          :name="`header-${header.column.id}`" :column="columnById.get(header.column.id)"
+          :name="`header-${header.column.id}`" :column="columnForKey(header.column.id)"
           :sort-key="sort?.key ?? ''" :sort-order="sort?.order ?? 'asc'"
         />
       </template>
