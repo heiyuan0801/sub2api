@@ -1,25 +1,25 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('availableChannels.title')" :description="t('availableChannels.description')" />
+      </template>
       <template #filters>
-        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-          <div class="flex flex-1 flex-wrap items-center gap-3">
-            <div class="relative w-full sm:w-80">
-              <Icon
-                name="search"
-                size="md"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('availableChannels.searchPlaceholder')"
-                class="input pl-10"
-              />
-            </div>
+        <Toolbar>
+          <div class="relative w-full sm:w-80">
+            <Icon
+              name="search"
+              size="md"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('availableChannels.searchPlaceholder')"
+              class="input pl-10"
+            />
           </div>
-
-          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
+          <template #actions>
             <button
               @click="loadChannels"
               :disabled="loading"
@@ -28,8 +28,8 @@
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
             </button>
-          </div>
-        </div>
+          </template>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -49,10 +49,11 @@
 </template>
 
 <script setup lang="ts">
+import { PageHeader, Toolbar } from '@/components/page'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
 import AvailableChannelsTable from '@/components/channels/AvailableChannelsTable.vue'
 import userChannelsAPI, { type UserAvailableChannel } from '@/api/channels'

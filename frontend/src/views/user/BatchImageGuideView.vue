@@ -1,9 +1,12 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('batchImageGuide.title')" :description="t('batchImageGuide.description')" />
+      </template>
       <template #filters>
         <div class="flex flex-col gap-3">
-          <div class="flex flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <Toolbar>
             <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[260px_160px_144px_152px] 2xl:w-auto">
               <div class="min-w-0">
                 <SearchInput
@@ -17,7 +20,7 @@
               <Select v-model="filters.status" :options="statusFilterOptions" class="w-full" @change="applyFilters" />
               <Select v-model="filters.downloaded" :options="downloadFilterOptions" class="w-full" @change="applyFilters" />
             </div>
-            <div class="flex flex-wrap items-center justify-start gap-2 sm:justify-end 2xl:flex-shrink-0">
+            <template #actions>
               <button type="button" class="btn btn-secondary" :disabled="loadingJobs" @click="resetFilters">
                 {{ t('common.reset') }}
               </button>
@@ -32,12 +35,12 @@
                 <Icon name="plus" size="md" class="mr-2" />
                 {{ t('batchImage.actions.createJob') }}
               </button>
-            </div>
-          </div>
+            </template>
+          </Toolbar>
 
           <div
             v-if="selectedJobIds.size"
-            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2 shadow-sm"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand/25 bg-brand/5 px-3 py-2"
           >
             <i18n-t
               keypath="batchImage.list.selectedJobs"
@@ -179,7 +182,7 @@
 	            <div class="flex items-center justify-center gap-1">
               <button
                 type="button"
-                class="batch-row-action flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 dark:hover:bg-dark-700"
+                class="batch-row-action flex flex-col items-center gap-0.5 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
                 :title="t('batchImage.actions.viewDetail')"
                 @click="selectJob(row.id)"
               >
@@ -715,11 +718,11 @@
       </template>
     </BaseDialog>
 
-    <BaseDialog :show="showGuideModal" :title="t('batchImage.guide.title')" width="wide" @close="showGuideModal = false">
+    <BaseDialog :show="showGuideModal" presentation="sheet" :title="t('batchImage.guide.title')" width="wide" @close="showGuideModal = false">
 	      <div class="space-y-5">
 	        <section class="space-y-3">
 	          <h3 class="text-sm font-semibold text-foreground">{{ t('batchImage.guide.uiTitle') }}</h3>
-	          <div class="rounded-lg border border-border bg-gray-50 p-3 text-sm leading-6 text-gray-700 dark:bg-dark-900/50 dark:text-gray-200">
+	          <div class="rounded-lg border border-border bg-muted/40 p-3 text-sm leading-6 text-foreground">
 	            <p>{{ t('batchImage.guide.step1') }}</p>
 	            <p>{{ t('batchImage.guide.step2') }}</p>
 	            <p>{{ t('batchImage.guide.step3') }}</p>
@@ -734,7 +737,7 @@
 	        <textarea
 	          :value="agentInstruction"
 	          readonly
-	          class="min-h-[420px] w-full resize-y rounded-md border border-border bg-gray-50 p-4 font-mono text-sm leading-6 text-gray-800 outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 dark:bg-dark-900 dark:text-gray-100 dark:focus:border-primary-500 dark:focus:ring-primary-900/40"
+	          class="min-h-[420px] w-full resize-y rounded-md border border-border bg-muted/40 p-4 font-mono text-sm leading-6 text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
 	        />
 	        </section>
 	      </div>
@@ -752,11 +755,12 @@
 </template>
 
 <script setup lang="ts">
+import { PageHeader, Toolbar } from '@/components/page'
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Select, { type SelectOption } from '@/components/common/Select.vue'
 import SearchInput from '@/components/common/SearchInput.vue'

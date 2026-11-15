@@ -1,9 +1,9 @@
 <template>
-  <section class="py-3 md:py-4">
+  <SectionCard>
     <div class="flex items-center justify-end gap-3 flex-wrap">
       <div
         role="tablist"
-        class="inline-flex p-0.5 rounded-xl bg-muted border border-gray-200/60 dark:border-dark-700/60 text-xs"
+        class="inline-flex p-0.5 rounded-xl bg-muted border border-border text-xs"
       >
         <button
           v-for="opt in windowOptions"
@@ -13,28 +13,19 @@
           :aria-selected="window === opt.value"
           class="px-3 py-1 rounded-lg transition-colors"
           :class="window === opt.value
-            ? 'bg-white dark:bg-dark-700 shadow-sm text-foreground font-semibold'
-            : 'text-muted-foreground hover:text-gray-700 dark:hover:text-gray-200'"
+            ? 'bg-card shadow-sm text-foreground font-semibold'
+            : 'text-muted-foreground hover:text-foreground'"
           @click="emit('update:window', opt.value)"
         >
           {{ opt.label }}
         </button>
       </div>
 
-      <span
-        class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold tracking-wider uppercase"
-        :class="overallChipClass"
-      >
-        <span
-          class="w-1.5 h-1.5 rounded-full mr-1.5"
-          :class="overallDotClass"
-        ></span>
-        {{ overallLabel }}
-      </span>
+      <StatusBadge :label="overallLabel" :tone="overallStatus === 'operational' ? 'success' : 'warning'" />
 
       <button
         type="button"
-        class="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-gray-700 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-dark-700 transition-colors disabled:opacity-50"
+        class="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
         :disabled="loading"
         :title="t('common.refresh')"
         @click="emit('refresh')"
@@ -53,10 +44,11 @@
       />
       <WebsiteStatusLink />
     </div>
-  </section>
+  </SectionCard>
 </template>
 
 <script setup lang="ts">
+import { SectionCard, StatusBadge } from '@/components/page'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
@@ -94,25 +86,4 @@ const windowOptions = computed<{ value: MonitorWindow; label: string }[]>(() => 
 ])
 
 const overallLabel = computed(() => t(`channelStatus.overall.${props.overallStatus}`))
-
-const overallChipClass = computed(() => {
-  switch (props.overallStatus) {
-    case 'operational':
-      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
-    case 'degraded':
-    default:
-      return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-  }
-})
-
-const overallDotClass = computed(() => {
-  switch (props.overallStatus) {
-    case 'operational':
-      return 'bg-emerald-500 animate-pulse'
-    case 'degraded':
-    default:
-      return 'bg-amber-500 animate-pulse'
-  }
-})
-
 </script>
