@@ -10,7 +10,7 @@ import StatusBadge from '@/components/page/StatusBadge.vue'
 import type { PageTone } from '@/components/page/tones'
 
 const props = defineProps<{
-  status: OrderStatus
+  status: string
 }>()
 
 const { t } = useI18n()
@@ -31,10 +31,12 @@ const statusMap: Record<OrderStatus, { key: string; tone: PageTone }> = {
   REFUND_FAILED: { key: 'payment.status.refund_failed', tone: 'danger' },
 }
 
-const statusLabel = computed(() => {
-  const entry = statusMap[props.status]
-  return entry ? t(entry.key) : props.status
-})
+// Affiliate records carry an open-ended status string; keep unknown values visible.
+function isKnownStatus(status: string): status is OrderStatus {
+  return Object.prototype.hasOwnProperty.call(statusMap, status)
+}
 
-const statusTone = computed(() => statusMap[props.status]?.tone ?? 'neutral')
+const statusEntry = computed(() => isKnownStatus(props.status) ? statusMap[props.status] : undefined)
+const statusLabel = computed(() => statusEntry.value ? t(statusEntry.value.key) : props.status)
+const statusTone = computed(() => statusEntry.value?.tone ?? 'neutral')
 </script>
