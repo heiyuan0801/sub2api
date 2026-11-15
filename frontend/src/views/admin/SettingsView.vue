@@ -37,7 +37,7 @@
                   <Icon :name="tab.icon" size="sm" />
                 </span>
                 <span class="settings-tab-label">{{
-                  t(`admin.settings.tabs.${tab.key}`)
+                  t(tab.labelKey)
                 }}</span>
               </button>
             </div>
@@ -8938,7 +8938,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, inject, onMounted, watch } from "vue";
+import { routerKey, type Router } from "vue-router";
 import { listPlatformIds } from "@/constants/platformCatalog";
 import { useI18n } from "vue-i18n";
 import { adminAPI } from "@/api";
@@ -8976,6 +8977,12 @@ import type {
 } from "@/types";
 import type { ProviderInstance } from "@/types/payment";
 import AppLayout from "@/components/layout/AppLayout.vue";
+import {
+  getSettingsSection,
+  SETTINGS_SECTIONS,
+  SETTINGS_SECTION_QUERY_KEY,
+  type SettingsSectionKey,
+} from "@/components/admin-shell/settingsSections";
 import Icon from "@/components/icons/Icon.vue";
 import Select, { type SelectOption } from "@/components/common/Select.vue";
 import {
@@ -9056,28 +9063,16 @@ const paymentMethodsHref = computed(() =>
     : "https://github.com/Wei-Shaw/sub2api/blob/main/docs/PAYMENT.md#supported-payment-methods",
 );
 
-type SettingsTab =
-  | "general"
-  | "agreement"
-  | "features"
-  | "security"
-  | "users"
-  | "gateway"
-  | "payment"
-  | "email"
-  | "backup";
-const activeTab = ref<SettingsTab>("general");
-const settingsTabs = [
-  { key: "general" as SettingsTab, icon: "home" as const },
-  { key: "agreement" as SettingsTab, icon: "document" as const },
-  { key: "features" as SettingsTab, icon: "bolt" as const },
-  { key: "security" as SettingsTab, icon: "shield" as const },
-  { key: "users" as SettingsTab, icon: "user" as const },
-  { key: "gateway" as SettingsTab, icon: "server" as const },
-  { key: "payment" as SettingsTab, icon: "creditCard" as const },
-  { key: "email" as SettingsTab, icon: "mail" as const },
-  { key: "backup" as SettingsTab, icon: "database" as const },
-];
+const router = inject<Router | null>(routerKey, null);
+const settingsTabs = SETTINGS_SECTIONS;
+const linkedSection = computed(() =>
+  getSettingsSection(router?.currentRoute.value.query[SETTINGS_SECTION_QUERY_KEY]),
+);
+const activeTab = ref<SettingsSectionKey>(linkedSection.value?.key ?? "general");
+
+watch(linkedSection, (section) => {
+  if (section) activeTab.value = section.key;
+});
 
 const settingsTabKeyboardActions = {
   ArrowLeft: -1,
@@ -9088,17 +9083,25 @@ const settingsTabKeyboardActions = {
   End: "last",
 } as const;
 
-function selectSettingsTab(tab: SettingsTab): void {
+function selectSettingsTab(tab: SettingsSectionKey): void {
   activeTab.value = tab;
+
+  // Tab changes stay local unless a deep link is now stale. Clear that
+  // query without adding browser history so the same palette entry can reopen it.
+  if (!router || !linkedSection.value || linkedSection.value.key === tab) return;
+  const { path, query, hash } = router.currentRoute.value;
+  const nextQuery = { ...query };
+  delete nextQuery[SETTINGS_SECTION_QUERY_KEY];
+  void router.replace({ path, query: nextQuery, hash });
 }
 
-function focusSettingsTab(tab: SettingsTab): void {
+function focusSettingsTab(tab: SettingsSectionKey): void {
   window.requestAnimationFrame(() => {
     document.getElementById(`settings-tab-${tab}`)?.focus();
   });
 }
 
-function handleSettingsTabKeydown(event: KeyboardEvent, tab: SettingsTab): void {
+function handleSettingsTabKeydown(event: KeyboardEvent, tab: SettingsSectionKey): void {
   const action =
     settingsTabKeyboardActions[
       event.key as keyof typeof settingsTabKeyboardActions
