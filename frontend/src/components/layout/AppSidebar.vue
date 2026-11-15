@@ -333,8 +333,9 @@ const ChartIcon = {
 }
 
 const DocsIcon = {
-  template: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path stroke-linejoin="round" d="M12 6C9 4 5 4 2 5v14c3-1 7-1 10 1 3-2 7-2 10-1V5c-3-1-7-1-10 1zm0 0v14"/></svg>'
+  render: () => h(Icon, { name: 'book', 'aria-hidden': 'true' })
 }
+
 const GiftIcon = {
   render: () =>
     h(

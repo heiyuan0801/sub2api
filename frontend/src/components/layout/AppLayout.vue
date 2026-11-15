@@ -5,7 +5,7 @@
 
     <!-- Main Content Area -->
     <div
-      class="relative min-h-screen bg-background transition-all duration-300 lg:my-2 lg:mr-2 lg:min-h-[calc(100vh-1rem)] lg:rounded-xl lg:border lg:border-border lg:shadow-sm"
+      class="console-main relative min-h-screen bg-background transition-all duration-300 lg:my-2 lg:mr-2 lg:min-h-[calc(100vh-1rem)] lg:rounded-xl lg:border lg:border-border lg:shadow-sm"
       :class="[sidebarCollapsed ? 'lg:ml-[72px]' : 'lg:ml-64']"
     >
       <!-- Header -->

@@ -1,5 +1,5 @@
 <template>
-  <AppLayout>
+  <AppLayout class="availability-layout">
     <div class="availability-page space-y-5 pb-10">
       <header class="availability-header">
         <div class="monitor-header-controls">
@@ -57,8 +57,7 @@
       </div>
 
       <section class="availability-workspace" :aria-label="t('channelMonitorV2.channels.title')">
-        <details class="channel-filters">
-          <summary>{{ t('channelMonitorV2.cards.viewSettings') }}<Icon name="chevronDown" size="xs" /></summary>
+        <div class="channel-filters">
           <div class="availability-platforms" role="group" :aria-label="t('channelMonitorV2.filters.platform')">
             <button type="button" :class="{ selected: filter.platforms.length === 0 }" :aria-pressed="filter.platforms.length === 0" :disabled="!dimensionsLoaded" data-testid="platform-all" @click="selectPlatforms([])">{{ t('channelMonitorV2.filters.allPlatforms') }}</button>
             <button v-for="platform in platformShortcuts" :key="platform.value" type="button" :class="{ selected: filter.platforms.length === 1 && filter.platforms[0] === platform.value }" :aria-pressed="filter.platforms.length === 1 && filter.platforms[0] === platform.value" :data-testid="`platform-${platform.value}`" @click="selectPlatforms([platform.value])">{{ platform.label }}</button>
@@ -71,7 +70,7 @@
             </form>
             <div class="flex min-w-0 flex-wrap items-center gap-2">
               <Select v-model="sortOrder" :options="sortOptions" :aria-label="t('channelMonitorV2.preferences.sortLabel')" class="availability-status" />
-              <button type="button" class="availability-settings" :class="{ '!border-gray-900 !text-gray-950 dark:!border-gray-100 dark:!text-white': favoritesOnly }" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">{{ t('channelMonitorV2.preferences.favoritesOnly') }}</button>
+              <button type="button" class="availability-settings" :aria-pressed="favoritesOnly" @click="favoritesOnly = !favoritesOnly">{{ t('channelMonitorV2.preferences.favoritesOnly') }}</button>
               <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.availability.allGroups')" :options="groupOptions" />
               <Select v-model="statusFilter" :options="statusOptions" :aria-label="t('channelMonitorV2.availability.filterStatus')" class="availability-status" />
             </div>
@@ -81,14 +80,14 @@
               <span v-for="item in legendItems" :key="item.state" class="inline-flex items-center gap-1.5"><i class="h-2 w-2 rounded-sm" :class="`legend-${item.state}`" aria-hidden="true" />{{ item.label }}</span>
             </div>
             <span v-if="summary.noData || summary.insufficient">{{ t('channelMonitorV2.availability.pendingSummary', { empty: summary.noData, insufficient: summary.insufficient }) }}</span>
-            <button v-if="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || favoritesOnly" type="button" class="underline underline-offset-4" @click="resetAllFilters">{{ t('channelMonitorV2.clearFilters') }}</button>
+            <button v-if="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || favoritesOnly" type="button" class="availability-reset" @click="resetAllFilters">{{ t('channelMonitorV2.clearFilters') }}</button>
           </div>
-        </details>
+        </div>
         <div class="availability-results" :aria-busy="refreshing">
           <MonitorTrendChart v-if="trendView === 'line'" :trend="snapshot?.trend || []" :coverage="snapshot?.coverage || null" :loading="loading && !snapshot" />
           <MonitorChannelCards v-else-if="matrix" :rows="visibleMatrixRows" :coverage="matrix.coverage" :health-mode="healthMode" :show-throughput="showThroughput" :loading="loading" :favorite-keys="favoriteKeys" :stale="dataStale" :group-rates="groupRates" :refresh-seconds="refreshSeconds" @toggle-favorite="toggleFavorite" @inspect="inspectIncident" :empty-description="hasDimensionFilter || appliedSearch || statusFilter !== 'all' || favoritesOnly ? t('channelMonitorV2.channels.emptyFiltered') : undefined" @select-group="selectGroup" />
           <div v-else-if="loading" class="min-h-[280px] space-y-4" aria-hidden="true">
-            <div v-for="i in 3" :key="i" class="h-28 animate-pulse rounded-xl bg-gray-100 dark:bg-dark-800" />
+            <div v-for="i in 3" :key="i" class="availability-placeholder h-28 animate-pulse rounded-xl" />
           </div>
           <div v-else class="py-16 text-center text-sm text-gray-500 dark:text-gray-400">{{ monitorDisabled ? t('channelMonitorV2.availability.disabledHint') : loadError || t('channelMonitorV2.empty.title') }}</div>
         </div>
@@ -165,14 +164,14 @@
               <div
                 v-for="i in (showThroughput ? 5 : 4)"
                 :key="i"
-                class="h-24 animate-pulse rounded-2xl bg-gray-50 dark:bg-dark-900/30"
+                class="availability-placeholder h-24 animate-pulse rounded-2xl"
               />
             </section>
 
           </div>
         </details>
 
-      <details class="card min-h-0 overflow-hidden !rounded-3xl p-0 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+      <details class="card availability-details min-h-0 overflow-hidden !rounded-3xl p-0 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
         <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900 outline-offset-[-4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-100 sm:px-6">
           {{ t('channelMonitorV2.cards.details') }}
           <Icon name="chevronDown" size="sm" />
@@ -903,24 +902,38 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.availability-layout {
+  --channel-background: #eaf3ff;
+  --channel-text: #152b4b;
+  --channel-muted: #435d80;
+  --channel-border: #c6d9f2;
+  --channel-surface: #fafdff;
+  --channel-subtle: #e0edff;
+  --channel-gap: #a9c2e1;
+  background: var(--channel-background);
+}
+.dark .availability-layout {
+  --channel-background: #0e1c30;
+  --channel-text: #eaf3ff;
+  --channel-muted: #b2c9e9;
+  --channel-border: #324c6e;
+  --channel-surface: #182b45;
+  --channel-subtle: #233c5e;
+  --channel-gap: #536f95;
+}
+.availability-layout :deep(.console-main) {
+  border-color: var(--channel-border);
+  background: var(--channel-background);
+}
+.availability-layout :deep(.sidebar),
+.availability-layout :deep(.console-main > header) {
+  border-color: var(--channel-border);
+  background: var(--channel-surface);
+}
 .availability-page {
-  --channel-text: #171a22;
-  --channel-muted: #636874;
-  --channel-border: #e0e1e5;
-  --channel-surface: #fff;
-  --channel-subtle: #f3f4f6;
-  --channel-gap: #cbd0d8;
   max-width: 104rem;
   margin-inline: auto;
   color: var(--channel-text);
-}
-.dark .availability-page {
-  --channel-text: #f4f5f9;
-  --channel-muted: #aab2c0;
-  --channel-border: #343843;
-  --channel-surface: #191b23;
-  --channel-subtle: #252833;
-  --channel-gap: #535968;
 }
 .availability-header {
   display: flex;
@@ -952,18 +965,53 @@ onBeforeUnmount(() => {
 .availability-settings:disabled { cursor: wait; opacity: .6; }
 .availability-action:focus-visible, .availability-ranges button:focus-visible, .availability-settings:focus-visible { outline: 2px solid var(--channel-muted); outline-offset: 2px; }
 .availability-workspace, .availability-results { min-width: 0; }
-.channel-filters { margin-bottom: 1rem; color: var(--channel-muted); }
-.channel-filters summary { display: flex; width: fit-content; align-items: center; gap: .4rem; cursor: pointer; border-radius: 5px; font-size: .75rem; }
-.channel-filters[open] { border-bottom: 1px solid var(--channel-border); padding-bottom: .55rem; }
-.availability-platforms, .availability-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; margin-top: .65rem; }
-.availability-platforms button { border: 1px solid var(--channel-border); border-radius: 7px; padding: .35rem .65rem; color: var(--channel-muted); font-size: .75rem; }
-.availability-platforms button:hover, .availability-platforms button.selected { background: var(--channel-subtle); color: var(--channel-text); }
-.availability-platforms button.selected { font-weight: 650; }
-.availability-toolbar { min-width: 0; justify-content: space-between; }
+.channel-filters {
+  --filter-panel: #f2f7ff;
+  --filter-surface: #fff;
+  --filter-hover: #e1edff;
+  --filter-border: #bfd3f4;
+  --filter-accent: #2458b8;
+  --filter-strong: #1c4797;
+  --filter-muted: #3b587f;
+  --filter-on-accent: #fff;
+  margin-bottom: 1rem;
+  padding: .85rem;
+  border: 1px solid var(--filter-border);
+  border-radius: 10px;
+  background: var(--filter-panel);
+  color: var(--filter-muted);
+}
+.dark .channel-filters {
+  --filter-panel: #14233a;
+  --filter-surface: #1a2d49;
+  --filter-hover: #233e64;
+  --filter-border: #375881;
+  --filter-accent: #a1c6ff;
+  --filter-strong: #c7dfff;
+  --filter-muted: #b2c9e9;
+  --filter-on-accent: #112745;
+}
+.availability-platforms, .availability-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
+.availability-platforms button { border: 1px solid var(--filter-border); border-radius: 7px; background: var(--filter-surface); padding: .35rem .65rem; color: var(--filter-accent); font-size: .75rem; }
+.channel-filters .availability-settings,
+.channel-filters :deep(.select-trigger),
+.availability-search input { border-color: var(--filter-border); background: var(--filter-surface); color: var(--filter-strong); }
+.availability-platforms button:hover:not(:disabled),
+.channel-filters .availability-settings:hover,
+.channel-filters :deep(.select-trigger:hover) { border-color: var(--filter-accent); background: var(--filter-hover); }
+.channel-filters .availability-settings[aria-pressed='true'] { border-color: var(--filter-accent); background: var(--filter-hover); color: var(--filter-strong); }
+.availability-platforms button.selected, .channel-filters .availability-action { border-color: var(--filter-accent); background: var(--filter-accent); color: var(--filter-on-accent); font-weight: 650; }
+.availability-platforms button.selected:hover:not(:disabled), .channel-filters .availability-action:hover { border-color: var(--filter-strong); background: var(--filter-strong); }
+.availability-platforms button:disabled { opacity: .6; }
+.channel-filters :is(button, input):focus-visible,
+.channel-filters :deep(.select-trigger:focus-visible) { outline: 2px solid var(--filter-accent); outline-offset: 2px; }
+.availability-toolbar { min-width: 0; justify-content: space-between; margin-top: .65rem; }
 .availability-search { display: flex; width: min(100%, 26rem); min-width: 0; align-items: center; gap: .5rem; }
 .availability-search input { min-height: 2rem; border-radius: 6px; font-size: .8125rem; }
+.availability-search input::placeholder { color: var(--filter-muted); }
 .availability-status { max-width: 100%; }
 .availability-legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .7rem; font-size: .6875rem; }
+.availability-reset { border-radius: 4px; color: var(--filter-accent); font-weight: 650; text-decoration: underline; text-underline-offset: .2em; }
 .legend-healthy { background: #00976e; }
 .legend-warning { background: #f9c32f; }
 .legend-critical { background: #ef4444; }
@@ -971,6 +1019,8 @@ onBeforeUnmount(() => {
 .availability-notice { display: flex; align-items: flex-start; gap: .75rem; border: 1px solid #fcd34d; border-radius: .75rem; background: #fffbeb; padding: 1rem; color: #92400e; font-size: .8125rem; }
 .dark .availability-notice { border-color: #92400e; background: #451a03; color: #fde68a; }
 .availability-advanced { border: 1px solid var(--channel-border); border-radius: .875rem; background: var(--channel-surface); }
+.availability-page .availability-details { border-color: var(--channel-border); background: var(--channel-surface); }
+.availability-placeholder { background: var(--channel-subtle); }
 @media (prefers-reduced-motion: reduce) { .availability-page :deep(*) { animation: none !important; transition: none !important; } }
 details > summary::-webkit-details-marker {
   display: none;

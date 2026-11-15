@@ -605,6 +605,7 @@ export default {
   // Channel Status (user-facing read-only view)
   channelStatus: {
     websiteStatus: 'Website status',
+    uptime: { up: 'Operational', down: 'Error', maintenance: 'Maintenance', unknown: 'Unknown' },
     opensInNewTab: '(opens in a new tab)',
     title: 'Channel Status',
     description: 'Inspect channel availability, latency and recent status',

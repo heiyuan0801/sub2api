@@ -610,6 +610,7 @@ export default {
   // Channel Status (user-facing read-only view)
   channelStatus: {
     websiteStatus: '网站状态',
+    uptime: { up: '正常', down: '错误', maintenance: '维护中', unknown: '状态未知' },
     opensInNewTab: '（在新标签页打开）',
     title: '渠道状态',
     description: '查看渠道可用性、延迟和近期状态',
