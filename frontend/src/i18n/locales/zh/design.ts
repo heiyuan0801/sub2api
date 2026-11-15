@@ -41,6 +41,9 @@ export default {
     },
     "toast": {
       "notifications": "通知"
+    },
+    "page": {
+      "filters": "搜索和筛选"
     }
   }
 }

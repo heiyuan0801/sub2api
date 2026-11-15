@@ -41,6 +41,9 @@ export default {
     },
     "toast": {
       "notifications": "Notifications"
+    },
+    "page": {
+      "filters": "Search and filter"
     }
   }
 }
