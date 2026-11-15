@@ -13,62 +13,53 @@
   </div>
 
   <!-- Compact Home Page -->
-  <div
-    v-else-if="compactHomeEnabled"
-    data-testid="compact-home"
-    class="flex min-h-screen flex-col bg-canvas text-foreground"
-  >
-    <header class="border-b border-gray-200 px-4 py-4 sm:px-6 dark:border-dark-800">
-      <nav class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 sm:gap-4">
-        <div class="flex min-w-0 flex-1 items-center gap-3">
-          <img
-            :src="siteLogo || '/logo.svg'"
-            alt="Logo"
-            class="h-9 w-9 shrink-0 rounded-lg object-contain"
-          />
-          <span class="min-w-0 truncate text-base font-semibold">{{ siteName }}</span>
-        </div>
-        <div class="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
-          <LocaleSwitcher />
-          <a
-            v-if="docUrl"
-            :href="docUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-            :title="t('home.viewDocs')"
-          >
-            <Icon name="book" size="md" />
-          </a>
-          <RouterLink v-else to="/docs" :title="t('docs.title')" :aria-label="t('docs.title')" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
-            <Icon name="book" size="md" />
-          </RouterLink>
-          <router-link
-            v-if="showModelPlazaEntry"
-            to="/model-plaza"
-            class="flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-gray-700 dark:hover:text-white"
-            :title="t('nav.modelPlaza')"
-          >
-            <Icon name="grid" size="md" />
-            <span class="hidden sm:inline">{{ t('nav.modelPlaza') }}</span>
-          </router-link>
-          <button
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-            :title="isDark ? t('home.switchToLight') : t('home.switchToDark')"
-            @click="toggleTheme"
-          >
-            <Icon v-if="isDark" name="sun" size="md" />
-            <Icon v-else name="moon" size="md" />
-          </button>
-          <router-link
-            :to="isAuthenticated ? dashboardPath : '/login'"
-            class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-          >
-            {{ isAuthenticated ? t('home.dashboard') : t('home.login') }}
-          </router-link>
-        </div>
-      </nav>
-    </header>
+  <SiteLayout v-else-if="compactHomeEnabled" surface="canvas" data-testid="compact-home">
+    <template #header>
+      <SiteHeader class="px-4 py-3 sm:px-6">
+        <nav class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <img
+              :src="siteLogo || '/logo.svg'"
+              alt="Logo"
+              class="h-9 w-9 shrink-0 rounded-lg object-contain"
+            />
+            <span class="min-w-0 truncate text-base font-semibold">{{ siteName }}</span>
+          </div>
+          <div class="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
+            <LocaleSwitcher />
+            <a
+              v-if="docUrl"
+              :href="docUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+              :title="t('home.viewDocs')"
+            >
+              <Icon name="book" size="md" />
+            </a>
+            <RouterLink v-else to="/docs" :title="t('docs.title')" :aria-label="t('docs.title')" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
+              <Icon name="book" size="md" />
+            </RouterLink>
+            <router-link
+              v-if="showModelPlazaEntry"
+              to="/model-plaza"
+              class="flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-gray-700 dark:hover:text-white"
+              :title="t('nav.modelPlaza')"
+            >
+              <Icon name="grid" size="md" />
+              <span class="hidden sm:inline">{{ t('nav.modelPlaza') }}</span>
+            </router-link>
+            <SiteThemeToggle :light-label="t('home.switchToLight')" :dark-label="t('home.switchToDark')" />
+            <router-link
+              :to="isAuthenticated ? dashboardPath : '/login'"
+              class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+            >
+              {{ isAuthenticated ? t('home.dashboard') : t('home.login') }}
+            </router-link>
+          </div>
+        </nav>
+      </SiteHeader>
+    </template>
 
     <main class="flex min-w-0 flex-1 items-center justify-center px-4 py-16 sm:px-6">
       <div class="min-w-0 max-w-2xl text-center">
@@ -88,16 +79,16 @@
       </div>
     </main>
 
-    <footer class="min-w-0 border-t border-gray-200 px-4 py-5 text-center text-sm text-muted-foreground [overflow-wrap:anywhere] sm:px-6 dark:border-dark-800">
-      &copy; {{ currentYear }} {{ siteName }}
-    </footer>
-  </div>
+    <template #footer>
+      <SiteFooter class="min-w-0 px-4 py-4 text-center text-xs [overflow-wrap:anywhere] sm:px-6">
+        &copy; {{ currentYear }} {{ siteName }}
+      </SiteFooter>
+    </template>
+  </SiteLayout>
 
   <!-- Default public home; custom and compact home settings take precedence. -->
-  <div v-else class="public-home">
-    <PublicSiteHeader />
-
-    <main>
+  <PublicSiteLayout v-else class="public-home" footer-variant="home">
+    <main class="flex-1">
       <section class="market-home-hero" aria-labelledby="hero-heading">
         <div class="market-home-shell">
           <div class="market-home-copy">
@@ -303,9 +294,7 @@
       </section>
 
     </main>
-
-    <PublicSiteFooter variant="home" />
-  </div>
+  </PublicSiteLayout>
 </template>
 
 <script setup lang="ts">
@@ -317,8 +306,11 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
-import PublicSiteHeader from '@/components/public/PublicSiteHeader.vue'
-import PublicSiteFooter from '@/components/public/PublicSiteFooter.vue'
+import PublicSiteLayout from '@/components/site-shell/PublicSiteLayout.vue'
+import SiteLayout from '@/components/site-shell/SiteLayout.vue'
+import SiteHeader from '@/components/site-shell/SiteHeader.vue'
+import SiteFooter from '@/components/site-shell/SiteFooter.vue'
+import SiteThemeToggle from '@/components/site-shell/SiteThemeToggle.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
@@ -542,22 +534,7 @@ function handleProtocolKeydown(event: KeyboardEvent, protocol: Protocol) {
   document.getElementById(`protocol-tab-${activeProtocol.value}`)?.focus()
 }
 
-// The compact variant keeps its existing theme control.
-const isDark = ref(document.documentElement.classList.contains('dark'))
-function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-}
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
-}
 onMounted(() => {
-  initTheme()
   authStore.checkAuth()
   if (!appStore.publicSettingsLoaded) appStore.fetchPublicSettings()
   featuredModelMounted = true

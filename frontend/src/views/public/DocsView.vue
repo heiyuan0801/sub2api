@@ -1,36 +1,33 @@
 <template>
-  <div class="docs-page min-h-screen bg-background text-foreground">
-    <header class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-      <div class="mx-auto flex h-16 max-w-[1500px] items-center gap-2 px-4 sm:gap-4 sm:px-7">
-        <RouterLink to="/home" class="flex min-w-0 items-center gap-2.5" :aria-label="app.siteName">
-          <img :src="logo" alt="" class="size-8 shrink-0 rounded-lg object-contain" />
-          <span class="hidden max-w-40 truncate text-sm font-semibold sm:inline">{{ app.siteName }}</span>
-        </RouterLink>
-        <span class="text-muted-foreground" aria-hidden="true">/</span>
-        <RouterLink to="/docs" class="shrink-0 text-sm font-semibold">{{ t('docs.title') }}</RouterLink>
-        <div class="ml-auto flex items-center gap-1 sm:gap-2">
-          <Button variant="outline" size="sm" class="sm:w-52 sm:justify-start" @click="searchOpen = true" :aria-label="t('docs.search')">
-            <Search />
-            <span class="hidden text-muted-foreground sm:inline">{{ t('docs.search') }}</span>
-            <kbd class="ml-auto hidden rounded border px-1.5 text-[10px] text-muted-foreground sm:inline">⌘/Ctrl K</kbd>
-          </Button>
-          <Button variant="ghost" size="icon-sm" :aria-label="t(isDark ? 'nav.lightMode' : 'nav.darkMode')" @click="toggleTheme">
-            <Sun v-if="isDark" /><Moon v-else />
-          </Button>
-          <Button as-child variant="ghost" size="sm">
-            <RouterLink :to="auth.isAuthenticated ? consolePath : loginPath">
-              {{ t(auth.isAuthenticated ? 'docs.console' : 'home.login') }} <ArrowUpRight />
-            </RouterLink>
-          </Button>
+  <SiteLayout class="docs-page">
+    <template #header>
+      <SiteHeader sticky>
+        <div class="mx-auto flex h-16 max-w-[1500px] items-center gap-2 px-4 sm:gap-4 sm:px-7">
+          <SiteBrand :name="app.siteName" :logo="app.siteLogo" hide-name-on-mobile />
+          <span class="text-muted-foreground" aria-hidden="true">/</span>
+          <RouterLink to="/docs" class="shrink-0 text-sm font-semibold">{{ t('docs.title') }}</RouterLink>
+          <div class="ml-auto flex items-center gap-1 sm:gap-2">
+            <Button variant="outline" size="sm" class="sm:w-52 sm:justify-start" @click="searchOpen = true" :aria-label="t('docs.search')">
+              <Search />
+              <span class="hidden text-muted-foreground sm:inline">{{ t('docs.search') }}</span>
+              <kbd class="ml-auto hidden rounded border px-1.5 text-[10px] text-muted-foreground sm:inline">⌘/Ctrl K</kbd>
+            </Button>
+            <SiteThemeToggle />
+            <Button as-child variant="ghost" size="sm">
+              <RouterLink :to="auth.isAuthenticated ? consolePath : loginPath">
+                {{ t(auth.isAuthenticated ? 'docs.console' : 'home.login') }} <ArrowUpRight />
+              </RouterLink>
+            </Button>
+          </div>
         </div>
-      </div>
-      <div class="mx-auto flex max-w-[1500px] items-center justify-between gap-2 border-t border-border px-4 py-1.5 xl:hidden">
-        <Button variant="ghost" size="sm" class="lg:hidden" @click="navigationOpen = true"><Menu /> {{ t('docs.categories') }}</Button>
-        <Button v-if="headings.length" variant="ghost" size="sm" class="ml-auto" @click="outlineOpen = true"><ListTree /> {{ t('docs.onThisPage') }}</Button>
-      </div>
-    </header>
+        <div class="mx-auto flex max-w-[1500px] items-center justify-between gap-2 border-t border-border px-4 py-1.5 xl:hidden">
+          <Button variant="ghost" size="sm" class="lg:hidden" @click="navigationOpen = true"><Menu /> {{ t('docs.categories') }}</Button>
+          <Button v-if="headings.length" variant="ghost" size="sm" class="ml-auto" @click="outlineOpen = true"><ListTree /> {{ t('docs.onThisPage') }}</Button>
+        </div>
+      </SiteHeader>
+    </template>
 
-    <div class="docs-grid mx-auto grid max-w-[1500px] px-4 sm:px-7">
+    <div class="docs-grid mx-auto grid w-full max-w-[1500px] flex-1 px-4 sm:px-7">
       <aside class="docs-left hidden border-r border-border pr-5 lg:block" :aria-label="t('docs.categories')">
         <DocsNavigation :navigation="navigation" :active="article?.slug" />
       </aside>
@@ -94,20 +91,25 @@
       </nav>
     </BaseDialog>
     <DocsSearch :open="searchOpen" @close="searchOpen = false" />
-  </div>
+    <template #footer><SiteMetaFooter :site-name="app.siteName" /></template>
+  </SiteLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, ListTree, LockKeyhole, Menu, Moon, Search, Sun } from '@lucide/vue'
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, ListTree, LockKeyhole, Menu, Search } from '@lucide/vue'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { docsAPI, type DocNavigation, type DocPublication } from '@/api/docs'
-import { sanitizeUrl } from '@/utils/url'
+import SiteBrand from '@/components/site-shell/SiteBrand.vue'
+import SiteHeader from '@/components/site-shell/SiteHeader.vue'
+import SiteLayout from '@/components/site-shell/SiteLayout.vue'
+import SiteMetaFooter from '@/components/site-shell/SiteMetaFooter.vue'
+import SiteThemeToggle from '@/components/site-shell/SiteThemeToggle.vue'
 import DocsMarkdown from '@/components/docs/DocsMarkdown.vue'
 import DocsNavigation from '@/components/docs/DocsNavigation.vue'
 import DocsSearch from '@/components/docs/DocsSearch.vue'
@@ -128,9 +130,7 @@ const refresh = ref(0)
 const navigationOpen = ref(false)
 const outlineOpen = ref(false)
 const searchOpen = ref(false)
-const isDark = ref(document.documentElement.classList.contains('dark'))
 const slug = computed(() => typeof route.params.slug === 'string' ? route.params.slug : '')
-const logo = computed(() => sanitizeUrl(app.siteLogo, { allowRelative: true, allowDataUrl: true }) || '/logo.svg')
 const loginPath = computed(() => ({ path: '/login', query: { redirect: route.fullPath } }))
 const consolePath = computed(() => auth.isAdmin ? '/admin/dashboard' : '/dashboard')
 const categoryName = computed(() => navigation.value.categories.find(item => item.id === article.value?.category_id)?.name)
@@ -199,12 +199,6 @@ function trackHeading() {
     else break
   }
   activeHeading.value = current
-}
-
-function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
 function setMeta(name: string, value: string) {
