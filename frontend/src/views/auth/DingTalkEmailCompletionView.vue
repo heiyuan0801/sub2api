@@ -1,14 +1,7 @@
 <template>
-  <AuthLayout>
+  <AuthLayout variant="compact">
     <div class="space-y-6">
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-foreground">
-          {{ t('auth.dingtalk.createAccountTitle') }}
-        </h2>
-        <p class="mt-2 text-sm text-muted-foreground">
-          {{ t('auth.oauthFlow.createAccountHint') }}
-        </p>
-      </div>
+      <PageHeader :title="t('auth.dingtalk.createAccountTitle')" :description="t('auth.oauthFlow.createAccountHint')" />
 
       <PendingOAuthCreateAccountForm
         test-id-prefix="dingtalk"
@@ -23,6 +16,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/page/PageHeader.vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'

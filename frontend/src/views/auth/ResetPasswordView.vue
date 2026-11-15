@@ -2,28 +2,20 @@
   <AuthLayout variant="recovery">
     <div class="space-y-6">
       <!-- Title -->
-      <div class="auth-heading">
-        <span class="auth-eyebrow">{{ t('publicSite.auth.recoveryEyebrow') }}</span>
-        <h2 class="text-2xl font-bold text-foreground">
-          {{ t('auth.resetPasswordTitle') }}
-        </h2>
-        <p class="mt-2 text-sm text-muted-foreground">
-          {{ t('auth.resetPasswordHint') }}
-        </p>
-      </div>
+      <PageHeader :title="t('auth.resetPasswordTitle')" :description="t('auth.resetPasswordHint')" :eyebrow="t('publicSite.auth.recoveryEyebrow')" />
 
       <!-- Invalid Link State -->
       <div v-if="isInvalidLink" class="space-y-6">
-        <div class="rounded-xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-800/50 dark:bg-amber-900/20">
+        <div class="rounded-lg border border-warning/25 bg-warning/10 p-6">
           <div class="flex flex-col items-center gap-4 text-center">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-800/50">
-              <Icon name="exclamationCircle" size="lg" class="text-amber-600 dark:text-amber-400" />
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-warning/15">
+              <Icon name="exclamationCircle" size="lg" class="text-warning" />
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-amber-800 dark:text-amber-200">
+              <h3 class="text-lg font-semibold text-foreground">
                 {{ t('auth.invalidResetLink') }}
               </h3>
-              <p class="mt-2 text-sm text-amber-700 dark:text-amber-300">
+              <p class="mt-2 text-sm text-muted-foreground">
                 {{ t('auth.invalidResetLinkHint') }}
               </p>
             </div>
@@ -42,16 +34,16 @@
 
       <!-- Success State -->
       <div v-else-if="isSuccess" class="space-y-6">
-        <div class="rounded-xl border border-green-200 bg-green-50 p-6 dark:border-green-800/50 dark:bg-green-900/20">
+        <div class="rounded-lg border border-success/25 bg-success/10 p-6">
           <div class="flex flex-col items-center gap-4 text-center">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-800/50">
-              <Icon name="checkCircle" size="lg" class="text-green-600 dark:text-green-400" />
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <Icon name="checkCircle" size="lg" class="text-success" />
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-green-800 dark:text-green-200">
+              <h3 class="text-lg font-semibold text-foreground">
                 {{ t('auth.passwordResetSuccess') }}
               </h3>
-              <p class="mt-2 text-sm text-green-700 dark:text-green-300">
+              <p class="mt-2 text-sm text-muted-foreground">
                 {{ t('auth.passwordResetSuccessHint') }}
               </p>
             </div>
@@ -83,7 +75,7 @@
               type="email"
               readonly
               disabled
-              class="input bg-gray-50 dark:bg-dark-700"
+              class="input bg-background"
             />
           </div>
         </div>
@@ -110,7 +102,7 @@
               :aria-label="showPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
               :aria-pressed="showPassword"
               @click="showPassword = !showPassword"
-              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
+              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground transition-colors hover:text-foreground"
             >
               <Icon v-if="showPassword" name="eyeOff" size="md" />
               <Icon v-else name="eye" size="md" />
@@ -140,7 +132,7 @@
               :aria-label="showConfirmPassword ? t('publicSite.auth.hidePassword') : t('publicSite.auth.showPassword')"
               :aria-pressed="showConfirmPassword"
               @click="showConfirmPassword = !showConfirmPassword"
-              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
+              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground transition-colors hover:text-foreground"
             >
               <Icon v-if="showConfirmPassword" name="eyeOff" size="md" />
               <Icon v-else name="eye" size="md" />
@@ -152,11 +144,11 @@
         <Button variant="default"
           type="submit"
           :disabled="isLoading"
-          class=" w-full"
+          class="w-full"
         >
           <svg
             v-if="isLoading"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin text-white"
+            class="-ml-1 mr-2 h-4 w-4 animate-spin text-brand-foreground"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -196,6 +188,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/page/PageHeader.vue'
 import { Button } from '@/components/ui/button'
 import { Input as UiInput } from '@/components/ui/input'
 

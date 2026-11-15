@@ -1,18 +1,9 @@
 <template>
-  <AuthLayout>
+  <AuthLayout variant="compact">
     <div class="space-y-6">
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-foreground">
-          {{ t('auth.oidc.callbackTitle', { providerName }) }}
-        </h2>
-        <p class="mt-2 text-sm text-muted-foreground">
-          {{
-            isProcessing
+      <PageHeader :title="t('auth.oidc.callbackTitle', { providerName })" :description="isProcessing
               ? t('auth.oidc.callbackProcessing', { providerName })
-              : t('auth.oidc.callbackHint')
-          }}
-        </p>
-      </div>
+              : t('auth.oidc.callbackHint')" />
 
       <transition name="fade">
         <div
@@ -28,7 +19,7 @@
         >
           <div
             v-if="adoptionRequired && (suggestedDisplayName || suggestedAvatarUrl)"
-            class="rounded-xl border border-border bg-gray-50 p-4 dark:bg-dark-800/60"
+            class="rounded-lg border border-border bg-muted/50 p-4"
           >
             <div class="space-y-3">
               <div class="space-y-1">
@@ -42,7 +33,7 @@
 
               <label
                 v-if="suggestedDisplayName"
-                class="flex items-start gap-3 rounded-lg border border-border bg-white p-3 text-sm dark:bg-dark-900/50"
+                class="flex items-start gap-3 rounded-md border border-border bg-card p-3 text-sm"
               >
                 <input v-model="adoptDisplayName" type="checkbox" class="mt-1 h-4 w-4" />
                 <span class="space-y-1">
@@ -57,7 +48,7 @@
 
               <label
                 v-if="suggestedAvatarUrl"
-                class="flex items-start gap-3 rounded-lg border border-border bg-white p-3 text-sm dark:bg-dark-900/50"
+                class="flex items-start gap-3 rounded-md border border-border bg-card p-3 text-sm"
               >
                 <input v-model="adoptAvatar" type="checkbox" class="mt-1 h-4 w-4" />
                 <img
@@ -78,7 +69,7 @@
           </div>
 
           <template v-if="needsInvitation">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
+            <p class="text-sm text-foreground">
               {{ t('auth.oidc.invitationRequired', { providerName }) }}
             </p>
             <div>
@@ -105,7 +96,7 @@
           </template>
 
           <template v-else-if="needsAdoptionConfirmation">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
+            <p class="text-sm text-foreground">
               {{ t('auth.oauthFlow.reviewProfileBeforeContinue', { providerName }) }}
             </p>
             <button class="btn btn-primary w-full" :disabled="isSubmitting" @click="handleContinueLogin">
@@ -114,7 +105,7 @@
           </template>
 
           <template v-else-if="needsChooser">
-            <div class="rounded-xl border border-border bg-gray-50 p-4 dark:bg-dark-800/60">
+            <div class="rounded-lg border border-border bg-muted/50 p-4">
               <div class="space-y-4">
                 <div class="space-y-1">
                   <p class="text-sm font-medium text-foreground">
@@ -150,7 +141,7 @@
           </template>
 
           <template v-else-if="needsCreateAccount">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
+            <p class="text-sm text-foreground">
               {{ t('auth.oauthFlow.createAccountHint') }}
             </p>
             <PendingOAuthCreateAccountForm
@@ -164,7 +155,7 @@
           </template>
 
           <template v-else-if="needsBindLogin">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
+            <p class="text-sm text-foreground">
               {{ t('auth.oauthFlow.bindLoginHint', { providerName }) }}
             </p>
             <div class="space-y-3">
@@ -206,7 +197,7 @@
           </template>
 
           <template v-else-if="needsTotpChallenge">
-            <p class="text-sm text-gray-700 dark:text-gray-300">
+            <p class="text-sm text-foreground">
               {{
                 t('auth.oauthFlow.totpHint', {
                   providerName,
@@ -243,6 +234,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/page/PageHeader.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
