@@ -1,14 +1,17 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('admin.proxies.title')" :description="t('admin.proxies.description')" />
+      </template>
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <Toolbar>
           <!-- Left: Search + Filters -->
           <div class="relative w-full sm:w-64">
             <Icon
               name="search"
               size="md"
-              class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <input
               v-model="searchQuery"
@@ -37,7 +40,7 @@
           </div>
 
           <!-- Right: All action buttons -->
-          <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
+          <template #actions>
             <button
               @click="loadProxies"
               :disabled="loading"
@@ -83,8 +86,8 @@
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.proxies.createProxy') }}
             </button>
-          </div>
-        </div>
+          </template>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -156,7 +159,7 @@
                     class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-dark-600"
                     @click.stop="copyFormat(fmt.value)"
                   >
-                    <span class="truncate font-mono text-gray-600 dark:text-gray-300">{{ fmt.label }}</span>
+                    <span class="truncate font-mono text-muted-foreground">{{ fmt.label }}</span>
                   </button>
                 </div>
               </div>
@@ -209,7 +212,7 @@
             </button>
             <span
               v-else
-              class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+              class="inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
             >
               {{ t('admin.groups.accountsCount', { count: 0 }) }}
             </span>
@@ -253,18 +256,14 @@
           </template>
 
           <template #cell-created_at="{ row }">
-            <span class="text-xs text-gray-600 dark:text-gray-300">{{ formatDateTime(row.created_at) }}</span>
+            <span class="text-xs text-muted-foreground">{{ formatDateTime(row.created_at) }}</span>
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'active' ? 'badge-success' : value === 'expired' ? 'badge-danger' : 'badge-danger'
-              ]"
-            >
-              {{ t('admin.accounts.status.' + value) }}
-            </span>
+            <StatusBadge
+              :label="t('admin.accounts.status.' + value)"
+              :tone="value === 'active' ? 'success' : 'danger'"
+            />
           </template>
 
           <template #cell-actions="{ row }">
@@ -327,14 +326,14 @@
               </button>
               <button
                 @click="handleEdit(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand dark:hover:bg-dark-700"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
               >
                 <Icon name="edit" size="sm" />
                 <span class="text-xs">{{ t('common.edit') }}</span>
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
               >
                 <Icon name="trash" size="sm" />
                 <span class="text-xs">{{ t('common.delete') }}</span>
@@ -346,9 +345,14 @@
             <EmptyState
               :title="t('admin.proxies.noProxiesYet')"
               :description="t('admin.proxies.createFirstProxy')"
-              :action-text="t('admin.proxies.createProxy')"
-              @action="showCreateModal = true"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="showCreateModal = true">
+                  <Icon name="plus" size="sm" class="mr-2" />
+                  {{ t('admin.proxies.createProxy') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
         </div>
@@ -663,6 +667,7 @@
     <!-- Edit Proxy Modal -->
     <BaseDialog
       :show="showEditModal"
+      presentation="sheet"
       :title="t('admin.proxies.editProxy')"
       width="normal"
       @close="closeEditModal"
@@ -866,7 +871,7 @@
               </div>
             </div>
           </div>
-          <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
             <div>{{ t('admin.proxies.qualityExitIP') }}: {{ qualityReport.exit_ip || '-' }}</div>
             <div>{{ t('admin.proxies.qualityCountry') }}: {{ qualityReport.country || '-' }}</div>
             <div>
@@ -894,11 +899,11 @@
                 <td class="whitespace-nowrap px-3 py-2">
                   <span class="badge whitespace-nowrap" :class="qualityStatusClass(item.status)">{{ qualityStatusLabel(item.status) }}</span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">{{ item.http_status ?? '-' }}</td>
-                <td class="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                <td class="whitespace-nowrap px-3 py-2 text-muted-foreground">{{ item.http_status ?? '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-muted-foreground">
                   {{ typeof item.latency_ms === 'number' ? `${item.latency_ms}ms` : '-' }}
                 </td>
-                <td class="px-3 py-2 text-gray-600 dark:text-gray-300">
+                <td class="px-3 py-2 text-muted-foreground">
                   <span>{{ item.message || '-' }}</span>
                   <span v-if="item.cf_ray" class="ml-1 text-xs text-gray-400">(cf-ray: {{ item.cf_ray }})</span>
                 </td>
@@ -945,7 +950,7 @@
               <td class="px-4 py-2">
                 <PlatformTypeBadge :platform="account.platform" :type="account.type" />
               </td>
-              <td class="px-4 py-2 text-gray-600 dark:text-gray-300">
+              <td class="px-4 py-2 text-muted-foreground">
                 {{ account.notes || '-' }}
               </td>
             </tr>
@@ -971,12 +976,15 @@ import { adminAPI } from '@/api/admin'
 import type { Proxy, ProxyAccountSummary, ProxyProtocol, ProxyQualityCheckResult } from '@/types'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import PageHeader from '@/components/page/PageHeader.vue'
+import Toolbar from '@/components/page/Toolbar.vue'
+import StatusBadge from '@/components/page/StatusBadge.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import EmptyState from '@/components/page/EmptyState.vue'
 import ImportDataModal from '@/components/admin/proxy/ImportDataModal.vue'
 import Select from '@/components/common/Select.vue'
 import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'

@@ -1,54 +1,50 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('admin.groups.title')" :description="t('admin.groups.description')" />
+      </template>
       <template #filters>
-        <div
-          class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start"
-        >
+        <Toolbar>
           <!-- Left: fuzzy search + filters (can wrap to multiple lines) -->
-          <div class="flex flex-1 flex-wrap items-center gap-3">
-            <div class="relative w-full sm:w-64">
-              <Icon
-                name="search"
-                size="md"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('admin.groups.searchGroups')"
-                class="input pl-10"
-                @input="handleSearch"
-              />
-            </div>
-            <Select
-              v-model="filters.platform"
-              :options="platformFilterOptions"
-              :placeholder="t('admin.groups.allPlatforms')"
-              class="w-44"
-              @change="loadGroups"
+          <div class="relative w-full sm:w-64">
+            <Icon
+              name="search"
+              size="md"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
-            <Select
-              v-model="filters.status"
-              :options="statusOptions"
-              :placeholder="t('admin.groups.allStatus')"
-              class="w-40"
-              @change="loadGroups"
-            />
-            <Select
-              v-if="!authStore.isSimpleMode"
-              v-model="filters.is_exclusive"
-              :options="exclusiveOptions"
-              :placeholder="t('admin.groups.allGroups')"
-              class="w-44"
-              @change="loadGroups"
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('admin.groups.searchGroups')"
+              class="input pl-10"
+              @input="handleSearch"
             />
           </div>
+          <Select
+            v-model="filters.platform"
+            :options="platformFilterOptions"
+            :placeholder="t('admin.groups.allPlatforms')"
+            class="w-44"
+            @change="loadGroups"
+          />
+          <Select
+            v-model="filters.status"
+            :options="statusOptions"
+            :placeholder="t('admin.groups.allStatus')"
+            class="w-40"
+            @change="loadGroups"
+          />
+          <Select
+            v-if="!authStore.isSimpleMode"
+            v-model="filters.is_exclusive"
+            :options="exclusiveOptions"
+            :placeholder="t('admin.groups.allGroups')"
+            class="w-44"
+            @change="loadGroups"
+          />
 
-          <!-- Right: actions -->
-          <div
-            class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto"
-          >
+          <template #actions>
             <button
               @click="loadGroups"
               :disabled="loading"
@@ -110,8 +106,8 @@
               <Icon name="plus" size="md" class="mr-2" />
               {{ t("admin.groups.createGroup") }}
             </button>
-          </div>
-        </div>
+          </template>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -199,7 +195,7 @@
                   <span v-if="row.daily_limit_usd" class="whitespace-nowrap">
                     <span
                       v-if="usageLoading"
-                      class="font-medium text-gray-400 dark:text-gray-500"
+                      class="font-medium text-muted-foreground"
                       >—</span
                     >
                     <span
@@ -214,7 +210,7 @@
                         formatUsd(usageMap.get(row.id)?.today_cost ?? 0)
                       }}</span
                     >
-                    <span class="text-gray-400 dark:text-gray-500">
+                    <span class="text-muted-foreground">
                       / {{ formatUsd(row.daily_limit_usd) }}/{{
                         t("admin.groups.limitDay")
                       }}</span
@@ -244,12 +240,12 @@
                     }}</span
                   >
                 </div>
-                <span v-else class="text-gray-400 dark:text-gray-500">{{
+                <span v-else class="text-muted-foreground">{{
                   t("admin.groups.subscription.noLimit")
                 }}</span>
-                <div class="text-gray-400 dark:text-gray-500">
+                <div class="text-muted-foreground">
                   {{ t("admin.groups.usageTotal") }}
-                  <span class="ml-1 font-medium text-gray-600 dark:text-gray-300"
+                  <span class="ml-1 font-medium text-muted-foreground"
                     >{{
                       usageLoading
                         ? "—"
@@ -336,7 +332,7 @@
             <div v-if="usageLoading" class="text-xs text-gray-400">—</div>
             <div v-else class="space-y-0.5 text-xs">
               <div class="text-muted-foreground">
-                <span class="text-gray-400 dark:text-gray-500">{{
+                <span class="text-muted-foreground">{{
                   t("admin.groups.usageToday")
                 }}</span>
                 <span class="ml-1 font-medium text-gray-700 dark:text-gray-300"
@@ -346,7 +342,7 @@
                 >
               </div>
               <div class="text-muted-foreground">
-                <span class="text-gray-400 dark:text-gray-500">{{
+                <span class="text-muted-foreground">{{
                   t("admin.groups.usageYesterday")
                 }}</span>
                 <span class="ml-1 font-medium text-gray-700 dark:text-gray-300"
@@ -356,7 +352,7 @@
                 >
               </div>
               <div class="text-muted-foreground">
-                <span class="text-gray-400 dark:text-gray-500">{{
+                <span class="text-muted-foreground">{{
                   t("admin.groups.usageTotal")
                 }}</span>
                 <span class="ml-1 font-medium text-gray-700 dark:text-gray-300"
@@ -369,21 +365,17 @@
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'active' ? 'badge-success' : 'badge-danger',
-              ]"
-            >
-              {{ t("admin.accounts.status." + value) }}
-            </span>
+            <StatusBadge
+              :label="t('admin.accounts.status.' + value)"
+              :tone="value === 'active' ? 'success' : 'danger'"
+            />
           </template>
 
           <template #cell-actions="{ row }">
             <div class="flex items-center gap-1">
               <button
                 @click="handleEdit(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand dark:hover:bg-dark-700"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
               >
                 <Icon name="edit" size="sm" />
                 <span class="text-xs">{{ t("common.edit") }}</span>
@@ -444,7 +436,7 @@
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
               >
                 <Icon name="trash" size="sm" />
                 <span class="text-xs">{{ t("common.delete") }}</span>
@@ -456,9 +448,14 @@
             <EmptyState
               :title="t('admin.groups.noGroupsYet')"
               :description="t('admin.groups.createFirstGroup')"
-              :action-text="t('admin.groups.createGroup')"
-              @action="openCreateModal"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="openCreateModal">
+                  <Icon name="plus" size="sm" class="mr-2" />
+                  {{ t('admin.groups.createGroup') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
       </template>
@@ -1580,7 +1577,7 @@
             {{ t("admin.groups.openaiFast.title") }}
           </h4>
           <div class="flex items-center justify-between gap-4">
-            <label class="text-sm text-gray-600 dark:text-gray-400">
+            <label class="text-sm text-muted-foreground">
               {{ t("admin.groups.openaiFast.force") }}
             </label>
             <Toggle
@@ -1593,7 +1590,7 @@
             {{ t("admin.groups.openaiFast.hint") }}
           </p>
           <div class="flex items-center justify-between gap-4 mt-4">
-            <label class="text-sm text-gray-600 dark:text-gray-400">
+            <label class="text-sm text-muted-foreground">
               {{ t("admin.groups.openaiFast.free") }}
             </label>
             <Toggle
@@ -1616,7 +1613,7 @@
             {{ t("admin.groups.openaiLive.title") }}
           </h4>
           <div class="flex items-center justify-between">
-            <label class="text-sm text-gray-600 dark:text-gray-400">{{
+            <label class="text-sm text-muted-foreground">{{
               t("admin.groups.openaiLive.allow")
             }}</label>
             <Toggle
@@ -1640,7 +1637,7 @@
 
           <!-- 允许 Messages 调度开关 -->
           <div class="flex items-center justify-between">
-            <label class="text-sm text-gray-600 dark:text-gray-400">{{
+            <label class="text-sm text-muted-foreground">{{
               t("admin.groups.openaiMessages.allowDispatch")
             }}</label>
             <Toggle v-model="createForm.allow_messages_dispatch" />
@@ -1857,7 +1854,7 @@
           <!-- require_oauth_only toggle -->
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm text-gray-600 dark:text-gray-400"
+              <label class="text-sm text-muted-foreground"
                 >{{ t("admin.groups.accountFilters.oauthOnly") }}</label
               >
               <p class="text-xs text-muted-foreground mt-0.5">
@@ -1874,7 +1871,7 @@
           <!-- require_privacy_set toggle -->
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm text-gray-600 dark:text-gray-400"
+              <label class="text-sm text-muted-foreground"
                 >{{ t("admin.groups.accountFilters.privacySetOnly") }}</label
               >
               <p class="text-xs text-muted-foreground mt-0.5">
@@ -3244,7 +3241,7 @@
             {{ t("admin.groups.openaiFast.title") }}
           </h4>
           <div class="flex items-center justify-between gap-4">
-            <label class="text-sm text-gray-600 dark:text-gray-400">
+            <label class="text-sm text-muted-foreground">
               {{ t("admin.groups.openaiFast.force") }}
             </label>
             <Toggle
@@ -3257,7 +3254,7 @@
             {{ t("admin.groups.openaiFast.hint") }}
           </p>
           <div class="flex items-center justify-between gap-4 mt-4">
-            <label class="text-sm text-gray-600 dark:text-gray-400">
+            <label class="text-sm text-muted-foreground">
               {{ t("admin.groups.openaiFast.free") }}
             </label>
             <Toggle
@@ -3280,7 +3277,7 @@
             {{ t("admin.groups.openaiLive.title") }}
           </h4>
           <div class="flex items-center justify-between">
-            <label class="text-sm text-gray-600 dark:text-gray-400">{{
+            <label class="text-sm text-muted-foreground">{{
               t("admin.groups.openaiLive.allow")
             }}</label>
             <Toggle
@@ -3304,7 +3301,7 @@
 
           <!-- 允许 Messages 调度开关 -->
           <div class="flex items-center justify-between">
-            <label class="text-sm text-gray-600 dark:text-gray-400">{{
+            <label class="text-sm text-muted-foreground">{{
               t("admin.groups.openaiMessages.allowDispatch")
             }}</label>
             <Toggle v-model="editForm.allow_messages_dispatch" />
@@ -3520,7 +3517,7 @@
           <!-- require_oauth_only toggle -->
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm text-gray-600 dark:text-gray-400"
+              <label class="text-sm text-muted-foreground"
                 >{{ t("admin.groups.accountFilters.oauthOnly") }}</label
               >
               <p class="text-xs text-muted-foreground mt-0.5">
@@ -3537,7 +3534,7 @@
           <!-- require_privacy_set toggle -->
           <div class="flex items-center justify-between">
             <div>
-              <label class="text-sm text-gray-600 dark:text-gray-400"
+              <label class="text-sm text-muted-foreground"
                 >{{ t("admin.groups.accountFilters.privacySetOnly") }}</label
               >
               <p class="text-xs text-muted-foreground mt-0.5">
@@ -4317,13 +4314,16 @@ import {
 } from "@/constants/platforms";
 import type { Column } from "@/components/common/types";
 import AppLayout from "@/components/layout/AppLayout.vue";
-import TablePageLayout from "@/components/layout/TablePageLayout.vue";
-import DataTable from "@/components/common/DataTable.vue";
+import PageHeader from "@/components/page/PageHeader.vue";
+import Toolbar from "@/components/page/Toolbar.vue";
+import StatusBadge from "@/components/page/StatusBadge.vue";
+import TablePageLayout from "@/components/page/AdminListLayout.vue";
+import DataTable from "@/components/page/AdminDataTable.vue";
 import Pagination from "@/components/common/Pagination.vue";
 import Toggle from "@/components/common/Toggle.vue";
 import BaseDialog from "@/components/common/BaseDialog.vue";
 import ConfirmDialog from "@/components/common/ConfirmDialog.vue";
-import EmptyState from "@/components/common/EmptyState.vue";
+import EmptyState from "@/components/page/EmptyState.vue";
 import Select from "@/components/common/Select.vue";
 import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import { platformLabel } from "@/utils/platformColors";

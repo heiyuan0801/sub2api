@@ -1,36 +1,36 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('admin.channels.title')" :description="t('admin.channels.description')" />
+      </template>
       <template #filters>
-        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+        <Toolbar>
           <!-- Left: Search + Filters -->
-          <div class="flex flex-1 flex-wrap items-center gap-3">
-            <div class="relative w-full sm:w-64">
-              <Icon
-                name="search"
-                size="md"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('admin.channels.searchChannels', 'Search channels...')"
-                class="input pl-10"
-                @input="handleSearch"
-              />
-            </div>
-
-            <Select
-              v-model="filters.status"
-              :options="statusFilterOptions"
-              :placeholder="t('admin.channels.allStatus', 'All Status')"
-              class="w-40"
-              @change="loadChannels"
+          <div class="relative w-full sm:w-64">
+            <Icon
+              name="search"
+              size="md"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('admin.channels.searchChannels', 'Search channels...')"
+              class="input pl-10"
+              @input="handleSearch"
             />
           </div>
 
-          <!-- Right: Actions -->
-          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
+          <Select
+            v-model="filters.status"
+            :options="statusFilterOptions"
+            :placeholder="t('admin.channels.allStatus', 'All Status')"
+            class="w-40"
+            @change="loadChannels"
+          />
+
+          <template #actions>
             <button
               @click="loadChannels"
               :disabled="loading"
@@ -43,8 +43,8 @@
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.channels.createChannel', 'Create Channel') }}
             </button>
-          </div>
-        </div>
+          </template>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -62,7 +62,7 @@
           </template>
 
           <template #cell-description="{ value }">
-            <span class="text-sm text-gray-600 dark:text-gray-400">{{ value || '-' }}</span>
+            <span class="text-sm text-muted-foreground">{{ value || '-' }}</span>
           </template>
 
           <template #cell-status="{ row }">
@@ -74,7 +74,7 @@
 
           <template #cell-group_count="{ row }">
             <span
-              class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+              class="inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
             >
               {{ (row.group_ids || []).length }}
               {{ t('admin.channels.groupsUnit', 'groups') }}
@@ -83,7 +83,7 @@
 
           <template #cell-pricing_count="{ row }">
             <span
-              class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+              class="inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
             >
               {{ (row.model_pricing || []).length }}
               {{ t('admin.channels.pricingUnit', 'pricing rules') }}
@@ -91,7 +91,7 @@
           </template>
 
           <template #cell-created_at="{ value }">
-            <span class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="text-sm text-muted-foreground">
               {{ formatDate(value) }}
             </span>
           </template>
@@ -100,14 +100,14 @@
             <div class="flex items-center gap-1">
               <button
                 @click="openEditDialog(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand dark:hover:bg-dark-700"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
               >
                 <Icon name="edit" size="sm" />
                 <span class="text-xs">{{ t('common.edit', 'Edit') }}</span>
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
               >
                 <Icon name="trash" size="sm" />
                 <span class="text-xs">{{ t('common.delete', 'Delete') }}</span>
@@ -119,9 +119,14 @@
             <EmptyState
               :title="t('admin.channels.noChannelsYet', 'No Channels Yet')"
               :description="t('admin.channels.createFirstChannel', 'Create your first channel to manage model pricing')"
-              :action-text="t('admin.channels.createChannel', 'Create Channel')"
-              @action="openCreateDialog"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="openCreateDialog">
+                  <Icon name="plus" size="sm" class="mr-2" />
+                  {{ t('admin.channels.createChannel', 'Create Channel') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
       </template>
@@ -141,6 +146,7 @@
     <!-- Create/Edit Dialog -->
     <BaseDialog
       :show="showDialog"
+      presentation="sheet"
       :title="editingChannel ? t('admin.channels.editChannel', 'Edit Channel') : t('admin.channels.createChannel', 'Create Channel')"
       width="extra-wide"
       @close="closeDialog"
@@ -474,7 +480,7 @@
               <!-- Filter rules for this platform's groups -->
               <p
                 v-if="section.account_stats_pricing_rules.length === 0"
-                class="text-xs italic text-gray-400 dark:text-gray-500"
+                class="text-xs italic text-muted-foreground"
               >
                 {{ t('admin.channels.form.noRulesConfigured') }}
               </p>
@@ -641,12 +647,14 @@ import type { Column } from '@/components/common/types'
 import { platformTextClass, platformBadgeLightClass, platformLabel as catalogPlatformLabel } from '@/utils/platformColors'
 import { listPlatformIds, supportsPricingModelSync } from '@/constants/platformCatalog'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import PageHeader from '@/components/page/PageHeader.vue'
+import Toolbar from '@/components/page/Toolbar.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import EmptyState from '@/components/page/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
