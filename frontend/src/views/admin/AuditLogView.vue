@@ -1,10 +1,13 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('admin.audit.title')" :description="t('admin.audit.description')" />
+      </template>
       <!-- Filters -->
       <template #filters>
-        <div class="card p-4 sm:p-6">
-          <div class="flex flex-wrap items-end justify-between gap-4">
+        <SectionCard>
+          <Toolbar class="items-end">
             <!-- Left: filter fields -->
             <div class="flex flex-1 flex-wrap items-end gap-4">
               <div class="w-full sm:w-auto sm:min-w-[240px]">
@@ -65,8 +68,7 @@
               </div>
             </div>
 
-            <!-- Right: actions -->
-            <div class="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+            <template #actions>
               <button type="button" class="btn btn-primary" :disabled="loading" @click="search">
                 {{ t('common.search') }}
               </button>
@@ -77,9 +79,9 @@
                 <Icon name="trash" size="sm" class="mr-1.5" />
                 {{ t('admin.audit.clearAll') }}
               </button>
-            </div>
-          </div>
-        </div>
+            </template>
+          </Toolbar>
+        </SectionCard>
       </template>
 
       <!-- Table -->
@@ -112,10 +114,7 @@
           </template>
 
           <template #cell-status_code="{ row }">
-            <span :class="statusBadgeClass(row.status_code)">
-              <span class="h-1.5 w-1.5 rounded-full" :class="statusDotClass(row.status_code)"></span>
-              {{ row.status_code }}
-            </span>
+            <StatusBadge :label="String(row.status_code)" :tone="statusTone(row.status_code)" />
           </template>
 
           <template #cell-latency_ms="{ value }">
@@ -138,10 +137,7 @@
           </template>
 
           <template #empty>
-            <div class="flex flex-col items-center py-8">
-              <Icon name="shield" size="xl" class="mb-4 h-12 w-12 text-gray-300 dark:text-dark-600" />
-              <p class="text-sm font-medium text-muted-foreground">{{ t('admin.audit.empty') }}</p>
-            </div>
+            <EmptyState :title="t('admin.audit.empty')" />
           </template>
         </DataTable>
       </template>
@@ -164,6 +160,7 @@
       :show="detailVisible"
       :title="t('admin.audit.detail.title')"
       width="wide"
+      panel-class="rounded-lg border border-border"
       :close-on-click-outside="true"
       @close="detailVisible = false"
     >
@@ -176,18 +173,18 @@
 
       <div v-else-if="detail" class="space-y-5 py-2">
         <!-- Hero: action + result at a glance -->
-        <div class="rounded-2xl border border-border bg-gray-50/60 p-5 dark:bg-dark-900/60">
+        <div class="rounded-lg border border-border bg-muted/40 p-4">
           <div class="flex flex-wrap items-center gap-3">
-            <span :class="statusBadgeClass(detail.status_code)">
-              <span class="h-1.5 w-1.5 rounded-full" :class="statusDotClass(detail.status_code)"></span>
-              {{ detail.status_code }} {{ statusText(detail.status_code) }}
-            </span>
+            <StatusBadge
+              :label="`${detail.status_code} ${statusText(detail.status_code)}`"
+              :tone="statusTone(detail.status_code)"
+            />
             <span class="break-all font-mono text-base font-semibold text-foreground">
               {{ detail.action }}
             </span>
           </div>
 
-          <div class="mt-3 flex items-center gap-2 rounded-lg bg-card px-3 py-2 ring-1 ring-gray-200 dark:ring-dark-600">
+          <div class="mt-3 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
             <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-gray-700 dark:bg-dark-700 dark:text-gray-200">
               {{ detail.method }}
             </span>
@@ -274,6 +271,7 @@
       :show="showCustomTimeRangeDialog"
       :title="t('admin.ops.timeRange.custom')"
       width="narrow"
+      panel-class="rounded-lg border border-border"
       @close="handleCustomTimeRangeCancel"
     >
       <div class="space-y-4 py-2">
@@ -318,6 +316,7 @@
       :show="clearTotpVisible"
       :title="t('admin.audit.clearConfirm.totpTitle')"
       width="narrow"
+      panel-class="rounded-lg border border-border"
       :z-index="60"
       @close="cancelClearTotp"
     >
@@ -357,8 +356,9 @@ import { useI18n } from 'vue-i18n'
 import { adminAPI, type AuditLog } from '@/api/admin'
 import { totpAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import { EmptyState, PageHeader, SectionCard, StatusBadge, Toolbar } from '@/components/page'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import type { Column } from '@/components/common/types'
 import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
@@ -669,17 +669,10 @@ function statusText(status: number): string {
   return status < 400 ? t('admin.audit.filters.resultSuccess') : t('admin.audit.filters.resultFailure')
 }
 
-function statusBadgeClass(status: number): string {
-  const base = 'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold '
-  if (status >= 500) return base + 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-  if (status >= 400) return base + 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-  return base + 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-}
-
-function statusDotClass(status: number): string {
-  if (status >= 500) return 'bg-red-500'
-  if (status >= 400) return 'bg-amber-500'
-  return 'bg-green-500'
+function statusTone(status: number) {
+  if (status >= 500) return 'danger'
+  if (status >= 400) return 'warning'
+  return 'success'
 }
 
 onMounted(fetchLogs)

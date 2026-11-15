@@ -1,15 +1,15 @@
 <template>
   <section aria-labelledby="prompt-policy-title" class="py-6">
     <div>
-      <h2 id="prompt-policy-title" class="text-base font-semibold text-gray-950 dark:text-white">{{ t('admin.promptAudit.policy.title') }}</h2>
-      <p class="mt-1 text-sm text-gray-500 dark:text-dark-300">{{ t('admin.promptAudit.policy.description') }}</p>
+      <h2 id="prompt-policy-title" class="text-base font-semibold text-foreground">{{ t('admin.promptAudit.policy.title') }}</h2>
+      <p class="mt-1 text-sm text-muted-foreground">{{ t('admin.promptAudit.policy.description') }}</p>
     </div>
 
     <div class="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.45fr)]">
       <div class="rounded-xl border border-gray-200 p-4 dark:border-dark-700/60 dark:bg-dark-900/20 sm:p-5">
         <fieldset>
           <legend class="text-sm font-medium text-foreground">{{ t('admin.promptAudit.policy.scope') }}</legend>
-          <div class="mt-3 flex flex-wrap gap-5 text-sm text-gray-700 dark:text-dark-200">
+          <div class="mt-3 flex flex-wrap gap-5 text-sm text-foreground">
             <label class="flex items-center gap-2">
               <input type="radio" name="prompt-audit-scope" :checked="draft.all_groups" @change="patch({ all_groups: true, group_ids: [] })" />
               {{ t('admin.promptAudit.policy.allGroups') }}
@@ -22,7 +22,7 @@
         </fieldset>
 
         <div v-if="!draft.all_groups" class="mt-4">
-          <label class="block text-sm text-gray-700 dark:text-dark-200">
+          <label class="block text-sm text-foreground">
             <span>{{ t('admin.promptAudit.policy.searchGroups') }}</span>
             <input v-model="groupSearch" type="search" class="input mt-1.5 w-full" :aria-label="t('admin.promptAudit.policy.searchGroups')" />
           </label>
@@ -54,11 +54,11 @@
       </div>
 
       <div class="space-y-4 rounded-xl border border-gray-200 p-4 dark:border-dark-700/60 dark:bg-dark-900/20 sm:p-5">
-        <label class="block text-sm text-gray-700 dark:text-dark-200">
+        <label class="block text-sm text-foreground">
           <span>{{ t('admin.promptAudit.policy.workerCount') }}</span>
           <input :value="draft.worker_count" type="number" min="1" max="32" class="input mt-1.5 w-full" :aria-label="t('admin.promptAudit.policy.workerCount')" @input="patch({ worker_count: Number(($event.target as HTMLInputElement).value) })" />
         </label>
-        <label class="block text-sm text-gray-700 dark:text-dark-200">
+        <label class="block text-sm text-foreground">
           <span>{{ t('admin.promptAudit.policy.queueCapacity') }}</span>
           <input :value="draft.queue_capacity" type="number" min="1" max="100000" class="input mt-1.5 w-full" :aria-label="t('admin.promptAudit.policy.queueCapacity')" @input="patch({ queue_capacity: Number(($event.target as HTMLInputElement).value) })" />
         </label>

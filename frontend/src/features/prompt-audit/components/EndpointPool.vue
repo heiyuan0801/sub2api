@@ -1,20 +1,18 @@
 <template>
-  <section aria-labelledby="prompt-pool-title" class="border-b border-gray-200 py-6 dark:border-dark-700/60">
+  <section aria-labelledby="prompt-pool-title" class="border-b border-border py-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 id="prompt-pool-title" class="text-base font-semibold text-gray-950 dark:text-white">{{ t('admin.promptAudit.pool.title') }}</h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-dark-300">{{ t('admin.promptAudit.pool.description') }}</p>
+        <h2 id="prompt-pool-title" class="text-base font-semibold text-foreground">{{ t('admin.promptAudit.pool.title') }}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{{ t('admin.promptAudit.pool.description') }}</p>
       </div>
       <button type="button" class="btn btn-primary btn-sm" data-test="add-endpoint" @click="openCreate">
         {{ t('admin.promptAudit.pool.add') }}
       </button>
     </div>
 
-    <div v-if="endpoints.length === 0" class="mt-5 rounded-xl border border-dashed border-gray-300 px-5 py-10 text-center text-sm text-gray-500 dark:border-dark-600 dark:bg-dark-900/20 dark:text-dark-300">
-      {{ t('admin.promptAudit.pool.empty') }}
-    </div>
-    <div v-else class="mt-5 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-dark-700/60 dark:bg-dark-900/20">
-      <div class="hidden grid-cols-[minmax(260px,1.45fr)_minmax(210px,1fr)_minmax(190px,.8fr)_minmax(230px,1.15fr)_auto] gap-5 border-b border-l-[3px] border-b-gray-200 border-l-transparent bg-gray-50/80 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground dark:border-b-dark-700/60 dark:bg-dark-900/70 xl:grid">
+    <EmptyState v-if="endpoints.length === 0" :title="t('admin.promptAudit.pool.empty')" class="mt-4 rounded-lg border border-dashed border-border" />
+    <div v-else class="mt-5 overflow-hidden rounded-lg border border-border bg-card">
+      <div class="hidden grid-cols-[minmax(260px,1.45fr)_minmax(210px,1fr)_minmax(190px,.8fr)_minmax(230px,1.15fr)_auto] gap-5 border-b border-l-[3px] border-b-gray-200 border-l-transparent bg-muted/50 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground dark:border-b-dark-700/60  xl:grid">
         <span>{{ t('admin.promptAudit.pool.node') }}</span>
         <span>{{ t('admin.promptAudit.pool.model') }}</span>
         <span>{{ t('admin.promptAudit.pool.limits') }}</span>
@@ -22,12 +20,12 @@
         <span class="text-right">{{ t('admin.promptAudit.common.actions') }}</span>
       </div>
 
-      <div class="divide-y divide-gray-100 dark:divide-dark-800">
+      <div class="divide-y divide-border">
         <article
           v-for="endpoint in endpoints"
           :key="endpoint.id"
           :data-test="`endpoint-${endpoint.id}`"
-          class="group grid gap-4 border-l-[3px] border-l-transparent px-4 py-4 transition-[background-color,border-color] duration-200 hover:border-l-brand hover:bg-gray-50/80 dark:hover:bg-dark-800/55 sm:px-5 xl:grid-cols-[minmax(260px,1.45fr)_minmax(210px,1fr)_minmax(190px,.8fr)_minmax(230px,1.15fr)_auto] xl:items-center xl:gap-5"
+          class="group grid gap-4 border-l-[3px] border-l-transparent px-4 py-4 transition-[background-color,border-color] duration-200 hover:border-l-brand hover:bg-muted/50 dark:hover:bg-dark-800/55 sm:px-5 xl:grid-cols-[minmax(260px,1.45fr)_minmax(210px,1fr)_minmax(190px,.8fr)_minmax(230px,1.15fr)_auto] xl:items-center xl:gap-5"
         >
           <div class="flex min-w-0 items-center gap-3">
             <button
@@ -46,7 +44,7 @@
             </button>
             <div class="min-w-0">
               <div class="flex min-w-0 items-center gap-2">
-                <p class="truncate font-semibold text-gray-950 dark:text-white">{{ endpoint.name }}</p>
+                <p class="truncate font-semibold text-foreground">{{ endpoint.name }}</p>
                 <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="endpoint.enabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-dark-500'" aria-hidden="true" />
               </div>
               <p class="mt-0.5 truncate font-mono text-[11px] text-muted-foreground" :title="endpoint.base_url">{{ endpoint.base_url }}</p>
@@ -55,7 +53,7 @@
 
           <div class="min-w-0 xl:block">
             <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 xl:hidden">{{ t('admin.promptAudit.pool.model') }}</p>
-            <p class="truncate text-sm font-medium text-gray-700 dark:text-dark-200" :title="endpoint.model">{{ endpoint.model }}</p>
+            <p class="truncate text-sm font-medium text-foreground" :title="endpoint.model">{{ endpoint.model }}</p>
           </div>
 
           <div>
@@ -92,21 +90,21 @@
       </div>
     </div>
 
-    <BaseDialog :show="Boolean(editing)" :title="editingIndex < 0 ? t('admin.promptAudit.pool.add') : t('admin.promptAudit.pool.edit')" width="wide" @close="closeEditor">
+    <BaseDialog panel-class="rounded-lg border border-border" :show="Boolean(editing)" :title="editingIndex < 0 ? t('admin.promptAudit.pool.add') : t('admin.promptAudit.pool.edit')" width="wide" @close="closeEditor">
       <form v-if="editing" class="grid gap-4 sm:grid-cols-2" @submit.prevent="saveEditor">
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200">
+        <label class="space-y-1 text-sm text-foreground">
           <span>{{ t('admin.promptAudit.pool.name') }}</span>
           <input v-model="editing.name" class="input w-full" required :aria-label="t('admin.promptAudit.pool.name')" />
         </label>
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200">
+        <label class="space-y-1 text-sm text-foreground">
           <span>{{ t('admin.promptAudit.pool.id') }}</span>
           <input v-model="editing.id" class="input w-full" required :disabled="editingIndex >= 0" :aria-label="t('admin.promptAudit.pool.id')" />
         </label>
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200 sm:col-span-2">
+        <label class="space-y-1 text-sm text-foreground sm:col-span-2">
           <span>{{ t('admin.promptAudit.pool.baseUrl') }}</span>
           <input v-model="editing.base_url" class="input w-full" required inputmode="url" :aria-label="t('admin.promptAudit.pool.baseUrl')" />
         </label>
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200 sm:col-span-2">
+        <label class="space-y-1 text-sm text-foreground sm:col-span-2">
           <span>{{ t('admin.promptAudit.pool.apiKey') }}</span>
           <input v-model="editing.token" class="input w-full" type="password" autocomplete="new-password" :placeholder="editing.has_token ? (editing.token_status === 'invalid' ? t('admin.promptAudit.pool.reenterSecret') : t('admin.promptAudit.pool.keepSecret')) : ''" :aria-label="t('admin.promptAudit.pool.apiKey')" />
           <span class="block text-xs text-muted-foreground">{{ t('admin.promptAudit.pool.secretHint') }}</span>
@@ -115,15 +113,15 @@
           <input v-model="editing.clear_token" type="checkbox" :aria-label="t('admin.promptAudit.pool.clearSecret')" />
           {{ t('admin.promptAudit.pool.clearSecret') }}
         </label>
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200 sm:col-span-2">
+        <label class="space-y-1 text-sm text-foreground sm:col-span-2">
           <span>{{ t('admin.promptAudit.pool.model') }}</span>
           <input v-model="editing.model" class="input w-full" :aria-label="t('admin.promptAudit.pool.model')" />
         </label>
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200">
+        <label class="space-y-1 text-sm text-foreground">
           <span>{{ t('admin.promptAudit.pool.timeout') }}</span>
           <input v-model.number="editing.timeout_ms" class="input w-full" type="number" min="100" max="30000" required :aria-label="t('admin.promptAudit.pool.timeout')" />
         </label>
-        <label class="space-y-1 text-sm text-gray-700 dark:text-dark-200">
+        <label class="space-y-1 text-sm text-foreground">
           <span>{{ t('admin.promptAudit.pool.inputLimit') }}</span>
           <input v-model.number="editing.input_limit" class="input w-full" type="number" min="128" max="100000" required :aria-label="t('admin.promptAudit.pool.inputLimit')" />
         </label>
@@ -142,6 +140,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import { EmptyState } from '@/components/page'
 import type { PromptAuditEndpointDraft, PromptProbeResult } from '../types'
 import { cloneData, createDefaultEndpoint } from '../viewModel'
 

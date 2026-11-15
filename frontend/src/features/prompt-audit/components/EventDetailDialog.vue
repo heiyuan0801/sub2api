@@ -1,5 +1,5 @@
 <template>
-  <BaseDialog :show="show" :title="t('admin.promptAudit.events.detailTitle')" width="extra-wide" @close="$emit('close')">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show" :title="t('admin.promptAudit.events.detailTitle')" width="extra-wide" @close="$emit('close')">
     <div v-if="loading" class="py-12 text-center text-sm text-gray-500" aria-busy="true">{{ t('common.loading') }}</div>
     <div v-else-if="event" class="flex flex-col">
       <div class="flex flex-wrap gap-2 border-b border-border pb-3" role="tablist">

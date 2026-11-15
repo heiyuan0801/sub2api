@@ -1,5 +1,5 @@
 <template>
-  <BaseDialog :show="show" :title="t('admin.promptAudit.events.filterDeleteDialogTitle')" width="wide" @close="$emit('close')">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show" :title="t('admin.promptAudit.events.filterDeleteDialogTitle')" width="wide" @close="$emit('close')">
     <div class="space-y-5 text-sm">
       <p class="text-gray-500 dark:text-dark-300">{{ t('admin.promptAudit.events.filterDeleteDialogDesc') }}</p>
 

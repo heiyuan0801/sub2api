@@ -1,6 +1,5 @@
 <template>
-  <BaseDialog
-    :show="show"
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show"
     :title="t('admin.channelMonitor.template.managerTitle')"
     width="wide"
     @close="$emit('close')"

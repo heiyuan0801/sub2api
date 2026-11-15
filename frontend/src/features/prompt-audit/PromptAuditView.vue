@@ -1,26 +1,28 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-[1600px]" :class="activeTab === 'config' && draft ? 'pb-28' : 'pb-8'">
-      <header class="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{{ t('nav.securityAudit') }}</p>
-          <h1 class="mt-1 text-2xl font-semibold tracking-tight text-gray-950 dark:text-white">{{ t('admin.promptAudit.title') }}</h1>
-          <p class="mt-2 max-w-3xl text-sm text-gray-500 dark:text-dark-300">{{ t('admin.promptAudit.description') }}</p>
-        </div>
-        <div v-if="draft" class="text-right text-xs text-muted-foreground">
-          <p>{{ t('admin.promptAudit.configVersion', { version: draft.config_version }) }}</p>
-          <p v-if="draft.updated_at" class="mt-1">{{ formatDate(draft.updated_at) }}</p>
-        </div>
-      </header>
+    <div class="mx-auto max-w-[1600px]" :class="activeTab === 'config' && draft ? 'pb-4' : 'pb-8'">
+      <PageHeader
+        :eyebrow="t('nav.securityAudit')"
+        :title="t('admin.promptAudit.title')"
+        :description="t('admin.promptAudit.description')"
+        class="mb-4"
+      >
+        <template v-if="draft" #actions>
+          <div class="text-right text-xs text-muted-foreground">
+            <p>{{ t('admin.promptAudit.configVersion', { version: draft.config_version }) }}</p>
+            <p v-if="draft.updated_at" class="mt-1">{{ formatDate(draft.updated_at) }}</p>
+          </div>
+        </template>
+      </PageHeader>
 
-      <div v-if="loadErrors.config && !draft" role="alert" class="rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-900 dark:bg-red-950/30">
-        <p class="text-sm text-red-700 dark:text-red-300">{{ loadErrors.config }}</p>
+      <div v-if="loadErrors.config && !draft" role="alert" class="rounded-lg border border-danger/30 bg-danger/5 p-4">
+        <p class="text-sm text-danger">{{ loadErrors.config }}</p>
         <button type="button" class="btn btn-secondary btn-sm mt-3" @click="loadConfig">{{ t('admin.promptAudit.actions.retry') }}</button>
       </div>
 
       <template v-else>
-        <div class="mb-4" role="tablist" :aria-label="t('admin.promptAudit.title')">
-          <div class="tabs inline-flex">
+        <Toolbar class="mb-4">
+          <div class="tabs inline-flex" role="tablist" :aria-label="t('admin.promptAudit.title')">
             <button
               v-for="tab in pageTabs"
               :key="tab.id"
@@ -35,9 +37,9 @@
               {{ tab.label }}
             </button>
           </div>
-        </div>
+        </Toolbar>
 
-        <main class="card px-4 sm:px-6 lg:px-8">
+        <SectionCard>
           <div v-show="activeTab === 'config'" data-test="tab-panel-config">
             <RuntimeOverview :runtime="runtime" :loading="loading.runtime" :error="loadErrors.runtime" @refresh="loadRuntime" />
 
@@ -86,11 +88,11 @@
               @preview-delete="requestFilterDeletePreview"
             />
           </div>
-        </main>
+        </SectionCard>
       </template>
     </div>
 
-    <div v-if="draft && activeTab === 'config'" class="fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-12px_35px_rgba(15,23,42,0.08)] backdrop-blur dark:border-dark-700/80 dark:bg-dark-900/95 dark:shadow-[0_-12px_35px_rgba(0,0,0,0.35)] lg:left-64">
+    <div v-if="draft && activeTab === 'config'" class="sticky bottom-0 z-30 rounded-lg border border-border bg-card/95 px-4 py-3 backdrop-blur">
       <div class="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
           <SaveToggle :label="t('admin.promptAudit.saveBar.enabled')" :model-value="draft.enabled" data-test="enabled-toggle" @update:model-value="setEnabled" />
@@ -147,6 +149,7 @@
 import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import { PageHeader, SectionCard, Toolbar } from '@/components/page'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import { useAppStore } from '@/stores/app'
 import { extractApiErrorCode, extractApiErrorMessage } from '@/utils/apiError'
