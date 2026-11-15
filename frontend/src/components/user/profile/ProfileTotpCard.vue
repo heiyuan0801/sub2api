@@ -1,5 +1,5 @@
 <template>
-  <div class="card">
+  <div class="rounded-lg border border-border bg-card">
     <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
       <h2 class="text-lg font-medium text-foreground">
         {{ t('profile.totp.title') }}
@@ -22,7 +22,7 @@
           </svg>
         </div>
         <div>
-          <p class="font-medium text-gray-700 dark:text-gray-300">
+          <p class="font-medium text-muted-foreground">
             {{ t('profile.totp.featureDisabled') }}
           </p>
           <p class="text-sm text-muted-foreground">
@@ -66,7 +66,7 @@
             </svg>
           </div>
           <div>
-            <p class="font-medium text-gray-700 dark:text-gray-300">
+            <p class="font-medium text-muted-foreground">
               {{ t('profile.totp.notEnabled') }}
             </p>
             <p class="text-sm text-muted-foreground">

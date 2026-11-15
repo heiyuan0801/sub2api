@@ -1,5 +1,5 @@
 <template>
-  <div class="card">
+  <div class="rounded-lg border border-border bg-card">
     <div class="flex items-start justify-between border-b border-gray-100 px-6 py-4 dark:border-dark-700">
       <div>
         <h2 class="text-lg font-medium text-foreground">

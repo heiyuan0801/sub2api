@@ -1,5 +1,5 @@
 <template>
-  <div :class="props.embedded ? 'space-y-4' : 'card'">
+  <div :class="props.embedded ? 'space-y-4' : 'rounded-lg border border-border bg-card'">
     <div
       v-if="!props.embedded"
       class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"

@@ -1,71 +1,74 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-6xl space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <p class="text-sm text-muted-foreground">{{ t('rewards.dailyRules') }}</p>
-        <Button variant="outline" :disabled="loading || busy !== null" @click="load">{{ t('rewards.refresh') }}</Button>
-      </div>
+    <div class="mx-auto max-w-6xl space-y-4">
+      <PageHeader :title="t('rewards.title')" :description="t('rewards.dailyRules')">
+        <template #actions>
+          <Button variant="outline" :disabled="loading || busy !== null" @click="load">{{ t('rewards.refresh') }}</Button>
+        </template>
+      </PageHeader>
       <p v-if="loading && !status" class="card p-6 text-sm text-muted-foreground" role="status">{{ t('rewards.loading') }}</p>
       <template v-if="status">
-        <div v-if="status.config.check_in.enabled || status.config.wheel.enabled" class="card flex flex-wrap items-center justify-between gap-3 p-5">
-          <p class="text-sm text-muted-foreground">{{ t('rewards.todaySpend') }} · {{ status.day }}</p>
-          <p class="text-2xl font-semibold tabular-nums">{{ amount(status.spent_cents) }}</p>
-        </div>
-        <div v-else class="card p-6 text-muted-foreground">{{ t('rewards.closed') }}</div>
+        <StatCard
+          v-if="status.config.check_in.enabled || status.config.wheel.enabled"
+          :label="t('rewards.todaySpend')" :value="amount(status.spent_cents)" :description="status.day"
+        />
+        <SectionCard v-else><EmptyState :title="t('rewards.closed')" /></SectionCard>
         <div class="grid items-start gap-5 lg:grid-cols-2">
-          <section v-if="status.config.check_in.enabled" class="card space-y-4 p-5">
-            <h2 class="text-lg font-semibold">{{ t('rewards.checkIn') }}</h2>
-            <p class="text-sm text-muted-foreground">
-              {{ t('rewards.checkInRule', {
-                threshold: amount(status.config.check_in.threshold_cents),
-                min: amount(status.config.check_in.min_reward_cents),
-                max: amount(status.config.check_in.max_reward_cents),
-              }) }}
-            </p>
-            <progress class="h-2 w-full overflow-hidden rounded-full accent-emerald-600" :aria-label="t('rewards.checkIn')"
-              :value="Math.min(status.spent_cents, status.config.check_in.threshold_cents)" :max="status.config.check_in.threshold_cents" />
-            <p v-if="!status.checked_in && checkInShortfall > 0" class="text-sm text-muted-foreground">
-              {{ t('rewards.needSpend', { amount: amount(checkInShortfall) }) }}
-            </p>
-            <Button class="w-full" :disabled="busy !== null || loading || status.checked_in || checkInShortfall > 0" @click="participate('check_in')">
-              {{ status.checked_in ? t('rewards.checkedIn') : busy === 'check_in' ? t('rewards.processing') : t('rewards.checkInNow') }}
-            </Button>
-            <p v-if="result?.kind === 'check_in'" class="text-sm font-medium text-emerald-600 dark:text-emerald-400" role="status">
-              {{ t('rewards.credited', { amount: amount(result.reward_cents) }) }}
-            </p>
-          </section>
-          <section v-if="status.config.wheel.enabled" class="card space-y-4 p-5">
-            <h2 class="text-lg font-semibold">{{ t('rewards.wheel') }}</h2>
-            <p class="text-sm text-muted-foreground">
-              {{ t('rewards.wheelRule', { threshold: amount(status.config.wheel.threshold_cents), limit: status.config.wheel.daily_limit }) }}
-            </p>
-            <div class="reward-wheel-shell" aria-hidden="true">
-              <div class="reward-wheel-pointer" />
-              <div class="reward-wheel" :style="{ background: wheelGradient, transform: `rotate(${rotation}deg)` }">
-                <span v-for="(_, index) in prizes" :key="index" class="reward-wheel-label"
-                  :style="{ transform: `rotate(${(index + 0.5) * 360 / prizes.length}deg)` }">
-                  <span>{{ index + 1 }}</span>
-                </span>
+          <SectionCard v-if="status.config.check_in.enabled" :title="t('rewards.checkIn')">
+            <div class="space-y-4">
+              <p class="text-sm text-muted-foreground">
+                {{ t('rewards.checkInRule', {
+                  threshold: amount(status.config.check_in.threshold_cents),
+                  min: amount(status.config.check_in.min_reward_cents),
+                  max: amount(status.config.check_in.max_reward_cents),
+                }) }}
+              </p>
+              <progress class="h-2 w-full overflow-hidden rounded-full accent-success" :aria-label="t('rewards.checkIn')"
+                :value="Math.min(status.spent_cents, status.config.check_in.threshold_cents)" :max="status.config.check_in.threshold_cents" />
+              <p v-if="!status.checked_in && checkInShortfall > 0" class="text-sm text-muted-foreground">
+                {{ t('rewards.needSpend', { amount: amount(checkInShortfall) }) }}
+              </p>
+              <Button class="w-full" :disabled="busy !== null || loading || status.checked_in || checkInShortfall > 0" @click="participate('check_in')">
+                {{ status.checked_in ? t('rewards.checkedIn') : busy === 'check_in' ? t('rewards.processing') : t('rewards.checkInNow') }}
+              </Button>
+              <p v-if="result?.kind === 'check_in'" class="text-sm font-medium text-success" role="status">
+                {{ t('rewards.credited', { amount: amount(result.reward_cents) }) }}
+              </p>
+            </div>
+          </SectionCard>
+          <SectionCard v-if="status.config.wheel.enabled" :title="t('rewards.wheel')">
+            <div class="space-y-4">
+              <p class="text-sm text-muted-foreground">
+                {{ t('rewards.wheelRule', { threshold: amount(status.config.wheel.threshold_cents), limit: status.config.wheel.daily_limit }) }}
+              </p>
+              <div class="reward-wheel-shell" aria-hidden="true">
+                <div class="reward-wheel-pointer" />
+                <div class="reward-wheel" :style="{ background: wheelGradient, transform: `rotate(${rotation}deg)` }">
+                  <span v-for="(_, index) in prizes" :key="index" class="reward-wheel-label"
+                    :style="{ transform: `rotate(${(index + 0.5) * 360 / prizes.length}deg)` }">
+                    <span>{{ index + 1 }}</span>
+                  </span>
+                </div>
+                <span class="reward-wheel-center" />
               </div>
-              <span class="reward-wheel-center" />
+              <ol class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                <li v-for="(prize, index) in prizes" :key="index" class="rounded-lg border px-2.5 py-1.5">
+                  <span class="min-w-0 break-words">{{ index + 1 }}. {{ prize.name || prizeLabel(prize.reward_cents) }}</span>
+                </li>
+              </ol>
+              <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span>{{ t('rewards.drawsAvailable', { count: status.draws_available }) }}</span>
+                <span v-if="status.draws_used >= status.config.wheel.daily_limit" class="text-muted-foreground">{{ t('rewards.limitReached') }}</span>
+                <span v-else-if="status.draws_available === 0" class="text-muted-foreground">{{ t('rewards.needSpend', { amount: amount(wheelShortfall) }) }}</span>
+              </div>
+              <Button class="w-full" :disabled="busy !== null || loading || status.draws_available === 0" @click="participate('wheel')">
+                {{ busy === 'wheel' ? t('rewards.drawing') : t('rewards.drawNow') }}
+              </Button>
+              <p v-if="result?.kind === 'wheel'" class="text-sm font-medium" role="status">
+                <span v-if="result.prize_name">{{ result.prize_name }} · </span>{{ result.reward_cents > 0 ? t('rewards.credited', { amount: amount(result.reward_cents) }) : t('rewards.noPrize') }}
+              </p>
             </div>
-            <ol class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-              <li v-for="(prize, index) in prizes" :key="index" class="rounded-lg border px-2.5 py-1.5">
-                <span class="min-w-0 break-words">{{ index + 1 }}. {{ prize.name || prizeLabel(prize.reward_cents) }}</span>
-              </li>
-            </ol>
-            <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <span>{{ t('rewards.drawsAvailable', { count: status.draws_available }) }}</span>
-              <span v-if="status.draws_used >= status.config.wheel.daily_limit" class="text-muted-foreground">{{ t('rewards.limitReached') }}</span>
-              <span v-else-if="status.draws_available === 0" class="text-muted-foreground">{{ t('rewards.needSpend', { amount: amount(wheelShortfall) }) }}</span>
-            </div>
-            <Button class="w-full" :disabled="busy !== null || loading || status.draws_available === 0" @click="participate('wheel')">
-              {{ busy === 'wheel' ? t('rewards.drawing') : t('rewards.drawNow') }}
-            </Button>
-            <p v-if="result?.kind === 'wheel'" class="text-sm font-medium" role="status">
-              <span v-if="result.prize_name">{{ result.prize_name }} · </span>{{ result.reward_cents > 0 ? t('rewards.credited', { amount: amount(result.reward_cents) }) : t('rewards.noPrize') }}
-            </p>
-          </section>
+          </SectionCard>
         </div>
         <RewardClaimHistory v-if="status.history.length || status.config.check_in.enabled || status.config.wheel.enabled" :claims="status.history" />
       </template>
@@ -74,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { EmptyState, PageHeader, SectionCard, StatCard } from '@/components/page'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'

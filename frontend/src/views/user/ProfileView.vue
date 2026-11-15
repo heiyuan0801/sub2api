@@ -2,8 +2,9 @@
   <AppLayout>
     <div
       data-testid="profile-shell"
-      class="mx-auto max-w-[950px] space-y-6"
+      class="mx-auto max-w-4xl space-y-4"
     >
+      <PageHeader :title="t('profile.title')" :description="t('profile.description')" />
       <ProfileInfoCard
         :user="user"
         :linuxdo-enabled="linuxdoOAuthEnabled"
@@ -15,22 +16,19 @@
         :wechat-mp-enabled="wechatOAuthMPEnabled"
       />
 
-      <div
-        v-if="contactInfo"
-        class="card border-primary-200 bg-brand/10 p-6"
-      >
+      <SectionCard v-if="contactInfo" class="border-info/30 bg-info/5">
         <div class="flex items-center gap-4">
-          <div class="rounded-xl bg-primary-100 p-3 text-brand">
+          <div class="rounded-md bg-info/10 p-2 text-info">
             <Icon name="chat" size="lg" />
           </div>
           <div>
-            <h3 class="font-semibold text-primary-800 dark:text-primary-200">
+            <h3 class="font-semibold text-foreground">
               {{ t('common.contactSupport') }}
             </h3>
             <p class="text-sm font-medium">{{ contactInfo }}</p>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       <ProfilePasswordForm />
 
@@ -50,6 +48,7 @@
 </template>
 
 <script setup lang="ts">
+import { PageHeader, SectionCard } from '@/components/page'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Icon } from '@/components/icons'
