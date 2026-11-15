@@ -59,22 +59,22 @@ const defaultSort = (): SortState | null => props.defaultSortKey && columnById.v
   ? { key: props.defaultSortKey, order: props.defaultSortOrder }
   : null
 
-onMounted(() => {
+function readInitialSort(): SortState | null {
   if (props.sortStorageKey) {
     try {
       const stored = JSON.parse(localStorage.getItem(props.sortStorageKey) ?? 'null') as Partial<SortState> | null
       if (stored?.key && columnById.value.get(stored.key)?.sortable) {
-        sort.value = { key: stored.key, order: stored.order === 'desc' ? 'desc' : 'asc' }
-        return
+        return { key: stored.key, order: stored.order === 'desc' ? 'desc' : 'asc' }
       }
     } catch { /* Storage is optional; fall back to the configured sort. */ }
   }
-  sort.value = defaultSort()
-})
+  return defaultSort()
+}
+onMounted(() => { sort.value = readInitialSort() })
 
 const columnSignature = computed(() => props.columns.map(column => `${column.key}:${Boolean(column.sortable)}`).join('|'))
 watch(columnSignature, () => {
-  if (!sort.value || !columnById.value.get(sort.value.key)?.sortable) sort.value = defaultSort()
+  if (!sort.value || !columnById.value.get(sort.value.key)?.sortable) sort.value = readInitialSort()
 })
 
 function changeSort(key: string, order: SortOrder) {

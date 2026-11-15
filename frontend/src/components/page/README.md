@@ -14,3 +14,15 @@ footer regions; set `flush` when the body already handles its own padding.
 
 These components are shared across admin, user and public routes. Keep route
 guards, API calls, form validation and permission checks in the consuming views.
+
+Use `AdminListLayout` for lists with fixed search and pagination controls.
+`AdminDataTable` adapts the existing `Column[]`, cell slots, sort events and
+row selection to the shared TanStack table. Server lists still paginate and
+sort in their views. Mobile cards and lists that rely on measured action
+expansion retain the existing renderer. Use the UI DataTable directly for
+new lists that do not need this contract.
+
+Add `presentation="sheet"` to BaseDialog or UiDialog for standalone editing
+forms. The close event, controlled visibility and footer slot still belong
+to the caller. Keep overlapping confirmation or step-up authentication
+flows in their existing dialog layout.
