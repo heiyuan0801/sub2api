@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-2xl border border-border bg-gray-50 p-4 dark:bg-dark-800/50">
+  <div class="rounded-lg border border-border bg-muted/30 p-3.5">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <div class="text-sm font-medium text-foreground">
@@ -11,7 +11,7 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <label class="flex items-center gap-2 text-sm text-foreground">
           <input
             type="radio"
             name="announcement-targeting-mode"
@@ -22,7 +22,7 @@
           />
           {{ t('admin.announcements.form.targetingAll') }}
         </label>
-        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <label class="flex items-center gap-2 text-sm text-foreground">
           <input
             type="radio"
             name="announcement-targeting-mode"
@@ -55,14 +55,14 @@
         </button>
       </div>
 
-      <div v-if="anyOf.length === 0" class="rounded-xl border border-dashed border-gray-300 p-4 text-sm text-muted-foreground dark:border-dark-600">
+      <div v-if="anyOf.length === 0" class="rounded-lg border border-dashed border-border p-3.5 text-sm text-muted-foreground">
         {{ t('admin.announcements.form.targetingCustom') }}: {{ t('admin.announcements.form.addOrGroup') }}
       </div>
 
       <div
         v-for="(group, groupIndex) in anyOf"
         :key="groupIndex"
-        class="rounded-2xl border border-border bg-card p-4 shadow-sm"
+        class="rounded-lg border border-border bg-card p-3.5"
       >
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
@@ -89,7 +89,7 @@
           <div
             v-for="(cond, condIndex) in (group.all_of || [])"
             :key="condIndex"
-            class="rounded-xl border border-border bg-gray-50 p-3 dark:bg-dark-900/30"
+            class="rounded-lg border border-border bg-muted/30 p-3"
           >
             <div class="flex flex-col gap-3 md:flex-row md:items-end">
               <div class="w-full md:w-52">
@@ -157,7 +157,7 @@
         </div>
       </div>
 
-      <div v-if="validationError" class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-300">
+      <div v-if="validationError" class="rounded-lg border border-danger/25 bg-danger/10 p-3 text-sm text-danger">
         {{ validationError }}
       </div>
     </div>

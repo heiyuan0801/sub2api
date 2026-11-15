@@ -1,73 +1,88 @@
 <template>
   <AppLayout>
     <div class="mx-auto max-w-7xl space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <span class="grid size-10 place-items-center rounded-xl border border-border bg-muted"><BookOpen class="size-5" /></span>
-          <h2 class="text-xl font-semibold tracking-tight">{{ t('docs.adminTitle') }}</h2>
-        </div>
-        <div class="flex flex-wrap gap-2">
+      <PageHeader :title="t('docs.adminTitle')">
+        <template #actions>
           <Button as-child variant="outline"><RouterLink to="/docs" target="_blank">{{ t('docs.title') }} <ArrowUpRight /></RouterLink></Button>
           <Button :disabled="!selectedCategory || busy" @click="newArticle"><Plus />{{ t('docs.newArticle') }}</Button>
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
-      <div v-if="error" class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-destructive" role="alert">
+      <div v-if="error" class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-danger/25 bg-danger/10 px-4 py-2 text-sm text-destructive" role="alert">
         {{ error }} <Button variant="outline" size="sm" @click="load">{{ t('docs.retry') }}</Button>
       </div>
       <div class="grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <aside class="self-start rounded-xl border border-border bg-card">
-          <div class="flex items-center justify-between gap-2 border-b border-border px-3.5 py-3">
-            <h3 class="text-sm font-semibold">{{ t('docs.categories') }}</h3>
+        <SectionCard :title="t('docs.categories')" flush class="self-start">
+          <template #actions>
             <Button variant="outline" size="icon-sm" :aria-label="t('docs.newCategory')" :title="t('docs.newCategory')" :disabled="busy" @click="editCategory()"><Plus /></Button>
-          </div>
+          </template>
           <VueDraggable v-model="categories" handle=".category-drag" :animation="150" :disabled="busy" class="space-y-1 p-2" @end="reorderCategories">
-            <div v-for="category in categories" :key="category.id" :class="['flex min-w-0 items-center rounded-lg', selected === category.id ? 'bg-muted' : 'hover:bg-muted/50']">
+            <div v-for="category in categories" :key="category.id" :class="['flex min-w-0 items-center rounded-lg', selected === category.id ? 'bg-brand/10 text-brand' : 'hover:bg-muted/50']">
               <span class="category-drag cursor-grab px-1.5 py-2 text-muted-foreground" :title="t('docs.ordering')"><GripVertical class="size-4" /></span>
               <button type="button" :aria-pressed="selected === category.id" class="min-w-0 flex-1 break-words py-2 pr-1 text-left text-sm" @click="selected = category.id">{{ category.name }}</button>
               <Button variant="ghost" size="icon-xs" :aria-label="t('docs.edit') + ' ' + category.name" :disabled="busy" @click="editCategory(category)"><Pencil /></Button>
               <Button variant="ghost" size="icon-xs" :aria-label="t('docs.deleteCategory') + ' ' + category.name" :disabled="busy" @click="confirm = { kind: 'category', id: category.id, name: category.name, revision: 0 }"><Trash2 /></Button>
             </div>
           </VueDraggable>
-          <div v-if="selectedCategory" class="flex justify-end gap-1 border-t border-border px-2 py-1.5">
-            <Button variant="ghost" size="icon-xs" :disabled="busy || categoryIndex <= 0" :aria-label="t('docs.moveUp')" @click="moveCategory(-1)"><ChevronUp /></Button>
-            <Button variant="ghost" size="icon-xs" :disabled="busy || categoryIndex >= categories.length - 1" :aria-label="t('docs.moveDown')" @click="moveCategory(1)"><ChevronDown /></Button>
-          </div>
-        </aside>
-        <section class="min-w-0 rounded-xl border border-border bg-card">
-          <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <h3 class="min-w-0 break-words text-sm font-semibold">{{ selectedCategory?.name || t('docs.articles') }}</h3>
-            <span class="text-xs tabular-nums text-muted-foreground">{{ currentArticles.length }}</span>
-          </div>
-          <p v-if="loading" class="p-5 text-sm text-muted-foreground">{{ t('common.loading') }}</p>
-          <p v-else-if="!currentArticles.length" class="p-5 text-sm text-muted-foreground">{{ t(selectedCategory ? 'docs.noArticles' : 'docs.selectCategory') }}</p>
-          <VueDraggable v-model="currentArticles" handle=".article-drag" :animation="150" :disabled="busy" class="divide-y divide-border" @end="reorderArticles">
-            <div v-for="(article, index) in currentArticles" :key="article.id" class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3.5 sm:flex-nowrap sm:px-4">
-              <span class="article-drag cursor-grab text-muted-foreground" :title="t('docs.ordering')"><GripVertical class="size-4" /></span>
-              <button type="button" class="min-w-0 flex-1 break-words text-left" :disabled="busy" @click="editArticle(article.id)">
-                <span class="block text-sm font-medium hover:underline">{{ article.title }}</span>
-                <span class="mt-1 block truncate text-xs text-muted-foreground">/docs/{{ article.slug }}</span>
-              </button>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span :class="['rounded-full border px-2 py-0.5 text-xs', article.status === 'published' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-border bg-muted text-muted-foreground']">{{ t('docs.' + article.status) }}</span>
-                <span v-if="article.published_revision && article.published_revision !== article.revision" class="text-xs text-amber-700 dark:text-amber-300">{{ t('docs.unpublishedChanges') }}</span>
-                <LockKeyhole v-if="article.visibility === 'authenticated'" class="size-3.5 text-muted-foreground" :aria-label="t('docs.authenticated')" />
-              </div>
-              <div class="ml-auto flex shrink-0 items-center gap-0.5">
-                <Button variant="ghost" size="icon-xs" :disabled="busy || index === 0" :aria-label="t('docs.moveUp') + ' ' + article.title" @click="moveArticle(index, -1)"><ChevronUp /></Button>
-                <Button variant="ghost" size="icon-xs" :disabled="busy || index === currentArticles.length - 1" :aria-label="t('docs.moveDown') + ' ' + article.title" @click="moveArticle(index, 1)"><ChevronDown /></Button>
-                <Button v-if="article.published_slug" variant="ghost" size="icon-sm" :disabled="busy" :aria-label="t('docs.takeOffline') + ' ' + article.title" :title="t('docs.takeOffline')" @click="setConfirm('offline', article)"><EyeOff /></Button>
-                <Button variant="ghost" size="icon-sm" :disabled="busy" :aria-label="t('docs.deleteArticle') + ' ' + article.title" :title="t('docs.deleteArticle')" @click="setConfirm('article', article)"><Trash2 /></Button>
-              </div>
+          <template v-if="selectedCategory" #footer>
+            <div class="flex justify-end gap-1">
+              <Button variant="ghost" size="icon-xs" :disabled="busy || categoryIndex <= 0" :aria-label="t('docs.moveUp')" @click="moveCategory(-1)"><ChevronUp /></Button>
+              <Button variant="ghost" size="icon-xs" :disabled="busy || categoryIndex >= categories.length - 1" :aria-label="t('docs.moveDown')" @click="moveCategory(1)"><ChevronDown /></Button>
             </div>
-          </VueDraggable>
-        </section>
+          </template>
+        </SectionCard>
+
+        <SectionCard :title="selectedCategory?.name || t('docs.articles')" flush>
+          <template #actions>
+            <span class="text-xs tabular-nums text-muted-foreground">{{ currentArticles.length }}</span>
+          </template>
+          <p v-if="loading" class="p-5 text-sm text-muted-foreground" role="status">{{ t('common.loading') }}</p>
+          <EmptyState v-else-if="!currentArticles.length" :title="t(selectedCategory ? 'docs.noArticles' : 'docs.selectCategory')" :icon="BookOpen" />
+          <Table v-else class="min-w-[28rem]">
+            <TableHeader class="border-b border-border bg-muted/40">
+              <TableRow class="border-border hover:bg-transparent">
+                <TableHead scope="col" class="w-8"><span class="sr-only">{{ t('docs.ordering') }}</span></TableHead>
+                <TableHead scope="col">{{ t('docs.articleTitle') }}</TableHead>
+                <TableHead scope="col">{{ t('common.status') }}</TableHead>
+                <TableHead scope="col" class="text-right">{{ t('common.actions') }}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <VueDraggable v-model="currentArticles" tag="tbody" handle=".article-drag" :animation="150" :disabled="busy" @end="reorderArticles">
+              <TableRow v-for="(article, index) in currentArticles" :key="article.id" class="border-border last:border-0">
+                <TableCell class="w-8 pl-3">
+                  <span class="article-drag inline-flex cursor-grab text-muted-foreground" :title="t('docs.ordering')"><GripVertical class="size-4" /></span>
+                </TableCell>
+                <TableCell class="max-w-[23rem] whitespace-normal">
+                  <button type="button" class="block w-full text-left" :disabled="busy" @click="editArticle(article.id)">
+                    <span class="block break-words font-medium hover:underline">{{ article.title }}</span>
+                    <span class="mt-0.5 block break-all font-mono text-xs text-muted-foreground">/docs/{{ article.slug }}</span>
+                  </button>
+                </TableCell>
+                <TableCell>
+                  <div class="flex items-center gap-1.5">
+                    <StatusBadge :label="t('docs.' + article.status)" :tone="article.status === 'published' ? 'success' : 'neutral'" />
+                    <LockKeyhole v-if="article.visibility === 'authenticated'" class="size-3.5 text-muted-foreground" :aria-label="t('docs.authenticated')" />
+                  </div>
+                  <p v-if="article.published_revision && article.published_revision !== article.revision" class="mt-1 text-xs text-warning">{{ t('docs.unpublishedChanges') }}</p>
+                </TableCell>
+                <TableCell class="pr-3">
+                  <div class="flex justify-end gap-0.5">
+                    <Button variant="ghost" size="icon-xs" :disabled="busy || index === 0" :aria-label="t('docs.moveUp') + ' ' + article.title" @click="moveArticle(index, -1)"><ChevronUp /></Button>
+                    <Button variant="ghost" size="icon-xs" :disabled="busy || index === currentArticles.length - 1" :aria-label="t('docs.moveDown') + ' ' + article.title" @click="moveArticle(index, 1)"><ChevronDown /></Button>
+                    <Button v-if="article.published_slug" variant="ghost" size="icon-sm" :disabled="busy" :aria-label="t('docs.takeOffline') + ' ' + article.title" :title="t('docs.takeOffline')" @click="setConfirm('offline', article)"><EyeOff /></Button>
+                    <Button variant="ghost" size="icon-sm" :disabled="busy" :aria-label="t('docs.deleteArticle') + ' ' + article.title" :title="t('docs.deleteArticle')" @click="setConfirm('article', article)"><Trash2 /></Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            </VueDraggable>
+          </Table>
+        </SectionCard>
       </div>
     </div>
 
     <DocsEditor v-if="editorOpen" :key="editorKey" :article="editingArticle" :category="selected" :categories="categories" @close="editorOpen = false" @changed="load" />
 
-    <BaseDialog :show="categoryOpen" :title="t(categoryForm.id ? 'docs.edit' : 'docs.newCategory')" width="narrow" :close-on-escape="!busy" @close="!busy && (categoryOpen = false)">
+    <BaseDialog :show="categoryOpen" :title="t(categoryForm.id ? 'docs.edit' : 'docs.newCategory')" width="narrow" presentation="sheet" :close-on-escape="!busy" @close="!busy && (categoryOpen = false)">
       <form id="docs-category-form" @submit.prevent="saveCategory">
         <label class="block space-y-1 text-sm"><span>{{ t('docs.categoryName') }}</span><input v-model.trim="categoryForm.name" class="input w-full" maxlength="100" required /></label>
         <p v-if="dialogError" role="alert" class="mt-3 text-sm text-destructive">{{ dialogError }}</p>
@@ -96,6 +111,8 @@ import { ArrowUpRight, BookOpen, ChevronDown, ChevronUp, EyeOff, GripVertical, L
 import { VueDraggable } from 'vue-draggable-plus'
 import { docsAPI, type DocAdminSummary, type DocArticle, type DocCategory } from '@/api/docs'
 import { Button } from '@/components/ui/button'
+import { Table, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { EmptyState, PageHeader, SectionCard, StatusBadge } from '@/components/page'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import DocsEditor from '@/components/docs/DocsEditor.vue'

@@ -6,7 +6,7 @@
     @close="handleClose"
   >
     <div class="space-y-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Toolbar>
         <div class="flex-1">
           <input
             v-model="search"
@@ -19,7 +19,7 @@
         <button @click="load" :disabled="loading" class="btn btn-secondary" :title="t('common.refresh')">
           <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
         </button>
-      </div>
+      </Toolbar>
 
       <DataTable
         :columns="columns"
@@ -39,9 +39,7 @@
         </template>
 
         <template #cell-eligible="{ value }">
-          <span :class="['badge', value ? 'badge-success' : 'badge-gray']">
-            {{ value ? t('admin.announcements.eligible') : t('common.no') }}
-          </span>
+          <StatusBadge :label="value ? t('admin.announcements.eligible') : t('common.no')" :tone="value ? 'success' : 'neutral'" />
         </template>
 
         <template #cell-read_at="{ value }">
@@ -80,7 +78,8 @@ import type { Column } from '@/components/common/types'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 
 import BaseDialog from '@/components/common/BaseDialog.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
+import { StatusBadge, Toolbar } from '@/components/page'
 import Pagination from '@/components/common/Pagination.vue'
 import Icon from '@/components/icons/Icon.vue'
 
