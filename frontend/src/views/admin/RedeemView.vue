@@ -1,8 +1,18 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader as="h2" :title="t('admin.redeem.title')" :description="t('admin.redeem.description')">
+          <template #actions>
+            <button @click="showGenerateDialog = true" class="btn btn-primary">
+              {{ t('admin.redeem.generateCodes') }}
+            </button>
+          </template>
+        </PageHeader>
+      </template>
+
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <Toolbar>
           <!-- Left: Search + Filters -->
           <div class="flex-1 sm:max-w-64">
             <input
@@ -48,11 +58,8 @@
               <Icon name="edit" size="md" class="mr-2" />
               {{ t('admin.redeem.batchUpdate') }}
             </button>
-            <button @click="showGenerateDialog = true" class="btn btn-primary">
-              {{ t('admin.redeem.generateCodes') }}
-            </button>
           </div>
-        </div>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -69,7 +76,7 @@
             <input
               data-test="select-all-codes"
               type="checkbox"
-              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand focus:ring-brand"
               :checked="allVisibleSelected"
               @click.stop
               @change="toggleSelectAllVisible($event)"
@@ -80,7 +87,7 @@
             <input
               data-test="select-code"
               type="checkbox"
-              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand focus:ring-brand"
               :checked="selectedCodeIds.has(row.id)"
               @click.stop
               @change="toggleSelectRow(row.id, $event)"
@@ -89,7 +96,7 @@
 
           <template #cell-code="{ value }">
             <div class="flex items-center space-x-2">
-              <code class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ value }}</code>
+              <code class="font-mono text-sm text-foreground">{{ value }}</code>
               <button
                 @click="copyToClipboard(value)"
                 :class="[
@@ -129,11 +136,11 @@
           </template>
 
           <template #cell-value="{ value, row }">
-            <span class="text-sm font-medium text-gray-900 dark:text-white">
+            <span class="text-sm font-medium text-foreground">
               <template v-if="row.type === 'balance'">${{ value.toFixed(2) }}</template>
               <template v-else-if="row.type === 'subscription'">
                 {{ row.validity_days || 30 }} {{ t('admin.redeem.days') }}
-                <span v-if="row.group" class="ml-1 text-xs text-gray-500 dark:text-gray-400"
+                <span v-if="row.group" class="ml-1 text-xs text-muted-foreground"
                   >({{ row.group.name }})</span
                 >
               </template>
@@ -142,28 +149,20 @@
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'unused'
-                  ? 'badge-success'
-                  : value === 'used'
-                    ? 'badge-gray'
-                    : 'badge-danger'
-              ]"
-            >
-              {{ t('admin.redeem.status.' + value) }}
-            </span>
+            <StatusBadge
+              :label="t('admin.redeem.status.' + value)"
+              :tone="value === 'unused' ? 'success' : value === 'used' ? 'neutral' : 'danger'"
+            />
           </template>
 
           <template #cell-used_by="{ value, row }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">
+            <span class="text-sm text-muted-foreground">
               {{ row.user?.email || (value ? t('admin.redeem.userPrefix', { id: value }) : '-') }}
             </span>
           </template>
 
           <template #cell-used_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">{{
+            <span class="text-sm text-muted-foreground">{{
               value ? formatDateTime(value) : '-'
             }}</span>
           </template>
@@ -174,7 +173,7 @@
                 'text-sm',
                 row.status === 'expired'
                   ? 'text-red-600 dark:text-red-400'
-                  : 'text-gray-500 dark:text-dark-400'
+                  : 'text-muted-foreground'
               ]"
             >
               {{ value ? formatDateTime(value) : t('admin.redeem.neverExpires') }}
@@ -198,7 +197,7 @@
                 </svg>
                 <span class="text-xs">{{ t('common.delete') }}</span>
               </button>
-              <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              <span v-else class="text-muted-foreground">-</span>
             </div>
           </template>
         </DataTable>
@@ -207,7 +206,7 @@
       <template #pagination>
         <div
           v-if="selectedCount > 0"
-          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-primary-50 p-3 dark:bg-primary-900/20"
+          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-brand/10 p-3"
         >
           <span class="text-sm font-medium text-primary-900 dark:text-primary-100">
             {{ t('admin.redeem.selectedCount', { count: selectedCount }) }}
@@ -215,7 +214,7 @@
           <div class="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              class="text-xs font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+              class="text-xs font-medium text-brand hover:text-primary-800 dark:hover:text-primary-200"
               @click="clearSelectedCodes"
             >
               {{ t('admin.redeem.clearSelection') }}
@@ -274,12 +273,12 @@
 
     <!-- Generate Codes Dialog -->
     <Teleport to="body">
-      <div v-if="showGenerateDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div v-if="showGenerateDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="fixed inset-0 bg-black/50" @click="showGenerateDialog = false"></div>
         <div
-          class="relative z-10 w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-dark-800"
+          class="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-xl sm:p-5"
         >
-          <h2 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 class="mb-4 text-lg font-semibold text-foreground">
             {{ t('admin.redeem.generateCodesTitle') }}
           </h2>
           <form @submit.prevent="handleGenerateCodes" class="space-y-4">
@@ -367,8 +366,8 @@
                   :class="[
                     'rounded-lg border px-3 py-2 text-sm transition-colors',
                     generateForm.expiry_option === option.value
-                      ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/20 dark:text-primary-300'
-                      : 'border-gray-200 text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:text-gray-300 dark:hover:bg-dark-700'
+                      ? 'border-primary-500 bg-brand/10 text-brand dark:border-primary-400'
+                      : 'border-border text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-dark-700'
                   ]"
                 >
                   {{ option.label }}
@@ -417,23 +416,23 @@
       >
         <div class="fixed inset-0 bg-black/50" @click="closeBatchUpdateDialog"></div>
         <div
-          class="relative z-10 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl dark:bg-dark-800"
+          class="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-xl sm:p-5"
         >
-          <h2 class="mb-1 text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 class="mb-1 text-lg font-semibold text-foreground">
             {{ t('admin.redeem.batchUpdateTitle') }}
           </h2>
-          <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          <p class="mb-4 text-sm text-muted-foreground">
             {{ t('admin.redeem.selectedCount', { count: selectedCount }) }}
           </p>
 
           <form data-test="batch-update-form" class="space-y-4" @submit.prevent="handleBatchUpdate">
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   data-test="batch-field-status"
                   v-model="batchUpdateForm.update_status"
                   type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                 />
                 {{ t('admin.redeem.batchFields.status') }}
               </label>
@@ -446,11 +445,11 @@
             </div>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   v-model="batchUpdateForm.update_expires_at"
                   type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                 />
                 {{ t('admin.redeem.batchFields.expiresAt') }}
               </label>
@@ -469,12 +468,12 @@
             </div>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   data-test="batch-field-notes"
                   v-model="batchUpdateForm.update_notes"
                   type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                 />
                 {{ t('admin.redeem.batchFields.notes') }}
               </label>
@@ -489,11 +488,11 @@
             </div>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   v-model="batchUpdateForm.update_group_id"
                   type="checkbox"
-                  class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                 />
                 {{ t('admin.redeem.batchFields.group') }}
               </label>
@@ -527,17 +526,17 @@
     <Teleport to="body">
       <div v-if="showResultDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="fixed inset-0 bg-black/50" @click="closeResultDialog"></div>
-        <div class="relative z-10 w-full max-w-lg rounded-xl bg-white shadow-xl dark:bg-dark-800">
+        <div class="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
           <!-- Header -->
           <div
-            class="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-dark-600"
+            class="flex items-center justify-between border-b border-border px-5 py-4"
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-success/10"
               >
                 <svg
-                  class="h-5 w-5 text-green-600 dark:text-green-400"
+                  class="h-5 w-5 text-success"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -551,17 +550,17 @@
                 </svg>
               </div>
               <div>
-                <h2 class="text-base font-semibold text-gray-900 dark:text-white">
+                <h2 class="text-base font-semibold text-foreground">
                   {{ t('admin.redeem.generatedSuccessfully') }}
                 </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
+                <p class="text-sm text-muted-foreground">
                   {{ t('admin.redeem.codesCreated', { count: generatedCodes.length }) }}
                 </p>
               </div>
             </div>
             <button
               @click="closeResultDialog"
-              class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-700 dark:hover:text-gray-300"
+              class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Icon name="x" size="md" :stroke-width="2" />
             </button>
@@ -573,13 +572,13 @@
                 readonly
                 :value="generatedCodesText"
                 :style="{ height: textareaHeight }"
-                class="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-sm text-gray-800 focus:outline-none dark:border-dark-600 dark:bg-dark-700 dark:text-gray-200"
+                class="w-full resize-none rounded-lg border border-border bg-muted/40 p-3 font-mono text-sm text-foreground focus:outline-none"
               ></textarea>
             </div>
           </div>
           <!-- Footer -->
           <div
-            class="flex justify-end gap-2 rounded-b-xl border-t border-gray-200 bg-gray-50 px-5 py-4 dark:border-dark-600 dark:bg-dark-700/50"
+            class="flex justify-end gap-2 rounded-b-lg border-t border-border bg-muted/30 px-5 py-4"
           >
             <button
               @click="copyGeneratedCodes"
@@ -633,8 +632,9 @@ import type {
 } from '@/types'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import { PageHeader, Toolbar, StatusBadge } from '@/components/page'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'

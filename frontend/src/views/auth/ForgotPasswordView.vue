@@ -2,28 +2,20 @@
   <AuthLayout variant="recovery">
     <div class="space-y-6">
       <!-- Title -->
-      <div class="auth-heading">
-        <span class="auth-eyebrow">{{ t('publicSite.auth.recoveryEyebrow') }}</span>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          {{ pageCopy.heading }}
-        </h2>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
-          {{ pageCopy.subtitle }}
-        </p>
-      </div>
+      <PageHeader :title="pageCopy.heading" :description="pageCopy.subtitle" :eyebrow="t('publicSite.auth.recoveryEyebrow')" />
 
       <!-- Success State -->
       <div v-if="isSubmitted" class="space-y-6">
-        <div class="rounded-xl border border-green-200 bg-green-50 p-6 dark:border-green-800/50 dark:bg-green-900/20">
+        <div class="rounded-lg border border-success/25 bg-success/10 p-6">
           <div class="flex flex-col items-center gap-4 text-center">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-800/50">
-              <Icon name="checkCircle" size="lg" class="text-green-600 dark:text-green-400" />
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
+              <Icon name="checkCircle" size="lg" class="text-success" />
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-green-800 dark:text-green-200">
+              <h3 class="text-lg font-semibold text-foreground">
                 {{ t('auth.resetEmailSent') }}
               </h3>
-              <p class="mt-2 text-sm text-green-700 dark:text-green-300">
+              <p class="mt-2 text-sm text-muted-foreground">
                 {{ t('auth.resetEmailSentHint') }}
               </p>
             </div>
@@ -33,7 +25,7 @@
         <div class="text-center">
           <router-link
             to="/login"
-            class="inline-flex items-center gap-2 font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+            class="inline-flex items-center gap-2 font-medium text-brand transition-colors hover:text-brand"
           >
             <Icon name="arrowLeft" size="sm" />
             {{ t('auth.backToLogin') }}
@@ -88,11 +80,11 @@
         <Button variant="default"
           type="submit"
           :disabled="isLoading || (turnstileEnabled && !turnstileToken)"
-          class=" w-full"
+          class="w-full"
         >
           <svg
             v-if="isLoading"
-            class="-ml-1 mr-2 h-4 w-4 animate-spin text-white"
+            class="-ml-1 mr-2 h-4 w-4 animate-spin text-brand-foreground"
             fill="none"
             viewBox="0 0 24 24"
           >
@@ -130,6 +122,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/page/PageHeader.vue'
 import { Mail } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input as UiInput } from '@/components/ui/input'

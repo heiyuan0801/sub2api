@@ -1,0 +1,22 @@
+/* Categorical series complement the shared status and brand tokens. */
+:root {
+  --chart-violet: 258 66% 49%;
+  --chart-rose: 326 68% 43%;
+  --chart-teal: 173 76% 32%;
+  --chart-orange: 21 83% 43%;
+  --chart-indigo: 233 59% 51%;
+  --chart-lime: 83 64% 31%;
+  --chart-cyan: 191 79% 33%;
+  --chart-purple: 277 69% 48%;
+}
+
+.dark {
+  --chart-violet: 258 83% 72%;
+  --chart-rose: 326 75% 68%;
+  --chart-teal: 173 64% 48%;
+  --chart-orange: 24 87% 64%;
+  --chart-indigo: 232 79% 73%;
+  --chart-lime: 83 65% 55%;
+  --chart-cyan: 191 76% 53%;
+  --chart-purple: 277 81% 72%;
+}

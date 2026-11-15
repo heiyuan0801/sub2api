@@ -18,8 +18,8 @@
             <Icon name="play" size="md" class="text-white" :stroke-width="2" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-gray-100">{{ account.name }}</div>
-            <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <div class="font-semibold text-foreground">{{ account.name }}</div>
+            <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 class="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium uppercase dark:bg-dark-500"
               >
@@ -177,7 +177,7 @@
       </Teleport>
 
       <!-- Test Info -->
-      <div class="flex items-center justify-between px-1 text-xs text-gray-500 dark:text-gray-400">
+      <div class="flex items-center justify-between px-1 text-xs text-muted-foreground">
         <div class="flex items-center gap-3">
           <span class="flex items-center gap-1">
             <Icon name="grid" size="sm" :stroke-width="2" />
@@ -214,7 +214,7 @@
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : status === 'error'
                   ? 'bg-orange-500 text-white hover:bg-orange-600'
-                  : 'bg-primary-500 text-white hover:bg-primary-600'
+                  : 'bg-brand text-brand-foreground hover:bg-brand/90'
           ]"
         >
           <Icon

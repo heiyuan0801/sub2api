@@ -3,7 +3,7 @@
     <TablePageLayout>
       <template #filters>
         <div class="flex flex-col gap-3">
-          <div class="flex flex-wrap items-center gap-3">
+          <Toolbar>
             <SearchInput
               v-model="filterSearch"
               :placeholder="t('keys.searchPlaceholder')"
@@ -22,13 +22,13 @@
               :options="statusFilterOptions"
               @update:model-value="onStatusFilterChange"
             />
-          </div>
+          </Toolbar>
           <EndpointPopover
             v-if="publicSettings?.api_base_url || (publicSettings?.custom_endpoints?.length ?? 0) > 0"
             :api-base-url="publicSettings?.api_base_url || ''"
             :custom-endpoints="publicSettings?.custom_endpoints || []"
           />
-          <div v-if="selectedIds.length" class="flex flex-wrap items-center gap-3 text-sm">
+          <div v-if="selectedIds.length" class="flex flex-wrap items-center gap-2 rounded-lg border border-brand/25 bg-brand/5 px-3 py-2 text-sm">
             <span class="text-gray-600 dark:text-gray-300">
               {{ t('keys.bulkEdit.selectedCount', { count: selectedIds.length }) }}
             </span>
@@ -48,52 +48,54 @@
       </template>
 
       <template #actions>
-        <div class="flex justify-end gap-3">
-          <button
-            @click="loadApiKeys"
-            :disabled="loading"
-            class="btn btn-secondary"
-            :title="t('common.refresh')"
-          >
-            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-          </button>
-          <div class="relative" ref="columnDropdownRef">
+        <PageHeader :title="t('keys.title')" :description="t('keys.description')">
+          <template #actions>
             <button
-              @click="showColumnDropdown = !showColumnDropdown"
-              class="btn btn-secondary px-2 md:px-3"
-              :title="t('keys.columnSettings')"
+              @click="loadApiKeys"
+              :disabled="loading"
+              class="btn btn-secondary"
+              :title="t('common.refresh')"
             >
-              <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
-              </svg>
-              <span class="hidden md:inline">{{ t('keys.columnSettings') }}</span>
+              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
             </button>
-            <div
-              v-if="showColumnDropdown"
-              class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
-            >
+            <div class="relative" ref="columnDropdownRef">
               <button
-                v-for="col in toggleableColumns"
-                :key="col.key"
-                @click="toggleColumn(col.key)"
-                class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                @click="showColumnDropdown = !showColumnDropdown"
+                class="btn btn-secondary px-2 md:px-3"
+                :title="t('keys.columnSettings')"
               >
-                <span>{{ col.label }}</span>
-                <Icon
-                  v-if="isColumnVisible(col.key)"
-                  name="check"
-                  size="sm"
-                  class="text-primary-500"
-                  :stroke-width="2"
-                />
+                <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
+                </svg>
+                <span class="hidden md:inline">{{ t('keys.columnSettings') }}</span>
               </button>
+              <div
+                v-if="showColumnDropdown"
+                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg"
+              >
+                <button
+                  v-for="col in toggleableColumns"
+                  :key="col.key"
+                  @click="toggleColumn(col.key)"
+                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-muted dark:text-foreground"
+                >
+                  <span>{{ col.label }}</span>
+                  <Icon
+                    v-if="isColumnVisible(col.key)"
+                    name="check"
+                    size="sm"
+                    class="text-brand"
+                    :stroke-width="2"
+                  />
+                </button>
+              </div>
             </div>
-          </div>
-          <button @click="showCreateModal = true" class="btn btn-primary" data-tour="keys-create-btn">
-            <Icon name="plus" size="md" class="mr-2" />
-            {{ t('keys.createKey') }}
-          </button>
-        </div>
+            <button @click="showCreateModal = true" class="btn btn-primary" data-tour="keys-create-btn">
+              <Icon name="plus" size="md" class="mr-2" />
+              {{ t('keys.createKey') }}
+            </button>
+          </template>
+        </PageHeader>
       </template>
 
       <template #table>
@@ -112,7 +114,7 @@
           @sort="handleSort"
         >
           <template #cell-id="{ value }">
-            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">#{{ value }}</span>
+            <span class="font-mono text-xs text-muted-foreground">#{{ value }}</span>
           </template>
 
           <template #cell-key="{ value, row }">
@@ -143,7 +145,7 @@
 
           <template #cell-name="{ value, row }">
             <div class="flex items-center gap-1.5">
-              <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <span class="font-medium text-foreground">{{ value }}</span>
               <span v-if="row.is_aggregate" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs dark:bg-dark-700">{{ t('keys.aggregate.badge', { count: row.aggregate_group_ids?.length || 0 }) }}</span>
               <Icon
                 v-if="row.ip_whitelist?.length > 0 || row.ip_blacklist?.length > 0"
@@ -181,7 +183,7 @@
                 <span v-else class="text-sm text-gray-400 dark:text-dark-500">{{
                   t('keys.noGroup')
                 }}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('keys.selectGroup') }}</span>
+                <span class="text-xs text-muted-foreground">{{ t('keys.selectGroup') }}</span>
                 <svg
                   class="h-3.5 w-3.5 text-gray-400 opacity-60 transition-opacity group-hover/dropdown:opacity-100"
                   fill="none"
@@ -205,7 +207,7 @@
                 'inline-flex min-w-8 items-center justify-center rounded px-2 py-1 text-sm font-semibold tabular-nums',
                 (value ?? 0) > 0
                   ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-800'
-                  : 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-dark-400'
+                  : 'bg-gray-100 text-muted-foreground dark:bg-dark-700'
               ]"
             >
               {{ value ?? 0 }}
@@ -215,35 +217,35 @@
           <template #cell-usage="{ row }">
             <div class="text-sm">
               <div class="flex items-center gap-1.5">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('keys.today') }}:</span>
+                <span class="text-muted-foreground">{{ t('keys.today') }}:</span>
                 <span
                   v-if="usageLoading && !usageStats[row.id]"
                   data-test="usage-pending"
                   class="inline-block h-3 w-14 animate-pulse rounded bg-gray-200 dark:bg-dark-600"
                 />
-                <span v-else class="font-medium text-gray-900 dark:text-white">
+                <span v-else class="font-medium text-foreground">
                   ${{ (usageStats[row.id]?.today_actual_cost ?? 0).toFixed(4) }}
                 </span>
               </div>
               <div class="mt-0.5 flex items-center gap-1.5">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('keys.total') }}:</span>
+                <span class="text-muted-foreground">{{ t('keys.total') }}:</span>
                 <span
                   v-if="usageLoading && !usageStats[row.id]"
                   class="inline-block h-3 w-14 animate-pulse rounded bg-gray-200 dark:bg-dark-600"
                 />
-                <span v-else class="font-medium text-gray-900 dark:text-white">
+                <span v-else class="font-medium text-foreground">
                   ${{ (usageStats[row.id]?.total_actual_cost ?? 0).toFixed(4) }}
                 </span>
               </div>
               <!-- Quota progress (if quota is set) -->
               <div v-if="row.quota > 0" class="mt-1.5">
                 <div class="flex items-center gap-1.5">
-                  <span class="text-gray-500 dark:text-gray-400">{{ t('keys.quota') }}:</span>
+                  <span class="text-muted-foreground">{{ t('keys.quota') }}:</span>
                   <span :class="[
                     'font-medium',
                     row.quota_used >= row.quota ? 'text-red-500' :
                     row.quota_used >= row.quota * 0.8 ? 'text-yellow-500' :
-                    'text-gray-900 dark:text-white'
+                    'text-foreground'
                   ]">
                     ${{ row.quota_used?.toFixed(2) || '0.00' }} / ${{ row.quota?.toFixed(2) }}
                   </span>
@@ -254,7 +256,7 @@
                       'h-full rounded-full transition-all',
                       row.quota_used >= row.quota ? 'bg-red-500' :
                       row.quota_used >= row.quota * 0.8 ? 'bg-yellow-500' :
-                      'bg-primary-500'
+                      'bg-brand'
                     ]"
                     :style="{ width: Math.min((row.quota_used / row.quota) * 100, 100) + '%' }"
                   />
@@ -268,7 +270,7 @@
               <!-- 5h window -->
               <div v-if="row.rate_limit_5h > 0">
                 <div class="flex items-center justify-between text-xs">
-                  <span class="text-gray-500 dark:text-gray-400">5h</span>
+                  <span class="text-muted-foreground">5h</span>
                   <span :class="[
                     'font-medium tabular-nums',
                     row.usage_5h >= row.rate_limit_5h ? 'text-red-500' :
@@ -296,7 +298,7 @@
               <!-- 1d window -->
               <div v-if="row.rate_limit_1d > 0">
                 <div class="flex items-center justify-between text-xs">
-                  <span class="text-gray-500 dark:text-gray-400">1d</span>
+                  <span class="text-muted-foreground">1d</span>
                   <span :class="[
                     'font-medium tabular-nums',
                     row.usage_1d >= row.rate_limit_1d ? 'text-red-500' :
@@ -324,7 +326,7 @@
               <!-- 7d window -->
               <div v-if="row.rate_limit_7d > 0">
                 <div class="flex items-center justify-between text-xs">
-                  <span class="text-gray-500 dark:text-gray-400">7d</span>
+                  <span class="text-muted-foreground">7d</span>
                   <span :class="[
                     'font-medium tabular-nums',
                     row.usage_7d >= row.rate_limit_7d ? 'text-red-500' :
@@ -353,7 +355,7 @@
               <button
                 v-if="row.usage_5h > 0 || row.usage_1d > 0 || row.usage_7d > 0"
                 @click.stop="confirmResetRateLimitFromTable(row)"
-                class="mt-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400"
+                class="mt-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand dark:hover:bg-dark-700"
                 :title="t('keys.resetRateLimitUsage')"
               >
                 <Icon name="refresh" size="xs" />
@@ -366,7 +368,7 @@
           <template #cell-expires_at="{ value }">
             <span v-if="value" :class="[
               'text-sm',
-              new Date(value) < new Date() ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-dark-400'
+              new Date(value) < new Date() ? 'text-red-500 dark:text-red-400' : 'text-muted-foreground'
             ]">
               {{ formatDateTime(value) }}
             </span>
@@ -386,21 +388,21 @@
           </template>
 
           <template #cell-last_used_at="{ value }">
-            <span v-if="value" class="text-sm text-gray-500 dark:text-dark-400">
+            <span v-if="value" class="text-sm text-muted-foreground">
               {{ formatDateTime(value) }}
             </span>
             <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
           </template>
 
           <template #cell-last_used_ip="{ value }">
-            <span v-if="value" class="text-sm text-gray-500 dark:text-dark-400">
+            <span v-if="value" class="text-sm text-muted-foreground">
               {{ value }}
             </span>
             <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
           </template>
 
           <template #cell-created_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">{{ formatDateTime(value) }}</span>
+            <span class="text-sm text-muted-foreground">{{ formatDateTime(value) }}</span>
           </template>
 
           <template #cell-actions="{ row }">
@@ -442,7 +444,7 @@
               <!-- Edit Button -->
               <button
                 @click="editKey(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-brand dark:hover:bg-dark-700"
               >
                 <Icon name="edit" size="sm" />
                 <span class="text-xs">{{ t('common.edit') }}</span>
@@ -462,9 +464,14 @@
             <EmptyState
               :title="t('keys.noKeysYet')"
               :description="t('keys.createFirstKey')"
-              :action-text="t('keys.createKey')"
-              @action="showCreateModal = true"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="showCreateModal = true">
+                  <Icon name="plus" size="sm" class="mr-1.5" />
+                  {{ t('keys.createKey') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
       </template>
@@ -521,7 +528,7 @@
                 @change="selectCreateProvider(provider.value)"
               />
               <span
-                class="key-provider-card flex h-full flex-col items-center gap-2 rounded-xl border border-gray-200 bg-white px-2 py-3 text-center transition-colors peer-checked:border-primary-500 peer-checked:bg-primary-50/60 peer-checked:ring-1 peer-checked:ring-primary-500 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary-500 peer-disabled:opacity-40 dark:border-dark-600 dark:bg-dark-800 dark:peer-checked:border-primary-500 dark:peer-checked:bg-primary-500/10"
+                class="key-provider-card flex h-full flex-col items-center gap-2 rounded-xl border border-border bg-card px-2 py-3 text-center transition-colors peer-checked:border-primary-500 peer-checked:bg-primary-50/60 peer-checked:ring-1 peer-checked:ring-brand peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand peer-disabled:opacity-40 dark:peer-checked:border-primary-500 dark:peer-checked:bg-primary-500/10"
                 :class="provider.count > 0 && 'hover:border-primary-300 dark:hover:border-primary-700'"
               >
                 <span class="flex h-8 items-center justify-center gap-1.5" aria-hidden="true">
@@ -538,7 +545,7 @@
               </span>
               <span
                 v-if="createProvider === provider.value"
-                class="key-provider-check absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary-500 text-white"
+                class="key-provider-check absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand text-brand-foreground"
                 aria-hidden="true"
               >
                 <Icon name="check" size="xs" :stroke-width="3" />
@@ -619,7 +626,7 @@
               @click="formData.use_custom_key = !formData.use_custom_key"
               :class="[
                 'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                formData.use_custom_key ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+                formData.use_custom_key ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
               ]"
             >
               <span
@@ -661,7 +668,7 @@
               @click="formData.enable_ip_restriction = !formData.enable_ip_restriction"
               :class="[
                 'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                formData.enable_ip_restriction ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+                formData.enable_ip_restriction ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
               ]"
             >
               <span
@@ -743,11 +750,11 @@
               <label class="input-label">{{ t('keys.quotaUsed') }}</label>
               <div class="flex items-center gap-2">
                 <div class="flex-1 rounded-lg bg-gray-100 px-3 py-2 dark:bg-dark-700">
-                  <span class="font-medium text-gray-900 dark:text-white">
+                  <span class="font-medium text-foreground">
                     ${{ selectedKey.quota_used?.toFixed(4) || '0.0000' }}
                   </span>
                   <span class="mx-2 text-gray-400">/</span>
-                  <span class="text-gray-500 dark:text-gray-400">
+                  <span class="text-muted-foreground">
                     ${{ selectedKey.quota?.toFixed(2) || '0.00' }}
                   </span>
                 </div>
@@ -773,7 +780,7 @@
               @click="formData.enable_rate_limit = !formData.enable_rate_limit"
               :class="[
                 'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                formData.enable_rate_limit ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+                formData.enable_rate_limit ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
               ]"
             >
               <span
@@ -809,12 +816,12 @@
                       'font-medium',
                       selectedKey.usage_5h >= selectedKey.rate_limit_5h ? 'text-red-500' :
                       selectedKey.usage_5h >= selectedKey.rate_limit_5h * 0.8 ? 'text-yellow-500' :
-                      'text-gray-900 dark:text-white'
+                      'text-foreground'
                     ]">
                       ${{ selectedKey.usage_5h?.toFixed(4) || '0.0000' }}
                     </span>
                     <span class="mx-2 text-gray-400">/</span>
-                    <span class="text-gray-500 dark:text-gray-400">
+                    <span class="text-muted-foreground">
                       ${{ selectedKey.rate_limit_5h?.toFixed(2) || '0.00' }}
                     </span>
                   </div>
@@ -855,12 +862,12 @@
                       'font-medium',
                       selectedKey.usage_1d >= selectedKey.rate_limit_1d ? 'text-red-500' :
                       selectedKey.usage_1d >= selectedKey.rate_limit_1d * 0.8 ? 'text-yellow-500' :
-                      'text-gray-900 dark:text-white'
+                      'text-foreground'
                     ]">
                       ${{ selectedKey.usage_1d?.toFixed(4) || '0.0000' }}
                     </span>
                     <span class="mx-2 text-gray-400">/</span>
-                    <span class="text-gray-500 dark:text-gray-400">
+                    <span class="text-muted-foreground">
                       ${{ selectedKey.rate_limit_1d?.toFixed(2) || '0.00' }}
                     </span>
                   </div>
@@ -901,12 +908,12 @@
                       'font-medium',
                       selectedKey.usage_7d >= selectedKey.rate_limit_7d ? 'text-red-500' :
                       selectedKey.usage_7d >= selectedKey.rate_limit_7d * 0.8 ? 'text-yellow-500' :
-                      'text-gray-900 dark:text-white'
+                      'text-foreground'
                     ]">
                       ${{ selectedKey.usage_7d?.toFixed(4) || '0.0000' }}
                     </span>
                     <span class="mx-2 text-gray-400">/</span>
-                    <span class="text-gray-500 dark:text-gray-400">
+                    <span class="text-muted-foreground">
                       ${{ selectedKey.rate_limit_7d?.toFixed(2) || '0.00' }}
                     </span>
                   </div>
@@ -947,7 +954,7 @@
               @click="formData.enable_expiration = !formData.enable_expiration"
               :class="[
                 'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                formData.enable_expiration ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+                formData.enable_expiration ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
               ]"
             >
               <span
@@ -970,7 +977,7 @@
                 :class="[
                   'rounded-lg px-3 py-1.5 text-sm transition-colors',
                   formData.expiration_preset === days
-                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                    ? 'bg-brand/15 text-primary-700 dark:text-primary-400'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600'
                 ]"
               >
@@ -982,7 +989,7 @@
                 :class="[
                   'rounded-lg px-3 py-1.5 text-sm transition-colors',
                   formData.expiration_preset === 'custom'
-                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                    ? 'bg-brand/15 text-primary-700 dark:text-primary-400'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400 dark:hover:bg-dark-600'
                 ]"
               >
@@ -1003,8 +1010,8 @@
 
             <!-- Current expiration display (only in edit mode) -->
             <div v-if="showEditModal && selectedKey?.expires_at" class="text-sm">
-              <span class="text-gray-500 dark:text-gray-400">{{ t('keys.currentExpiration') }}: </span>
-              <span class="font-medium text-gray-900 dark:text-white">
+              <span class="text-muted-foreground">{{ t('keys.currentExpiration') }}: </span>
+              <span class="font-medium text-foreground">
                 {{ formatDateTime(selectedKey.expires_at) }}
               </span>
             </div>
@@ -1124,25 +1131,25 @@
 	        <div class="grid grid-cols-2 gap-3">
 	          <button
 	            @click="handleCcsClientSelect('claude')"
-	            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+	            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary-500 dark:hover:border-primary-500 hover:bg-brand/10 transition-all"
 	          >
 	            <Icon name="terminal" size="xl" class="text-gray-600 dark:text-gray-400" />
-	            <span class="font-medium text-gray-900 dark:text-white">{{
+	            <span class="font-medium text-foreground">{{
 	              t('keys.ccsClientSelect.claudeCode')
 	            }}</span>
-	            <span class="text-xs text-gray-500 dark:text-gray-400">{{
+	            <span class="text-xs text-muted-foreground">{{
 	              t('keys.ccsClientSelect.claudeCodeDesc')
 	            }}</span>
 	          </button>
 	          <button
 	            @click="handleCcsClientSelect('gemini')"
-	            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+	            class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary-500 dark:hover:border-primary-500 hover:bg-brand/10 transition-all"
 	          >
 	            <Icon name="sparkles" size="xl" class="text-gray-600 dark:text-gray-400" />
-	            <span class="font-medium text-gray-900 dark:text-white">{{
+	            <span class="font-medium text-foreground">{{
 	              t('keys.ccsClientSelect.geminiCli')
 	            }}</span>
-	            <span class="text-xs text-gray-500 dark:text-gray-400">{{
+	            <span class="text-xs text-muted-foreground">{{
 	              t('keys.ccsClientSelect.geminiCliDesc')
 	            }}</span>
 	          </button>
@@ -1162,7 +1169,7 @@
       <div
         v-if="groupSelectorKeyId !== null && dropdownPosition"
         ref="dropdownRef"
-        class="animate-in fade-in slide-in-from-top-2 fixed z-[100000020] w-max max-w-[calc(100vw-16px)] overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5 duration-200 sm:min-w-[380px] dark:bg-dark-800 dark:ring-white/10"
+        class="animate-in fade-in slide-in-from-top-2 fixed z-[100000020] w-max max-w-[calc(100vw-16px)] overflow-hidden rounded-xl bg-card shadow-lg ring-1 ring-black/5 duration-200 sm:min-w-[380px] dark:ring-white/10"
         style="pointer-events: auto !important;"
         :style="{
           top: dropdownPosition.top !== undefined ? dropdownPosition.top + 'px' : undefined,
@@ -1179,7 +1186,7 @@
             <input
               v-model="groupSearchQuery"
               type="text"
-              class="w-full rounded-lg border border-gray-200 bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-primary-300 focus:ring-1 focus:ring-primary-300 dark:border-dark-600 dark:bg-dark-700 dark:text-white dark:placeholder-gray-500 dark:focus:border-primary-600 dark:focus:ring-primary-600"
+              class="w-full rounded-lg border border-border bg-gray-50 py-1.5 pl-8 pr-3 text-sm text-foreground placeholder-gray-400 outline-none focus:border-primary-300 focus:ring-1 focus:ring-primary-300 dark:bg-dark-700 dark:placeholder-gray-500 dark:focus:border-primary-600 dark:focus:ring-primary-600"
               :placeholder="t('keys.searchGroup')"
               @click.stop
             />
@@ -1196,7 +1203,7 @@
               'border-b border-gray-100 last:border-0 dark:border-dark-700',
               selectedKeyForGroup?.group_id === option.value ||
               (!selectedKeyForGroup?.group_id && option.value === null)
-                ? 'bg-primary-50 dark:bg-primary-900/20'
+                ? 'bg-brand/10'
                 : 'hover:bg-gray-100 dark:hover:bg-dark-700'
             ]"
             :title="option.description || undefined"
@@ -1230,6 +1237,7 @@
 </template>
 
 <script setup lang="ts">
+import { EmptyState, PageHeader, Toolbar } from '@/components/page'
 	import { ref, reactive, computed, watch, onMounted, onUnmounted, type ComponentPublicInstance } from 'vue'
 	import { useI18n } from 'vue-i18n'
 	import { useAppStore } from '@/stores/app'
@@ -1240,15 +1248,14 @@ import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 const { t } = useI18n()
 import { keysAPI, authAPI, usageAPI, userGroupsAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
 import BulkEditKeysModal from '@/components/keys/BulkEditKeysModal.vue'
 import AggregateKeyGroups from '@/components/keys/AggregateKeyGroups.vue'
 import MagpieImportModal from '@/components/keys/MagpieImportModal.vue'
-	import DataTable from '@/components/common/DataTable.vue'
+	import DataTable from '@/components/page/AdminDataTable.vue'
 	import Pagination from '@/components/common/Pagination.vue'
 	import BaseDialog from '@/components/common/BaseDialog.vue'
 	import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-	import EmptyState from '@/components/common/EmptyState.vue'
 	import Select from '@/components/common/Select.vue'
 	import SearchInput from '@/components/common/SearchInput.vue'
 	import Icon from '@/components/icons/Icon.vue'
@@ -2154,35 +2161,20 @@ onUnmounted(() => {
 
 <style>
 /* Scope the reference treatment to the API-key editor; other dialogs retain their theme. */
-.key-editor-dialog {
-  --key-accent: #0d9488;
-  --key-border: #cbd5e1;
-  max-height: calc(100dvh - 32px);
-  border-radius: 8px;
-}
-.key-editor-dialog .modal-header { padding: 22px 24px; }
-.key-editor-dialog .modal-body { padding: 20px 24px 24px; scrollbar-width: thin; }
-.key-editor-dialog .modal-footer { padding: 16px 24px; background: #f5f6f7; border-radius: 0 0 8px 8px; }
+.key-editor-dialog { --key-border: hsl(var(--border)); }
+.key-editor-dialog .modal-header { padding: 16px 20px; }
+.key-editor-dialog .modal-body { padding: 16px 20px 20px; scrollbar-width: thin; }
+.key-editor-dialog .modal-footer { padding: 12px 20px; background: hsl(var(--muted) / .35); border-radius: 0 0 0.75rem 0.75rem; }
 .key-editor-dialog .input-label { font-weight: 500; }
 .key-editor-dialog .input,
-.key-editor-dialog .select-trigger { min-height: 42px; border-color: #b4c2d0; border-radius: 8px; box-shadow: none; }
+.key-editor-dialog .select-trigger { min-height: 38px; border-color: var(--key-border); border-radius: 8px; box-shadow: none; }
 .key-editor-dialog .input:focus,
-.key-editor-dialog .select-trigger:focus-visible { border-color: var(--key-accent); outline: 2px solid #0d948826; outline-offset: 2px; }
+.key-editor-dialog .select-trigger:focus-visible { border-color: hsl(var(--brand)); outline: 2px solid hsl(var(--brand) / .25); outline-offset: 2px; }
 .key-editor-dialog .input-hint { font-size: 12px; line-height: 1.5; }
-.key-editor-dialog .key-provider-card { min-height: 96px; justify-content: center; gap: 8px; border-radius: 8px; border-color: var(--key-border); }
-.key-editor-dialog .peer:checked ~ .key-provider-card { background: #f0fdfa; border-color: #14b8a6; box-shadow: 0 0 0 1px #14b8a6; }
-.key-editor-dialog .key-provider-check { background: #14b8a6; }
+.key-editor-dialog .key-provider-card { min-height: 80px; justify-content: center; gap: 6px; border-radius: 8px; border-color: var(--key-border); }
+.key-editor-dialog .peer:checked ~ .key-provider-card { background: hsl(var(--brand) / .08); border-color: hsl(var(--brand)); }
+.key-editor-dialog .key-provider-check { background: hsl(var(--brand)); color: hsl(var(--brand-foreground)); }
 .key-editor-dialog .key-group-control { margin-top: 8px; }
-.key-editor-dialog .modal-footer .btn { min-height: 42px; border-radius: 8px; padding: 9px 20px; }
-.key-editor-dialog .modal-footer .btn-primary { background: var(--key-accent); border-color: var(--key-accent); color: white; }
-.key-editor-dialog .modal-footer .btn-primary:hover { background: #0f766e; }
-.key-editor-dialog .modal-footer .btn-secondary { background: white; border-color: #d8e0e8; }
-.dark .key-editor-dialog { --key-border: #374151; }
-.dark .key-editor-dialog .modal-footer { background: #171b22; }
-.dark .key-editor-dialog .input,
-.dark .key-editor-dialog .select-trigger { border-color: #4b5563; }
-.dark .key-editor-dialog .peer:checked ~ .key-provider-card { background: #0d94881a; }
-.dark .key-editor-dialog .modal-footer .btn-secondary { background: #202630; border-color: #4b5563; }
 @media (max-width: 400px) {
   .key-editor-dialog .modal-body { padding: 16px; }
   .key-editor-dialog .key-provider-card { padding-inline: 4px; }

@@ -2,14 +2,14 @@
   <div :class="flat ? '' : 'card overflow-hidden'">
     <div
       v-if="showIpGeoToolbar"
-      class="flex items-center justify-end gap-2 border-b border-gray-200 px-4 py-2 dark:border-dark-700"
+      class="flex items-center justify-end gap-2 border-b border-border px-4 py-2"
     >
-      <span v-if="pendingIpCount > 0" class="text-xs text-gray-500 dark:text-gray-400">
+      <span v-if="pendingIpCount > 0" class="text-xs text-muted-foreground">
         {{ t('usage.ipGeo.pending', { count: pendingIpCount }) }}
       </span>
       <button
         type="button"
-        class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-primary-400 dark:hover:bg-primary-900/30"
+        class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-brand transition-colors hover:bg-brand/10 disabled:cursor-not-allowed disabled:opacity-50"
         :disabled="ipGeoBatchLoading || pendingIpCount === 0"
         @click="handleBatchFetchIpGeo"
       >
@@ -17,39 +17,40 @@
       </button>
     </div>
     <div class="overflow-auto">
-      <DataTable
+      <component
+        :is="adminPresentation ? AdminDataTable : LegacyDataTable"
         :columns="columns"
         :data="data"
         :loading="loading"
         :server-side-sort="serverSideSort"
         :default-sort-key="defaultSortKey"
         :default-sort-order="defaultSortOrder"
-        @sort="(key, order) => $emit('sort', key, order)"
+        @sort="forwardSort"
       >
         <template #cell-user="{ row }">
           <div class="text-sm">
             <button
               v-if="row.user?.email"
-              class="font-medium text-primary-600 underline decoration-dashed underline-offset-2 transition-colors hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+              class="font-medium text-brand underline decoration-dashed underline-offset-2 transition-colors hover:text-brand"
               @click="$emit('userClick', row.user_id, row.user?.email)"
               :title="t('admin.usage.clickToViewBalance')"
             >
               {{ row.user.email }}
             </button>
-            <span v-else class="font-medium text-gray-900 dark:text-white">-</span>
+            <span v-else class="font-medium text-foreground">-</span>
             <span v-if="row.user?.deleted_at" class="ml-1 inline-flex items-center rounded px-1 py-px text-[10px] font-medium leading-tight bg-rose-100 text-rose-600 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:ring-rose-500/30">
               {{ t('admin.usage.userDeletedBadge') }}
             </span>
-            <span class="ml-1 text-gray-500 dark:text-gray-400">#{{ row.user_id }}</span>
+            <span class="ml-1 text-muted-foreground">#{{ row.user_id }}</span>
           </div>
         </template>
 
         <template #cell-api_key="{ row }">
-          <span class="text-sm text-gray-900 dark:text-white">{{ row.api_key?.name || '-' }}</span>
+          <span class="text-sm text-foreground">{{ row.api_key?.name || '-' }}</span>
         </template>
 
         <template #cell-account="{ row }">
-          <span class="text-sm text-gray-900 dark:text-white">{{ row.account?.name || '-' }}</span>
+          <span class="text-sm text-foreground">{{ row.account?.name || '-' }}</span>
         </template>
 
         <template #cell-model="{ row }">
@@ -57,20 +58,20 @@
             <div v-if="row.model_mapping_chain && row.model_mapping_chain.includes('→')" class="space-y-0.5">
               <div v-for="(step, i) in row.model_mapping_chain.split('→')" :key="i"
                    class="break-all"
-                   :class="i === 0 ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'"
+                   :class="i === 0 ? 'font-medium text-foreground' : 'text-muted-foreground'"
                    :style="i > 0 ? `padding-left: ${i * 0.75}rem` : ''">
                 <span v-if="i > 0" class="mr-0.5">↳</span>{{ step }}
               </div>
             </div>
             <div v-else-if="row.upstream_model && row.upstream_model !== row.model" class="space-y-0.5">
-              <div class="break-all font-medium text-gray-900 dark:text-white">
+              <div class="break-all font-medium text-foreground">
                 {{ row.model }}
               </div>
-              <div class="break-all text-gray-500 dark:text-gray-400">
+              <div class="break-all text-muted-foreground">
                 <span class="mr-0.5">↳</span>{{ row.upstream_model }}
               </div>
             </div>
-            <span v-else class="font-medium text-gray-900 dark:text-white">{{ row.model }}</span>
+            <span v-else class="font-medium text-foreground">{{ row.model }}</span>
             <div
               v-if="row.upstream_model_mismatch === true && row.upstream_response_model"
               class="break-all pl-3 text-[11px]"
@@ -92,14 +93,14 @@
 
         <template #cell-reasoning_effort="{ row }">
           <div v-if="hasReasoningEffortMapping(row)" data-testid="reasoning-effort-cell" class="space-y-0.5 text-xs">
-            <div class="font-medium text-gray-900 dark:text-white">
+            <div class="font-medium text-foreground">
               {{ formatReasoningEffort(row.reasoning_effort) }}
             </div>
-            <div class="text-gray-500 dark:text-gray-400">
+            <div class="text-muted-foreground">
               <span class="mr-0.5">↳</span>{{ formatReasoningEffort(row.upstream_reasoning_effort) }}
             </div>
           </div>
-          <span v-else data-testid="reasoning-effort-cell" class="text-sm text-gray-900 dark:text-white">
+          <span v-else data-testid="reasoning-effort-cell" class="text-sm text-foreground">
             {{ formatReasoningEffort(row.reasoning_effort) }}
           </span>
         </template>
@@ -107,11 +108,11 @@
         <template #cell-endpoint="{ row }">
           <div class="max-w-[320px] space-y-1 text-xs">
             <div class="break-all text-gray-700 dark:text-gray-300">
-              <span class="font-medium text-gray-500 dark:text-gray-400">{{ t('usage.inbound') }}:</span>
+              <span class="font-medium text-muted-foreground">{{ t('usage.inbound') }}:</span>
               <span class="ml-1">{{ row.inbound_endpoint?.trim() || '-' }}</span>
             </div>
             <div v-if="showUpstreamEndpoint" class="break-all text-gray-700 dark:text-gray-300">
-              <span class="font-medium text-gray-500 dark:text-gray-400">{{ t('usage.upstream') }}:</span>
+              <span class="font-medium text-muted-foreground">{{ t('usage.upstream') }}:</span>
               <span class="ml-1">{{ row.upstream_endpoint?.trim() || '-' }}</span>
             </div>
           </div>
@@ -155,7 +156,7 @@
             <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span class="font-medium text-gray-900 dark:text-white">{{ row.image_count }}{{ t('usage.imageUnit') }}</span>
+            <span class="font-medium text-foreground">{{ row.image_count }}{{ t('usage.imageUnit') }}</span>
             <span class="text-gray-400">({{ formatImageBillingSize(row, t) }})</span>
           </div>
           <!-- Token 请求 -->
@@ -164,11 +165,11 @@
               <div class="flex items-center gap-2">
                 <div class="inline-flex items-center gap-1">
                   <Icon name="arrowDown" size="sm" class="h-3.5 w-3.5 text-emerald-500" />
-                  <span class="font-medium text-gray-900 dark:text-white">{{ row.input_tokens?.toLocaleString() || 0 }}</span>
+                  <span class="font-medium text-foreground">{{ row.input_tokens?.toLocaleString() || 0 }}</span>
                 </div>
                 <div class="inline-flex items-center gap-1">
                   <Icon name="arrowUp" size="sm" class="h-3.5 w-3.5 text-violet-500" />
-                  <span class="font-medium text-gray-900 dark:text-white">{{ row.output_tokens?.toLocaleString() || 0 }}</span>
+                  <span class="font-medium text-foreground">{{ row.output_tokens?.toLocaleString() || 0 }}</span>
                 </div>
               </div>
               <div v-if="row.cache_read_tokens > 0 || row.cache_creation_tokens > 0" class="flex items-center gap-2">
@@ -265,7 +266,7 @@
 
         <template #cell-request_id="{ row }">
           <div v-if="row.request_id" class="flex max-w-[160px] items-center gap-1.5">
-            <span class="truncate font-mono text-xs text-gray-500 dark:text-gray-400" :title="row.request_id">
+            <span class="truncate font-mono text-xs text-muted-foreground" :title="row.request_id">
               {{ row.request_id }}
             </span>
             <button
@@ -283,7 +284,7 @@
 
         <template #cell-upstream_request_id="{ row }">
           <div v-if="row.upstream_request_id" class="flex max-w-[160px] items-center gap-1.5">
-            <span class="truncate font-mono text-xs text-gray-500 dark:text-gray-400" :title="row.upstream_request_id">
+            <span class="truncate font-mono text-xs text-muted-foreground" :title="row.upstream_request_id">
               {{ row.upstream_request_id }}
             </span>
             <button
@@ -312,8 +313,11 @@
           <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
         </template>
 
-        <template #empty><EmptyState :message="t('usage.noRecords')" /></template>
-      </DataTable>
+        <template #empty>
+          <EmptyState v-if="adminPresentation" :title="t('usage.noRecords')" />
+          <LegacyEmptyState v-else :message="t('usage.noRecords')" />
+        </template>
+      </component>
     </div>
   </div>
 
@@ -597,8 +601,10 @@ function accountBilled(row: { total_cost?: number | null; account_stats_cost?: n
 
 
 import UsageCacheRate from '@/components/usage/UsageCacheRate.vue'
-import DataTable from '@/components/common/DataTable.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import AdminDataTable from '@/components/page/AdminDataTable.vue'
+import LegacyDataTable from '@/components/common/DataTable.vue'
+import LegacyEmptyState from '@/components/common/EmptyState.vue'
+import { EmptyState } from '@/components/page'
 import IpGeoCell from '@/components/common/IpGeoCell.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { fetchBatch, getEntry } from '@/utils/ipGeoLookup'
@@ -616,6 +622,7 @@ interface Props {
   showUpstreamEndpoint?: boolean
   /** 嵌入统一卡片内使用：去掉自身卡片外观 */
   flat?: boolean
+  adminPresentation?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -632,6 +639,9 @@ const emit = defineEmits<{
   sort: [key: string, order: 'asc' | 'desc']
   ipGeoBatchFailed: []
 }>()
+function forwardSort(key: string, order: 'asc' | 'desc') {
+  emit('sort', key, order)
+}
 const { t } = useI18n()
 const appStore = useAppStore()
 const copiedRequestId = ref<string | null>(null)

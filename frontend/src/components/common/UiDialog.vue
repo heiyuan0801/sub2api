@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FormSheet from '@/components/ui/sheet/FormSheet.vue'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { X } from '@lucide/vue'
@@ -8,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 const props = withDefaults(defineProps<{
   show: boolean
   title: string
+  presentation?: 'dialog' | 'sheet'
   showCloseButton?: boolean
   closeOnEscape?: boolean
   closeOnClickOutside?: boolean
@@ -18,7 +20,7 @@ const { t } = useI18n()
 const widthClass = computed(() => props.width === 'wide' ? 'sm:max-w-3xl' : 'sm:max-w-lg')
 let returnFocus: HTMLElement | null = null
 watch(() => props.show, (open) => {
-  if (open) returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  if (open && props.presentation !== 'sheet') returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
 }, { immediate: true })
 function restoreFocus(event: Event) {
   event.preventDefault()
@@ -27,7 +29,16 @@ function restoreFocus(event: Event) {
 </script>
 
 <template>
-  <Dialog :open="show" @update:open="!$event && emit('close')">
+  <FormSheet
+    v-if="presentation === 'sheet'"
+    :show="show" :title="title" :width="width" :show-close-button="showCloseButton"
+    :close-on-escape="closeOnEscape" :close-on-click-outside="closeOnClickOutside"
+    @close="emit('close')"
+  >
+    <slot />
+    <template v-if="$slots.footer" #footer><slot name="footer" /></template>
+  </FormSheet>
+  <Dialog v-else :open="show" @update:open="!$event && emit('close')">
     <DialogContent :class="[widthClass, 'max-h-[85dvh] overflow-y-auto']" :show-close-button="false" :aria-describedby="undefined"
       @close-auto-focus="restoreFocus"
       @escape-key-down="!closeOnEscape && $event.preventDefault()"

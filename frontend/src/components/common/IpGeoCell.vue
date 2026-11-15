@@ -2,7 +2,7 @@
   <div v-if="entry.status === 'idle'" class="mt-0.5 text-xs">
     <button
       type="button"
-      class="text-primary-600 underline decoration-dashed underline-offset-2 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+      class="text-brand underline decoration-dashed underline-offset-2 hover:text-brand"
       @click="handleFetch"
     >
       {{ t('usage.ipGeo.fetch') }}
@@ -27,7 +27,7 @@
   <div v-else-if="entry.status === 'success'" class="mt-0.5 flex items-center gap-1 text-xs">
     <button
       type="button"
-      class="truncate text-gray-500 underline decoration-dotted underline-offset-2 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
+      class="truncate text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-brand"
       :title="tooltipText"
       @click="handleOpenDetail"
     >
@@ -35,7 +35,7 @@
     </button>
     <button
       type="button"
-      class="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+      class="text-gray-400 hover:text-brand"
       :title="t('usage.ipGeo.refreshTitle')"
       @click="handleRefresh"
     >

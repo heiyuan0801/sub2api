@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-dark-600 dark:bg-dark-800">
+  <div class="rounded-lg border border-border bg-gray-50 p-3 dark:bg-dark-800">
     <!-- Collapsed summary header (clickable) -->
     <div
       class="flex cursor-pointer select-none items-center gap-2"
@@ -40,14 +40,14 @@
 
         <!-- Billing mode badge -->
         <span
-          class="flex-shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+          class="flex-shrink-0 rounded-full bg-brand/15 px-2 py-0.5 text-xs font-medium text-brand"
         >
           {{ billingModeLabel }}
         </span>
       </div>
 
       <!-- Expanded: show the label "Pricing Entry" or similar -->
-      <div v-else class="flex-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+      <div v-else class="flex-1 text-xs font-medium text-muted-foreground">
         {{ t('admin.channels.form.pricingEntry') }}
       </div>
 
@@ -70,7 +70,7 @@
         <!-- Header: Models + Billing Mode -->
         <div class="mt-3 flex items-start gap-2">
           <div class="flex-1">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label class="text-xs font-medium text-muted-foreground">
               {{ t('admin.channels.form.models') }} <span class="text-red-500">*</span>
             </label>
             <ModelTagInput
@@ -82,7 +82,7 @@
             />
           </div>
           <div class="w-40">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label class="text-xs font-medium text-muted-foreground">
               {{ t('admin.channels.form.billingMode') }}
             </label>
             <Select
@@ -102,7 +102,7 @@
         <!-- Token mode -->
         <div v-if="entry.billing_mode === 'token'">
           <!-- Default prices (fallback when no interval matches) -->
-          <label class="mt-3 block text-xs font-medium text-gray-500 dark:text-gray-400">
+          <label class="mt-3 block text-xs font-medium text-muted-foreground">
             {{ t('admin.channels.form.defaultPrices') }}
             <span class="ml-1 font-normal text-gray-400">$/MTok</span>
           </label>
@@ -165,11 +165,11 @@
           <!-- Channel token intervals; the group long-context toggle controls whether tiers apply. -->
           <div v-if="!hideTokenIntervals" class="mt-3">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+              <label class="text-xs font-medium text-muted-foreground">
                 {{ t('admin.channels.form.intervals') }}
                 <span class="ml-1 font-normal text-gray-400">(min, max]</span>
               </label>
-              <button type="button" @click="addInterval" class="text-xs text-primary-600 hover:text-primary-700">
+              <button type="button" @click="addInterval" class="text-xs text-brand hover:text-brand">
                 + {{ t('admin.channels.form.addInterval') }}
               </button>
             </div>
@@ -197,7 +197,7 @@
         <!-- Per-request mode -->
         <div v-else-if="entry.billing_mode === 'per_request'">
           <!-- Default per-request price -->
-          <label class="mt-3 block text-xs font-medium text-gray-500 dark:text-gray-400">
+          <label class="mt-3 block text-xs font-medium text-muted-foreground">
             {{ t('admin.channels.form.defaultPerRequestPrice') }}
             <span class="ml-1 font-normal text-gray-400">$</span>
           </label>
@@ -208,10 +208,10 @@
 
           <!-- Tiers -->
           <div class="mt-3 flex items-center justify-between">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label class="text-xs font-medium text-muted-foreground">
               {{ t('admin.channels.form.requestTiers') }}
             </label>
-            <button type="button" @click="addInterval" class="text-xs text-primary-600 hover:text-primary-700">
+            <button type="button" @click="addInterval" class="text-xs text-brand hover:text-brand">
               + {{ t('admin.channels.form.addTier') }}
             </button>
           </div>
@@ -233,7 +233,7 @@
         <!-- Image/video mode -->
         <div v-else-if="entry.billing_mode === 'image' || entry.billing_mode === 'video'">
           <!-- Default image price (per-request, same as per_request mode) -->
-          <label class="mt-3 block text-xs font-medium text-gray-500 dark:text-gray-400">
+          <label class="mt-3 block text-xs font-medium text-muted-foreground">
             {{ entry.billing_mode === 'video' ? t('admin.channels.form.defaultVideoPrice') : t('admin.channels.form.defaultImagePrice') }}
             <span class="ml-1 font-normal text-gray-400">$</span>
           </label>
@@ -244,10 +244,10 @@
 
           <!-- Image tiers -->
           <div class="mt-3 flex items-center justify-between">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label class="text-xs font-medium text-muted-foreground">
               {{ entry.billing_mode === 'video' ? t('admin.channels.form.videoTiers') : t('admin.channels.form.imageTiers') }}
             </label>
-            <button type="button" @click="addMediaTier" class="text-xs text-primary-600 hover:text-primary-700">
+            <button type="button" @click="addMediaTier" class="text-xs text-brand hover:text-brand">
               + {{ t('admin.channels.form.addTier') }}
             </button>
           </div>
@@ -263,9 +263,9 @@
           </div>
         </div>
 
-        <div class="mt-3 border-t border-gray-200 pt-3 dark:border-dark-600" data-testid="reasoning-effort-multipliers">
+        <div class="mt-3 border-t border-border pt-3" data-testid="reasoning-effort-multipliers">
           <div class="flex items-center justify-between gap-2">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <label class="text-xs font-medium text-muted-foreground">
               {{ t('admin.channels.form.reasoningEffortMultipliers') }}
             </label>
             <button
@@ -279,7 +279,7 @@
           </div>
           <p class="mt-1 text-xs text-gray-400">{{ t('admin.channels.form.reasoningEffortMultipliersHint') }}</p>
           <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            <label v-for="effort in REASONING_EFFORT_LEVELS" :key="effort" class="text-xs text-gray-500 dark:text-gray-400">
+            <label v-for="effort in REASONING_EFFORT_LEVELS" :key="effort" class="text-xs text-muted-foreground">
               {{ effort }}
               <input
                 :value="entry.reasoning_effort_multipliers?.[effort]"

@@ -1,33 +1,22 @@
 <template>
   <section class="mx-auto w-full max-w-6xl space-y-5 px-1 py-2 sm:px-2">
-    <header
-      class="page-header mb-0 flex flex-wrap items-center justify-between gap-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5 dark:bg-dark-800 dark:ring-dark-700 sm:p-6"
-    >
-      <div class="min-w-0">
-        <h2 class="page-title flex items-center gap-2 text-xl font-black text-gray-900 dark:text-white">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
-            <Icon name="chart" size="sm" />
-          </span>
-          {{ t('channelMonitorV2.settings.title') }}
-        </h2>
-        <p class="page-description mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-          {{ t('channelMonitorV2.settings.description') }}
-        </p>
-      </div>
-      <button
-        type="button"
-        class="btn btn-primary"
-        :disabled="saving || !dirty"
-        @click="save"
-      >
-        <Icon name="check" size="sm" />
-        {{ t('channelMonitorV2.settings.save') }}
-      </button>
-    </header>
+    <PageHeader as="h2" :title="t('channelMonitorV2.settings.title')" :description="t('channelMonitorV2.settings.description')">
+      <template #actions>
+        <button
+          type="button"
+          class="btn btn-primary"
+          :disabled="saving || !dirty"
+          @click="save"
+        >
+          <Icon name="check" size="sm" />
+          {{ t('channelMonitorV2.settings.save') }}
+        </button>
+      </template>
+    </PageHeader>
 
     <div
       v-if="!systemModeV2"
-      class="rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-100"
+      class="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning"
       role="status"
     >
       {{
@@ -41,17 +30,17 @@
 
     <div
       v-if="loading"
-      class="card flex min-h-[200px] items-center justify-center !rounded-3xl !border-0 text-sm text-gray-400 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700"
+      class="flex min-h-[200px] items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground"
     >
       <span class="animate-pulse">{{ t('channelMonitorV2.settings.loading') }}</span>
     </div>
 
     <template v-else-if="draft">
-      <div class="card divide-y divide-gray-100 !rounded-3xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:divide-dark-700 dark:!bg-dark-800 dark:ring-dark-700">
+      <div class="rounded-lg border border-border bg-card divide-y divide-border">
         <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
           <div>
-            <strong class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelMonitorV2.settings.enableTitle') }}</strong>
-            <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">
+            <strong class="text-sm font-semibold text-foreground">{{ t('channelMonitorV2.settings.enableTitle') }}</strong>
+            <p class="mt-0.5 text-xs text-muted-foreground">
               {{ t('channelMonitorV2.settings.enableHint') }}
             </p>
           </div>
@@ -59,8 +48,8 @@
         </div>
         <div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
           <div>
-            <strong class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelMonitorV2.settings.refreshTitle') }}</strong>
-            <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">{{ t('channelMonitorV2.settings.refreshHint') }}</p>
+            <strong class="text-sm font-semibold text-foreground">{{ t('channelMonitorV2.settings.refreshTitle') }}</strong>
+            <p class="mt-0.5 text-xs text-muted-foreground">{{ t('channelMonitorV2.settings.refreshHint') }}</p>
           </div>
           <div class="tabs inline-flex w-auto" role="group" :aria-label="t('channelMonitorV2.settings.refreshAria')">
             <button
@@ -83,10 +72,10 @@
         </div>
       </div>
 
-      <div class="card overflow-hidden !rounded-3xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:!bg-dark-800 dark:ring-dark-700">
-        <div class="card-header !py-3">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelMonitorV2.settings.platformsTitle') }}</h3>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">
+      <div class="rounded-lg border border-border bg-card overflow-hidden">
+        <div class="border-b border-border px-4 !py-3">
+          <h3 class="text-sm font-semibold text-foreground">{{ t('channelMonitorV2.settings.platformsTitle') }}</h3>
+          <p class="mt-0.5 text-xs text-muted-foreground">
             {{ t('channelMonitorV2.settings.platformsHint') }}
           </p>
           <div v-if="availablePlatforms.length" class="mt-3 flex flex-wrap items-center gap-2">
@@ -108,14 +97,14 @@
             </button>
           </div>
         </div>
-        <div class="divide-y divide-gray-100 dark:divide-dark-700">
+        <div class="divide-y divide-border">
           <div
             v-for="platform in draft.platforms"
             :key="platform.platform"
             class="grid grid-cols-1 items-center gap-3 px-5 py-3 sm:grid-cols-[auto_7rem_minmax(0,1fr)_auto]"
           >
             <Toggle v-model="platform.enabled" />
-            <strong class="text-sm font-medium text-gray-900 dark:text-white">{{ platformLabel(platform.platform) }}</strong>
+            <strong class="text-sm font-medium text-foreground">{{ platformLabel(platform.platform) }}</strong>
             <input
               class="input"
               :value="platform.models.join(', ')"
@@ -134,11 +123,11 @@
         </div>
       </div>
 
-      <div class="card overflow-hidden !rounded-3xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:!bg-dark-800 dark:ring-dark-700">
-        <div class="card-header flex flex-wrap items-center justify-between gap-2 !py-3">
+      <div class="rounded-lg border border-border bg-card overflow-hidden">
+        <div class="border-b border-border px-4 flex flex-wrap items-center justify-between gap-2 !py-3">
           <div>
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelMonitorV2.settings.groupsTitle') }}</h3>
-            <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">
+            <h3 class="text-sm font-semibold text-foreground">{{ t('channelMonitorV2.settings.groupsTitle') }}</h3>
+            <p class="mt-0.5 text-xs text-muted-foreground">
               {{
                 draft.group_ids.length
                   ? t('channelMonitorV2.settings.groupsSelected', { count: draft.group_ids.length })
@@ -164,7 +153,7 @@
             >
               <input
                 type="checkbox"
-                class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500/40"
+                class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand/40"
                 :checked="draft.group_ids.includes(group.id)"
                 @change="toggleGroup(group.id)"
               />
@@ -176,10 +165,10 @@
         </div>
       </div>
 
-      <div class="card overflow-hidden !rounded-3xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:!bg-dark-800 dark:ring-dark-700">
-        <div class="card-header !py-3">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelMonitorV2.settings.errorsTitle') }}</h3>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">
+      <div class="rounded-lg border border-border bg-card overflow-hidden">
+        <div class="border-b border-border px-4 !py-3">
+          <h3 class="text-sm font-semibold text-foreground">{{ t('channelMonitorV2.settings.errorsTitle') }}</h3>
+          <p class="mt-0.5 text-xs text-muted-foreground">
             {{ t('channelMonitorV2.settings.errorsHint') }}
           </p>
         </div>
@@ -192,7 +181,7 @@
             >
               <input
                 type="checkbox"
-                class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500/40"
+                class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand/40"
                 :checked="isCategoryIgnored(category)"
                 @change="toggleIgnoredCategory(category)"
               />
@@ -203,7 +192,7 @@
             </label>
           </div>
         </div>
-        <div class="border-t border-gray-100 px-5 py-3 text-xs text-gray-500 dark:border-dark-700 dark:text-dark-400">
+        <div class="border-t border-gray-100 px-5 py-3 text-xs text-muted-foreground dark:border-dark-700">
           {{
             t('channelMonitorV2.settings.ignoredSummary', {
               ignored: draft.ignored_error_categories?.length || 0,
@@ -213,10 +202,10 @@
         </div>
       </div>
 
-      <div class="card overflow-hidden !rounded-3xl !border-0 shadow-sm ring-1 ring-gray-900/5 dark:!bg-dark-800 dark:ring-dark-700">
-        <div class="card-header !py-3">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ t('channelMonitorV2.settings.healthTitle') }}</h3>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-dark-400">
+      <div class="rounded-lg border border-border bg-card overflow-hidden">
+        <div class="border-b border-border px-4 !py-3">
+          <h3 class="text-sm font-semibold text-foreground">{{ t('channelMonitorV2.settings.healthTitle') }}</h3>
+          <p class="mt-0.5 text-xs text-muted-foreground">
             {{ t('channelMonitorV2.settings.healthHint') }}
           </p>
         </div>
@@ -264,7 +253,7 @@
         </div>
         <div class="space-y-4 border-t border-gray-100 px-5 py-4 dark:border-dark-700">
           <div class="flex flex-wrap items-start justify-between gap-3"><div><h4 class="text-sm font-semibold">{{ t('channelMonitorV2.settings.generationOverrides') }}</h4><p class="mt-1 text-xs leading-6 text-gray-500">{{ t('channelMonitorV2.settings.generationHint') }}</p></div><button type="button" class="btn btn-secondary btn-sm" :disabled="(draft.health_thresholds.generation_overrides?.length || 0) >= 200" @click="addGenerationOverride">{{ t('channelMonitorV2.settings.addOverride') }}</button></div>
-          <div v-for="(rule, index) in draft.health_thresholds.generation_overrides || []" :key="index" class="grid gap-3 rounded-xl border border-gray-200 p-4 dark:border-dark-600 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="(rule, index) in draft.health_thresholds.generation_overrides || []" :key="index" class="grid gap-3 rounded-xl border border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
             <label><span class="input-label">{{ t('channelMonitorV2.filters.platform') }}</span><select v-model="rule.platform" class="input"><option value="">{{ t('channelMonitorV2.settings.anyPlatform') }}</option><option v-for="option in CONCRETE_PLATFORM_OPTIONS" :key="option.value" :value="option.value">{{ platformLabel(option.value) }}</option></select></label>
             <label><span class="input-label">{{ t('channelMonitorV2.filters.model') }}</span><input v-model.trim="rule.model" class="input" :placeholder="t('channelMonitorV2.settings.exactModel')" maxlength="256" /></label>
             <label><span class="input-label">{{ t('channelMonitorV2.filters.group') }}</span><select v-model.number="rule.group_id" class="input"><option :value="undefined">{{ t('channelMonitorV2.availability.allGroups') }}</option><option v-for="group in groups" :key="group.id" :value="group.id">{{ group.name }}</option></select></label>
@@ -284,7 +273,7 @@
             {{ t('channelMonitorV2.settings.namedModelsCount', { count: namedModelCount }) }}
           </template>
         </div>
-        <div class="rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-gray-600 dark:border-dark-600 dark:bg-dark-800/50 dark:text-gray-300">
+        <div class="rounded-2xl border border-border bg-gray-50/80 px-4 py-3 text-xs text-gray-600 dark:bg-dark-800/50 dark:text-gray-300">
           <p class="font-medium text-gray-800 dark:text-gray-100">{{ t('channelMonitorV2.settings.userContractTitle') }}</p>
           <ul class="mt-1.5 list-disc space-y-0.5 pl-4">
             <li>{{ t('channelMonitorV2.settings.userContract.health') }}</li>
@@ -302,6 +291,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Select from '@/components/common/Select.vue'
+import { PageHeader } from '@/components/page'
 import { CONCRETE_PLATFORM_OPTIONS } from '@/constants/platforms'
 import Toggle from '@/components/common/Toggle.vue'
 import Icon from '@/components/icons/Icon.vue'

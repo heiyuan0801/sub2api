@@ -236,7 +236,7 @@ async function saveAllSettings() {
 </script>
 
 <template>
-  <BaseDialog :show="show" :title="t('admin.ops.settings.title')" width="extra-wide" @close="emit('close')">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show" :title="t('admin.ops.settings.title')" width="extra-wide" @close="emit('close')">
     <div v-if="loading" class="py-10 text-center text-sm text-gray-500">
       {{ t('common.loading') }}
     </div>
@@ -252,7 +252,7 @@ async function saveAllSettings() {
 
       <!-- 数据采集频率 -->
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.settings.dataCollection') }}</h4>
+        <h4 class="mb-3 text-sm font-semibold text-foreground">{{ t('admin.ops.settings.dataCollection') }}</h4>
         <div>
           <label class="input-label">{{ t('admin.ops.settings.evaluationInterval') }}</label>
           <input
@@ -268,12 +268,12 @@ async function saveAllSettings() {
 
       <!-- 预警配置 -->
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.settings.alertConfig') }}</h4>
+        <h4 class="mb-3 text-sm font-semibold text-foreground">{{ t('admin.ops.settings.alertConfig') }}</h4>
 
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="font-medium text-gray-900 dark:text-white">{{ t('admin.ops.settings.enableAlert') }}</label>
+              <label class="font-medium text-foreground">{{ t('admin.ops.settings.enableAlert') }}</label>
             </div>
             <Toggle v-model="emailConfig.alert.enabled" />
           </div>
@@ -302,7 +302,7 @@ async function saveAllSettings() {
                 <button type="button" class="text-blue-700/80 hover:text-blue-900" @click="removeRecipient('alert', email)">×</button>
               </span>
             </div>
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-2 text-xs text-muted-foreground">
               {{ t('admin.ops.settings.recipientsHint') }}
             </p>
           </div>
@@ -316,12 +316,12 @@ async function saveAllSettings() {
 
       <!-- 评估报告配置 -->
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.settings.reportConfig') }}</h4>
+        <h4 class="mb-3 text-sm font-semibold text-foreground">{{ t('admin.ops.settings.reportConfig') }}</h4>
 
         <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <label class="font-medium text-gray-900 dark:text-white">{{ t('admin.ops.settings.enableReport') }}</label>
+              <label class="font-medium text-foreground">{{ t('admin.ops.settings.enableReport') }}</label>
             </div>
             <Toggle v-model="emailConfig.report.enabled" />
           </div>
@@ -350,7 +350,7 @@ async function saveAllSettings() {
                 <button type="button" class="text-blue-700/80 hover:text-blue-900" @click="removeRecipient('report', email)">×</button>
               </span>
             </div>
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-2 text-xs text-muted-foreground">
               {{ t('admin.ops.settings.recipientsHint') }}
             </p>
           </div>
@@ -376,8 +376,8 @@ async function saveAllSettings() {
 
       <!-- 指标阈值配置 -->
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.settings.metricThresholds') }}</h4>
-        <p class="mb-4 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.settings.metricThresholdsHint') }}</p>
+        <h4 class="mb-3 text-sm font-semibold text-foreground">{{ t('admin.ops.settings.metricThresholds') }}</h4>
+        <p class="mb-4 text-xs text-muted-foreground">{{ t('admin.ops.settings.metricThresholdsHint') }}</p>
 
         <div class="space-y-4">
           <div>
@@ -436,7 +436,7 @@ async function saveAllSettings() {
 
       <!-- 高级设置 -->
       <details class="rounded-2xl bg-gray-50 dark:bg-dark-700/50">
-        <summary class="cursor-pointer p-4 text-sm font-semibold text-gray-900 dark:text-white">
+        <summary class="cursor-pointer p-4 text-sm font-semibold text-foreground">
           {{ t('admin.ops.settings.advancedSettings') }}
         </summary>
         <div class="space-y-4 px-4 pb-4">

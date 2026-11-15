@@ -33,7 +33,7 @@
       <p class="input-hint">{{ t("admin.groups.form.maxReasoningEffortOverLimitHint") }}</p>
     </div>
 
-    <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+    <div class="border-t border-border pt-4">
       <div class="mb-3 flex items-center justify-between gap-3">
         <div>
           <label class="input-label mb-0">
@@ -45,7 +45,7 @@
         </div>
         <button
           type="button"
-          class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50 hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 dark:text-primary-400 dark:hover:bg-primary-900/20 dark:hover:text-primary-300"
+          class="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-brand transition-colors hover:bg-brand/10 hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
           @click="addGroup"
         >
           <Icon name="plus" size="sm" />
@@ -57,7 +57,7 @@
         <div
           v-for="group in mappings"
           :key="group.id"
-          class="space-y-3 rounded-lg border border-gray-200 bg-gray-50/40 p-3 dark:border-dark-600 dark:bg-dark-800/40"
+          class="space-y-3 rounded-lg border border-border bg-gray-50/40 p-3 dark:bg-dark-800/40"
         >
           <div
             class="grid grid-cols-1 items-start gap-3 md:grid-cols-[minmax(0,1fr)_1.25rem_minmax(0,1fr)_2.75rem]"
@@ -194,7 +194,7 @@
 
           <button
             type="button"
-            class="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-primary-600 transition-colors hover:text-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 dark:text-primary-400 dark:hover:text-primary-300"
+            class="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium text-brand transition-colors hover:text-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
             @click="addPair(group.id)"
           >
             <Icon name="plus" size="sm" />

@@ -287,15 +287,14 @@ function navigateTimeline(event: KeyboardEvent, entry: CardEntry) {
 .channel-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; margin-top: .85rem; padding: 1.2rem .15rem; border-block: 1px solid var(--channel-border); }
 .channel-metrics dt { color: var(--channel-muted); font-size: .68rem; font-weight: 600; text-transform: uppercase; }
 .channel-metrics dd { margin-top: .35rem; font: 700 clamp(.9rem, 1.5vw, 1.2rem) / 1.35 ui-monospace, monospace; overflow-wrap: anywhere; }
-.tone-healthy { color: #047857; } .tone-warning { color: #995a0c; } .tone-critical { color: #b91c1c; } .tone-unknown { color: var(--channel-muted); }
-.dark .tone-healthy { color: #6ee7b7; } .dark .tone-warning { color: #fcd34d; } .dark .tone-critical { color: #fda4af; }
+.tone-healthy { color: var(--channel-healthy, hsl(var(--success))); } .tone-warning { color: var(--channel-warning, hsl(var(--warning))); } .tone-critical { color: var(--channel-critical, hsl(var(--danger))); } .tone-unknown { color: var(--channel-muted); }
 .timeline { margin-top: .8rem; }
 .timeline-heading, .timeline-axis { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .2rem .5rem; color: var(--channel-muted); font-size: .67rem; }
 .timeline-heading { font-weight: 600; }
 .timeline-axis { margin-top: .25rem; text-transform: uppercase; }
 .timeline-track { position: relative; display: grid; align-items: end; gap: 2px; height: 1.35rem; margin-top: .35rem; border-radius: 2px; }
 .timeline-bucket { height: 100%; border-radius: 2px; cursor: pointer; }
-.health-healthy { background: #00976e; } .health-warning { background: #f9c32f; } .health-critical { background: #ef4444; } .health-unknown { background: var(--channel-gap); }
+.health-healthy { background: var(--channel-healthy, hsl(var(--success))); } .health-warning { background: var(--channel-warning, hsl(var(--warning))); } .health-critical { background: var(--channel-critical, hsl(var(--danger))); } .health-unknown { background: var(--channel-gap); }
 .timeline-bucket.health-warning { height: 65%; } .timeline-bucket.health-critical { height: 43%; } .timeline-bucket.health-unknown { height: 22%; }
 .bucket-selected { outline: 1px solid var(--channel-text); outline-offset: 1px; }
 .bucket-tooltip { position: absolute; z-index: 2; inset-inline: 0; bottom: calc(100% + .5rem); width: max-content; max-width: 100%; padding: .55rem .65rem; border: 1px solid var(--channel-border); border-radius: 6px; background: var(--channel-surface); color: var(--channel-text); box-shadow: 0 3px 12px rgb(15 23 42 / 15%); font-size: .7rem; line-height: 1.55; white-space: pre-line; overflow-wrap: anywhere; pointer-events: none; }

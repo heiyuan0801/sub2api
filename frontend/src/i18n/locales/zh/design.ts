@@ -16,6 +16,62 @@ export default {
     "charts": "用量分析",
     "hideCharts": "收起分析",
     "showCharts": "展开分析",
-    "consoleDescription": "管理密钥、查看用量，让每一次调用清晰可见。"
+    "consoleDescription": "管理密钥、查看用量，让每一次调用清晰可见。",
+    "pagination": {
+      "label": "分页",
+      "first": "第一页",
+      "last": "最后一页",
+      "previous": "上一页",
+      "next": "下一页",
+      "ellipsis": "更多页"
+    },
+    "table": {
+      "columns": "显示列",
+      "compactRows": "紧凑行距",
+      "selected": "已选 {count} 项",
+      "selectPage": "选择本页全部行",
+      "selectRow": "选择第 {row} 行",
+      "empty": "没有找到结果。"
+    },
+    "command": {
+      "label": "命令面板",
+      "description": "搜索页面或操作。",
+      "placeholder": "搜索页面或操作…",
+      "empty": "没有匹配的命令。"
+    },
+    "toast": {
+      "notifications": "通知"
+    },
+    "page": {
+      "filters": "搜索和筛选"
+    },
+    "shell": {
+      "operations": "运营",
+      "resources": "资源",
+      "billing": "用户与计费",
+      "system": "内容与系统",
+      "navigation": "控制台导航",
+      "navigationDescription": "打开控制台中的页面。",
+      "breadcrumb": "当前位置",
+      "pages": "页面",
+      "actions": "操作",
+      "toggleSidebar": "切换侧栏",
+      "choose": "选择",
+      "openItem": "打开",
+      "togglePanel": "打开或关闭命令面板"
+    },
+    "accountForm": {
+      "basic": "基本信息",
+      "credentials": "凭据",
+      "scheduling": "调度与分组",
+      "proxy": "代理与高级",
+      "averageFirstToken": "平均首字耗时",
+      "todayFailed": "今日失败",
+      "lastUpstreamBalance": "最近上游余额",
+      "cacheHitRate": "缓存命中率"
+    },
+    "settings": {
+      "unsavedChanges": "有未保存的修改"
+    }
   }
 }

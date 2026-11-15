@@ -13,91 +13,82 @@
   </div>
 
   <!-- Compact Home Page -->
-  <div
-    v-else-if="compactHomeEnabled"
-    data-testid="compact-home"
-    class="flex min-h-screen flex-col bg-gray-50 text-gray-900 dark:bg-dark-950 dark:text-white"
-  >
-    <header class="border-b border-gray-200 px-4 py-4 sm:px-6 dark:border-dark-800">
-      <nav class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 sm:gap-4">
-        <div class="flex min-w-0 flex-1 items-center gap-3">
-          <img
-            :src="siteLogo || '/logo.svg'"
-            alt="Logo"
-            class="h-9 w-9 shrink-0 rounded-lg object-contain"
-          />
-          <span class="min-w-0 truncate text-base font-semibold">{{ siteName }}</span>
-        </div>
-        <div class="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
-          <LocaleSwitcher />
-          <a
-            v-if="docUrl"
-            :href="docUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-dark-400 dark:hover:bg-dark-800"
-            :title="t('home.viewDocs')"
-          >
-            <Icon name="book" size="md" />
-          </a>
-          <RouterLink v-else to="/docs" :title="t('docs.title')" :aria-label="t('docs.title')" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-dark-400 dark:hover:bg-dark-800">
-            <Icon name="book" size="md" />
-          </RouterLink>
-          <router-link
-            v-if="showModelPlazaEntry"
-            to="/model-plaza"
-            class="flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
-            :title="t('nav.modelPlaza')"
-          >
-            <Icon name="grid" size="md" />
-            <span class="hidden sm:inline">{{ t('nav.modelPlaza') }}</span>
-          </router-link>
-          <button
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:text-dark-400 dark:hover:bg-dark-800"
-            :title="isDark ? t('home.switchToLight') : t('home.switchToDark')"
-            @click="toggleTheme"
-          >
-            <Icon v-if="isDark" name="sun" size="md" />
-            <Icon v-else name="moon" size="md" />
-          </button>
-          <router-link
-            :to="isAuthenticated ? dashboardPath : '/login'"
-            class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
-          >
-            {{ isAuthenticated ? t('home.dashboard') : t('home.login') }}
-          </router-link>
-        </div>
-      </nav>
-    </header>
+  <SiteLayout v-else-if="compactHomeEnabled" surface="canvas" data-testid="compact-home">
+    <template #header>
+      <SiteHeader class="px-4 py-3 sm:px-6">
+        <nav class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <img
+              :src="siteLogo || '/logo.svg'"
+              alt="Logo"
+              class="h-9 w-9 shrink-0 rounded-lg object-contain"
+            />
+            <span class="min-w-0 truncate text-base font-semibold">{{ siteName }}</span>
+          </div>
+          <div class="flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2">
+            <LocaleSwitcher />
+            <a
+              v-if="docUrl"
+              :href="docUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+              :title="t('home.viewDocs')"
+            >
+              <Icon name="book" size="md" />
+            </a>
+            <RouterLink v-else to="/docs" :title="t('docs.title')" :aria-label="t('docs.title')" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
+              <Icon name="book" size="md" />
+            </RouterLink>
+            <router-link
+              v-if="showModelPlazaEntry"
+              to="/model-plaza"
+              class="flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              :title="t('nav.modelPlaza')"
+            >
+              <Icon name="grid" size="md" />
+              <span class="hidden sm:inline">{{ t('nav.modelPlaza') }}</span>
+            </router-link>
+            <SiteThemeToggle :light-label="t('home.switchToLight')" :dark-label="t('home.switchToDark')" />
+            <router-link
+              :to="isAuthenticated ? dashboardPath : '/login'"
+              class="inline-flex min-h-9 shrink-0 items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {{ isAuthenticated ? t('home.dashboard') : t('home.login') }}
+            </router-link>
+          </div>
+        </nav>
+      </SiteHeader>
+    </template>
 
     <main class="flex min-w-0 flex-1 items-center justify-center px-4 py-16 sm:px-6">
-      <div class="min-w-0 max-w-2xl text-center">
+      <div class="min-w-0 w-full max-w-2xl rounded-xl border border-border bg-card p-7 text-center sm:p-12">
         <img
           :src="siteLogo || '/logo.svg'"
           alt="Logo"
-          class="mx-auto mb-6 h-20 w-20 rounded-2xl object-contain"
+          class="mx-auto mb-5 size-16 rounded-xl border border-border bg-background object-contain p-1.5"
         />
-        <h1 class="[overflow-wrap:anywhere] text-3xl font-bold md:text-4xl">{{ siteName }}</h1>
-        <p class="mt-4 whitespace-pre-wrap [overflow-wrap:anywhere] text-base text-gray-600 dark:text-dark-300">{{ siteSubtitle }}</p>
+        <h1 class="[overflow-wrap:anywhere] text-3xl font-semibold tracking-tight md:text-4xl">{{ siteName }}</h1>
+        <p class="mt-3 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-6 text-muted-foreground sm:text-base">{{ siteSubtitle }}</p>
         <router-link
           :to="isAuthenticated ? dashboardPath : '/login'"
-          class="mt-8 inline-flex min-h-10 items-center justify-center rounded-lg bg-primary-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
+          class="mt-6 inline-flex min-h-10 items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-brand-foreground hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {{ isAuthenticated ? t('home.goToDashboard') : t('home.login') }}
         </router-link>
       </div>
     </main>
 
-    <footer class="min-w-0 border-t border-gray-200 px-4 py-5 text-center text-sm text-gray-500 [overflow-wrap:anywhere] sm:px-6 dark:border-dark-800 dark:text-dark-400">
-      &copy; {{ currentYear }} {{ siteName }}
-    </footer>
-  </div>
+    <template #footer>
+      <SiteFooter class="min-w-0 px-4 py-4 text-center text-xs [overflow-wrap:anywhere] sm:px-6">
+        &copy; {{ currentYear }} {{ siteName }}
+      </SiteFooter>
+    </template>
+  </SiteLayout>
 
   <!-- Default public home; custom and compact home settings take precedence. -->
-  <div v-else class="public-home">
-    <PublicSiteHeader />
-
-    <main>
+  <PublicSiteLayout v-else class="public-home" footer-variant="home">
+    <main class="flex-1">
       <section class="market-home-hero" aria-labelledby="hero-heading">
         <div class="market-home-shell">
           <div class="market-home-copy">
@@ -303,9 +294,7 @@
       </section>
 
     </main>
-
-    <PublicSiteFooter variant="home" />
-  </div>
+  </PublicSiteLayout>
 </template>
 
 <script setup lang="ts">
@@ -317,8 +306,11 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
-import PublicSiteHeader from '@/components/public/PublicSiteHeader.vue'
-import PublicSiteFooter from '@/components/public/PublicSiteFooter.vue'
+import PublicSiteLayout from '@/components/site-shell/PublicSiteLayout.vue'
+import SiteLayout from '@/components/site-shell/SiteLayout.vue'
+import SiteHeader from '@/components/site-shell/SiteHeader.vue'
+import SiteFooter from '@/components/site-shell/SiteFooter.vue'
+import SiteThemeToggle from '@/components/site-shell/SiteThemeToggle.vue'
 import { useClipboard } from '@/composables/useClipboard'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
@@ -542,22 +534,7 @@ function handleProtocolKeydown(event: KeyboardEvent, protocol: Protocol) {
   document.getElementById(`protocol-tab-${activeProtocol.value}`)?.focus()
 }
 
-// The compact variant keeps its existing theme control.
-const isDark = ref(document.documentElement.classList.contains('dark'))
-function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-}
-function initTheme() {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  }
-}
 onMounted(() => {
-  initTheme()
   authStore.checkAuth()
   if (!appStore.publicSettingsLoaded) appStore.fetchPublicSettings()
   featuredModelMounted = true
@@ -573,50 +550,23 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .public-home {
-  --home-bg: #fff;
-  --home-text: #171717;
-  --home-muted: #737373;
-  --home-border: #e0e6f2;
-  --lower-surface: #f5f7fd;
-  --lower-muted: #546179;
-  --lower-glow: #e1e7ff;
-  --lower-accent: #4236cd;
-  --lower-icon-bg: #eaf0ff;
-  --lower-icon-border: #dce5ff;
-  --lower-violet-bg: #f1ebff;
-  --lower-violet-border: #e8ddff;
-  --lower-violet-text: #6740b0;
-  --lower-teal-bg: #e7f8f6;
-  --lower-teal-border: #d5efed;
-  --lower-teal-text: #176c60;
+  --home-bg: hsl(var(--background));
+  --home-card: hsl(var(--card));
+  --home-text: hsl(var(--foreground));
+  --home-muted: hsl(var(--muted-foreground));
+  --home-border: hsl(var(--border));
+  --lower-surface: hsl(var(--canvas));
+  --lower-muted: hsl(var(--muted-foreground));
+  --lower-accent: hsl(var(--brand));
+  --lower-icon-bg: hsl(var(--brand) / .08);
+  --lower-icon-border: hsl(var(--brand) / .18);
+  --lower-teal-text: hsl(var(--success));
   min-height: 100vh;
-  background: var(--home-bg);
-  color: var(--home-text);
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-.dark .public-home {
-  --home-bg: #111214;
-  --home-text: #f5f5f5;
-  --home-muted: #a3a3a3;
-  --home-border: #303a52;
-  --lower-surface: #1a2133;
-  --lower-muted: #abb8d0;
-  --lower-glow: #273860;
-  --lower-accent: #c0c8ff;
-  --lower-icon-bg: #262f51;
-  --lower-icon-border: #37466d;
-  --lower-violet-bg: #32274d;
-  --lower-violet-border: #4b386a;
-  --lower-violet-text: #dfccff;
-  --lower-teal-bg: #203c40;
-  --lower-teal-border: #2f5357;
-  --lower-teal-text: #9be4d8;
 }
 .public-home main { min-width: 0; }
 .public-home a, .public-home button { -webkit-tap-highlight-color: transparent; }
 .public-home a:focus-visible, .public-home button:focus-visible, .example-code:focus-visible {
-  outline: 2px solid var(--home-text);
+  outline: 2px solid hsl(var(--ring));
   outline-offset: 4px;
 }
 /* Shared styles for the sections below the hero. */
@@ -627,11 +577,11 @@ onBeforeUnmount(() => {
 .service-card {
   min-width: 0;
   border: 1px solid var(--home-border);
-  border-radius: 16px;
-  padding: 24px;
-  background: linear-gradient(145deg, var(--lower-surface), var(--home-bg) 56%);
+  border-radius: var(--radius);
+  padding: 20px;
+  background: var(--home-card);
   color: var(--home-text);
-  box-shadow: 0 4px 12px rgb(22 42 80 / 3%);
+  box-shadow: none;
 }
 .service-icon, .step-icon, .application-icon {
   display: grid;
@@ -644,21 +594,11 @@ onBeforeUnmount(() => {
   background: var(--lower-icon-bg);
   color: var(--lower-accent);
 }
-.service-card:nth-child(3n + 2) .service-icon, .step-card:nth-child(2) .step-icon, .application-card:nth-child(2n) .application-icon {
-  border-color: var(--lower-violet-border);
-  background: var(--lower-violet-bg);
-  color: var(--lower-violet-text);
-}
-.service-card:nth-child(3n) .service-icon, .step-card:nth-child(3) .step-icon, .application-card:nth-child(3) .application-icon {
-  border-color: var(--lower-teal-border);
-  background: var(--lower-teal-bg);
-  color: var(--lower-teal-text);
-}
 .service-card h3, .application-card h3 { margin-top: 16px; font-size: 17px; font-weight: 650; line-height: 1.5; }
 .service-card p, .application-card p { margin-top: 7px; color: var(--lower-muted); font-size: 14px; line-height: 1.7; }
 .quickstart-section {
   border-block: 1px solid var(--home-border);
-  background: radial-gradient(ellipse at 100% 0%, var(--lower-glow), transparent 65%), var(--lower-surface);
+  background: var(--lower-surface);
 }
 .quickstart-layout { display: grid; gap: 18px; }
 .steps-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -671,18 +611,18 @@ onBeforeUnmount(() => {
   padding: 16px;
   border: 1px solid var(--home-border);
   border-radius: 13px;
-  background: var(--home-bg);
-  transition: border-color .18s, box-shadow .18s;
+  background: var(--home-card);
+  transition: border-color .18s, background .18s;
 }
 .step-card:hover, .provider-tile:hover {
   border-color: var(--lower-accent);
-  box-shadow: 0 4px 16px rgb(76 79 187 / 8%);
+  background: hsl(var(--brand) / .035);
 }
 .step-card > div { flex: 1; min-width: 0; }
 .step-card h3 { font-size: 15px; font-weight: 650; line-height: 1.5; }
 .step-card p { margin-top: 5px; color: var(--lower-muted); font-size: 13px; line-height: 1.6; }
 .step-arrow { flex: none; color: var(--lower-accent); }
-.code-panel { min-width: 0; border: 1px solid var(--home-border); border-radius: 16px; background: var(--home-bg); box-shadow: 0 10px 30px rgb(22 42 80 / 5%); scroll-margin-top: 80px; }
+.code-panel { min-width: 0; border: 1px solid var(--home-border); border-radius: var(--radius); background: var(--home-card); scroll-margin-top: 80px; }
 .code-window-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px 16px; padding: 12px 18px; border-bottom: 1px solid var(--home-border); }
 .endpoint-note { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 9px; min-width: 0; color: var(--lower-muted); font-size: 12px; }
 .endpoint-note > svg { flex: none; color: var(--lower-accent); }
@@ -708,7 +648,7 @@ onBeforeUnmount(() => {
 .response-status small { color: var(--lower-muted); font-size: 11px; }
 .example-note { padding: 1px 18px 11px; color: var(--lower-muted); font-size: 11px; line-height: 1.5; }
 .application-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
-.application-card { min-width: 0; padding: 18px; border: 1px solid var(--home-border); border-radius: 13px; background: var(--lower-surface); }
+.application-card { min-width: 0; padding: 18px; border: 1px solid var(--home-border); border-radius: var(--radius); background: var(--home-card); }
 .application-card h3 { font-size: 15px; }
 .application-card p { font-size: 13px; }
 .market-home-section.start-section { padding-top: 12px; }
@@ -718,9 +658,9 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 24px;
   padding: clamp(24px, 4vw, 52px);
-  border: 1px solid var(--lower-icon-border);
-  border-radius: 20px;
-  background: radial-gradient(ellipse at 85% 15%, var(--lower-glow), transparent 70%), var(--lower-surface);
+  border: 1px solid var(--home-border);
+  border-radius: var(--radius);
+  background: var(--lower-surface);
 }
 .start-panel h2 { overflow-wrap: anywhere; font-size: clamp(25px, 3vw, 38px); font-weight: 730; line-height: 1.2; letter-spacing: -.035em; }
 .start-panel p { margin-top: 10px; color: var(--lower-muted); font-size: 14px; line-height: 1.7; }
@@ -744,41 +684,38 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .public-home *, .public-home *::before, .public-home *::after { transition: none !important; scroll-behavior: auto !important; }
 }
-.market-home-hero { position:relative; min-height:610px; display:flex; padding:0; border:0; text-align:left; background:radial-gradient(ellipse at 81% 82%,#e3e7ff 0,transparent 59%),linear-gradient(180deg,#f3f8fc,#edf1fc); overflow:hidden; }
-.market-home-shell { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.16fr); align-items:center; gap:12px; width:min(100%,1536px); padding:55px 58px 60px; margin:auto; }
-.market-home-copy { position:relative; z-index:1; color:#141923; }
-.market-home-copy h1 { margin:0; max-width:650px; font-size:clamp(38px,3.65vw,54px); font-weight:760; line-height:1.18; letter-spacing:-.04em; }
-.market-lead { max-width:600px; margin-top:20px; color:#566379; font-size:15px; line-height:1.9; overflow-wrap:anywhere; }
-.market-home-art { width:112%; max-width:none; height:auto; margin-left:-5%; object-fit:contain; mask-image:radial-gradient(ellipse 72% 74% at center,#000 45%,transparent 84%); }
-.market-new { display:inline-flex; flex-wrap:wrap; gap:7px; align-items:center; max-width:100%; padding:6px 10px; border:1px solid #cdd8fe; border-radius:100px; margin-bottom:19px; font-size:12px; color:#423bd1; background:#eff2ff; overflow-wrap:anywhere; }
-.market-new:hover { background:#e1e6ff; }
+.market-home-hero { display:flex; min-height:440px; overflow:hidden; border-bottom:1px solid var(--home-border); background:var(--lower-surface); }
+.market-home-shell { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; gap:24px; width:min(100%,1440px); padding:48px 40px; margin:auto; }
+.market-home-copy { min-width:0; color:var(--home-text); }
+.market-home-copy h1 { margin:0; max-width:650px; font-size:clamp(34px,4vw,50px); font-weight:680; line-height:1.14; letter-spacing:-.04em; overflow-wrap:anywhere; }
+.market-lead { max-width:56ch; margin-top:16px; color:var(--home-muted); font-size:15px; line-height:1.75; overflow-wrap:anywhere; }
+.market-home-art { width:100%; height:auto; max-height:405px; object-fit:contain; mask-image:radial-gradient(ellipse 76% 81% at center,#000 42%,transparent 82%); }
+.market-new { display:inline-flex; flex-wrap:wrap; gap:7px; align-items:center; max-width:100%; padding:5px 9px; border:1px solid var(--home-border); border-radius:100px; margin-bottom:16px; font-size:12px; color:var(--lower-accent); background:var(--home-card); overflow-wrap:anywhere; }
+.market-new:hover { background:var(--lower-icon-bg); }
 .market-hero-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
-.market-primary,.market-secondary { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:46px; padding:0 20px; border-radius:8px; font-size:15px; font-weight:650; }
-.market-primary { color:white; background:linear-gradient(95deg,#2e50fb,#805ffa); }
-.market-primary:hover { filter:brightness(1.08); }
-.market-secondary { color:#4139e0; border:1px solid #6659fc; background:#ffffff4d; }
-.market-secondary:hover { background:#fff; }
-.market-totals { display:flex; flex-wrap:wrap; gap:20px 36px; margin-top:44px; }
-.market-totals dd { font-size:25px; font-weight:750; line-height:1.3; }
-.market-totals dt { margin-top:4px; font-size:13px; color:#566379; }
-.market-home-section { padding:54px 0 58px; }
-.market-home-section .home-container { width:100%; max-width:1536px; padding:0 58px; margin-inline:auto; }
-.featured-section { background:linear-gradient(180deg,var(--home-bg),#f4f7fc); }
-.provider-section { background:#f4f7fc; }
-.market-section-title { text-align:center; margin-bottom:34px; }
-.market-section-title h2 { font-size:clamp(28px,3.3vw,40px); font-weight:730; letter-spacing:-.035em; }
-.market-section-title p { margin-top:10px; color:var(--home-muted); font-size:14px; line-height:1.7; }
-.market-section-title a { display:inline-flex; align-items:center; gap:4px; margin-left:7px; color:var(--home-text); font-weight:650; }
-.featured-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
-.featured-tile { min-width:0; padding:18px; border-radius:12px; background:radial-gradient(ellipse at 85% 14%,#d8e4ff,transparent 70%),linear-gradient(130deg,#92dbff,#4361fc 68%,#dbdfff); }
-.featured-tile:nth-child(2) { background:radial-gradient(ellipse at 75% 15%,#f4d8ff,transparent 70%),linear-gradient(145deg,#d9c5fe,#7844fa 70%,#f9bcfc); }
-.featured-tile:nth-child(3) { background:linear-gradient(140deg,#a480dc,#ffd0e8 46%,#b19ded); }
-.featured-tile:nth-child(4) { background:linear-gradient(140deg,#a9dcff,#82e4ef 46%,#b6f4cd); }
-.featured-tile article { height:100%; padding:20px; border-radius:10px; background:var(--home-bg); color:var(--home-text); transition:transform .18s; }
-.featured-tile:hover article { transform:translateY(-2px); }
-.featured-tile h3 { display:flex; align-items:center; gap:9px; font-size:20px; font-weight:680; overflow-wrap:anywhere; }
+.market-primary,.market-secondary { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; padding:0 14px; border-radius:calc(var(--radius) - 2px); font-size:14px; font-weight:550; }
+.market-primary { color:hsl(var(--brand-foreground)); background:hsl(var(--brand)); }
+.market-primary:hover { background:hsl(var(--brand) / .9); }
+.market-secondary { color:var(--home-text); border:1px solid var(--home-border); background:var(--home-card); }
+.market-secondary:hover { background:hsl(var(--muted)); }
+.market-totals { display:flex; flex-wrap:wrap; gap:16px 24px; max-width:max-content; margin-top:26px; padding-top:14px; border-top:1px solid var(--home-border); }
+.market-totals dd { font-size:21px; font-weight:600; line-height:1.3; font-variant-numeric:tabular-nums; }
+.market-totals dt { margin-top:4px; font-size:12px; color:var(--home-muted); }
+.market-home-section { padding:40px 0 44px; }
+.market-home-section .home-container { width:100%; max-width:1440px; padding:0 40px; margin-inline:auto; }
+.featured-section { background:var(--home-bg); }
+.provider-section { border-block:1px solid var(--home-border); background:var(--lower-surface); }
+.market-section-title { text-align:left; }
+.market-section-title h2 { font-size:clamp(22px,2.8vw,30px); font-weight:650; letter-spacing:-.025em; }
+.market-section-title p { margin-top:6px; color:var(--home-muted); font-size:14px; line-height:1.6; }
+.market-section-title a { display:inline-flex; align-items:center; gap:4px; margin-left:7px; color:var(--lower-accent); font-weight:600; }
+.featured-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.featured-tile { min-width:0; border:1px solid var(--home-border); border-radius:var(--radius); background:var(--home-card); transition:border-color .18s; }
+.featured-tile article { height:100%; padding:16px; color:var(--home-text); }
+.featured-tile:hover { border-color:var(--lower-accent); }
+.featured-tile h3 { display:flex; align-items:center; gap:8px; font-size:16px; font-weight:650; overflow-wrap:anywhere; }
 .featured-tags { display:flex; flex-wrap:wrap; gap:6px; margin:9px 0; }
-.featured-tags span { border-radius:4px; padding:3px 7px; color:#4439d4; background:#edf0ff; font-size:12px; }
+.featured-tags span { border-radius:6px; padding:2px 6px; color:var(--home-muted); background:hsl(var(--muted)); font-size:12px; }
 .featured-tile p { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--home-muted); font-size:14px; }
 .featured-tile footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; border-top:1px solid var(--home-border); margin-top:14px; padding-top:13px; color:var(--home-muted); font-size:13px; }
 .featured-tile footer > span:last-child { display:flex; align-items:center; gap:4px; margin-left:auto; color:var(--lower-accent); }
@@ -797,8 +734,8 @@ onBeforeUnmount(() => {
   padding: 14px;
   border: 1px solid var(--home-border);
   border-radius: 12px;
-  background: var(--home-bg);
-  transition: border-color .18s, box-shadow .18s;
+  background: var(--home-card);
+  transition: border-color .18s, background .18s;
 }
 .provider-symbol { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 9px; background: var(--lower-surface); }
 .provider-label { min-width: 0; }
@@ -806,16 +743,11 @@ onBeforeUnmount(() => {
 .provider-tile small { color: var(--lower-muted); font-size: 12px; margin-top: 3px; }
 .provider-tile > svg:last-child { color: var(--lower-accent); }
 .provider-bar { height: 5px; border-radius: 999px; background: var(--lower-icon-bg); }
-.provider-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#4a6ff6,#9271fa); }
+.provider-bar span { display:block; height:100%; border-radius:inherit; background:hsl(var(--brand) / .7); }
 .market-section-link { display: flex; align-items: center; gap: 5px; width: fit-content; margin: 20px auto 0; color: var(--lower-accent); font-size: 14px; font-weight: 650; }
 .market-section-link:hover { text-decoration: underline; text-underline-offset: 4px; }
-.dark .market-home-hero { background:radial-gradient(ellipse at 80% 63%,#283760,transparent 55%),linear-gradient(180deg,#171e31,#151923); }
-.dark .market-home-copy { color:#f1f4ff; }
-.dark .market-lead,.dark .market-totals dt { color:#abb8d0; }
 .dark .market-home-art { opacity:.82; }
-.dark .market-secondary { background:#222a49; color:#c6cdff; border-color:#6c72c8; }
-.dark .featured-section,.dark .provider-section { background:#151923; }
-@media(max-width:1050px) { .market-home-shell,.market-home-section .home-container { padding-inline:32px; } .market-home-hero { min-height:515px; } .market-totals { gap:18px 22px; } }
-@media(max-width:760px) { .market-home-shell { grid-template-columns:minmax(0,1fr); gap:0; padding:37px 22px 10px; } .market-home-art { width:min(100%,520px); margin:-8px auto 0; } .market-home-copy h1 { font-size:clamp(32px,8vw,48px); } .market-totals { margin-top:25px; } .market-home-section .home-container { padding-inline:22px; } .market-home-section { padding:38px 0; } .provider-grid { grid-template-columns:minmax(0,1fr); } .market-home-section.start-section { padding-top:8px; } }
-@media(max-width:540px) { .featured-grid { grid-template-columns:minmax(0,1fr); } .featured-tile { padding:12px; } .featured-tile article { padding:16px; } .market-hero-actions { margin-top:20px; } .market-home-art { margin-top:0; } }
+@media(max-width:1050px) { .market-home-shell,.market-home-section .home-container { padding-inline:28px; } }
+@media(max-width:760px) { .market-home-shell { grid-template-columns:minmax(0,1fr); gap:16px; padding:32px 20px 22px; } .market-home-art { width:min(100%,480px); max-height:280px; margin:auto; } .market-totals { margin-top:20px; } .market-home-section .home-container { padding-inline:20px; } .market-home-section { padding:32px 0; } .provider-grid { grid-template-columns:minmax(0,1fr); } .market-home-section.start-section { padding-top:8px; } }
+@media(max-width:540px) { .featured-grid { grid-template-columns:minmax(0,1fr); } .featured-tile article { padding:12px; } .market-hero-actions { margin-top:18px; } }
 </style>

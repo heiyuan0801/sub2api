@@ -1,30 +1,34 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
-      <UsageStatsCards :stats="usageStats" :show-account-cost="false" :strike-standard-cost="true" />
+    <div class="space-y-4">
+      <PageHeader :title="t('usage.title')" :description="t('usage.description')" />
+      <UsageStatsCards admin-presentation :stats="usageStats" :show-account-cost="false" :strike-standard-cost="true" />
 
       <div class="space-y-4">
-        <div class="card p-4">
-          <div class="flex flex-wrap items-center gap-4">
+        <SectionCard>
+          <Toolbar :label="t('admin.dashboard.timeRange')">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.timeRange') }}:</span>
+              <span class="text-sm font-medium text-muted-foreground">{{ t('admin.dashboard.timeRange') }}:</span>
               <DateRangePicker
                 v-model:start-date="startDate"
                 v-model:end-date="endDate"
                 @change="onDateRangeChange"
               />
             </div>
-            <div class="ml-auto flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.granularity') }}:</span>
-              <div class="w-28">
-                <Select v-model="granularity" :options="granularityOptions" @change="loadChartData" />
+            <template #actions>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-muted-foreground">{{ t('admin.dashboard.granularity') }}:</span>
+                <div class="w-28">
+                  <Select v-model="granularity" :options="granularityOptions" @change="loadChartData" />
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </template>
+          </Toolbar>
+        </SectionCard>
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ModelDistributionChart
+            semantic-colors
             v-model:metric="modelDistributionMetric"
             :model-stats="requestedModelStats"
             :loading="modelStatsLoading"
@@ -36,6 +40,7 @@
             :end-date="endDate"
           />
           <GroupDistributionChart
+            semantic-colors
             v-model:metric="groupDistributionMetric"
             :group-stats="groupStats"
             :loading="chartsLoading"
@@ -49,6 +54,7 @@
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <EndpointDistributionChart
+            semantic-colors
             v-model:source="endpointDistributionSource"
             v-model:metric="endpointDistributionMetric"
             :endpoint-stats="inboundEndpointStats"
@@ -62,11 +68,11 @@
             :start-date="startDate"
             :end-date="endDate"
           />
-          <TokenUsageTrend :trend-data="trendData" :loading="chartsLoading" />
+          <TokenUsageTrend semantic-colors :trend-data="trendData" :loading="chartsLoading" />
         </div>
       </div>
 
-      <div class="card p-6">
+      <SectionCard>
         <div class="flex flex-wrap items-end justify-between gap-4">
           <div v-if="activeTab === 'errors'" class="flex flex-1 flex-wrap items-end gap-4">
             <div class="w-full sm:w-auto sm:min-w-[220px]">
@@ -145,7 +151,7 @@
               </button>
               <div
                 v-if="showColumnDropdown"
-                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg"
               >
                 <button
                   v-for="col in currentToggleableColumns"
@@ -156,7 +162,7 @@
                   class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
                 >
                   <span>{{ col.label }}</span>
-                  <Icon v-if="isCurrentColumnVisible(col.key)" name="check" size="sm" class="text-primary-500" />
+                  <Icon v-if="isCurrentColumnVisible(col.key)" name="check" size="sm" class="text-brand" />
                 </button>
               </div>
             </div>
@@ -165,9 +171,9 @@
             </button>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
-      <div v-if="errorViewEnabled" class="flex gap-2 border-b border-gray-200 dark:border-dark-700">
+      <div v-if="errorViewEnabled" class="flex gap-2 border-b border-border">
         <button class="tab" :class="{ 'tab-active': activeTab === 'usage' }" @click="activeTab = 'usage'">
           {{ t('usage.tabs.usage') }}
         </button>
@@ -178,6 +184,8 @@
 
       <template v-if="activeTab === 'usage'">
         <UsageTable
+          admin-presentation
+          flat
           :data="usageLogs"
           :loading="loading"
           :columns="visibleColumns"
@@ -219,6 +227,7 @@
 </template>
 
 <script setup lang="ts">
+import { PageHeader, SectionCard, Toolbar } from '@/components/page'
 import { formatUsageCacheRatePercent } from '@/utils/usageCacheRate'
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'

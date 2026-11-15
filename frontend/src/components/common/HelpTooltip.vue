@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, useTemplateRef, nextTick } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref, useTemplateRef, nextTick } from 'vue'
+import { legacyPortalTargetKey } from '@/components/ui/dialog/legacyPortalTarget'
+
+const portalTarget = inject(legacyPortalTargetKey, 'body')
 
 const props = withDefaults(defineProps<{
   content?: string
@@ -112,7 +115,7 @@ onBeforeUnmount(() => {
     <!-- Trigger Icon -->
     <slot name="trigger">
       <svg
-        class="h-4 w-4 cursor-help text-gray-400 transition-colors hover:text-primary-600 dark:text-gray-500 dark:hover:text-primary-400"
+        class="h-4 w-4 cursor-help text-gray-400 transition-colors hover:text-brand dark:text-gray-500"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -127,7 +130,7 @@ onBeforeUnmount(() => {
     </slot>
 
     <!-- Teleport to body to escape modal overflow clipping -->
-    <Teleport to="body">
+    <Teleport :to="portalTarget" :defer="portalTarget !== 'body'">
       <!-- before: 伪元素向下延伸一段透明区域，盖住提示框与触发图标之间的空隙，让指针能连续移入提示框。 -->
       <div
         ref="tooltip"

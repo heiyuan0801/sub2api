@@ -13,6 +13,10 @@
     --accent: 0 0% 96%; --accent-foreground: 0 0% 9%;
     --destructive: 0 72% 51%; --destructive-foreground: 0 0% 100%;
     --border: 0 0% 90%; --input: 0 0% 88%; --ring: 0 0% 64%;
+    --brand: 211 90% 50%; --brand-foreground: 0 0% 100%;
+    --success: 152 56% 39%; --warning: 35 92% 46%;
+    --danger: 0 72% 51%; --info: 206 80% 46%;
+    --canvas: 0 0% 98%;
     --radius: 0.625rem;
   }
   .dark {
@@ -25,10 +29,14 @@
     --accent: 0 0% 16%; --accent-foreground: 0 0% 96%;
     --destructive: 0 63% 45%; --destructive-foreground: 0 0% 100%;
     --border: 0 0% 20%; --input: 0 0% 24%; --ring: 0 0% 50%;
+    --brand: 211 95% 60%; --brand-foreground: 0 0% 7%;
+    --success: 152 50% 50%; --warning: 38 90% 56%;
+    --danger: 0 80% 64%; --info: 206 85% 62%;
+    --canvas: 0 0% 7%;
   }
 
   * {
-    @apply border-gray-200 dark:border-dark-700;
+    @apply border-border;
   }
 
   html {
@@ -41,7 +49,7 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 dark:bg-dark-950 dark:text-gray-100;
+    @apply bg-canvas text-foreground;
     @apply min-h-screen;
   }
 
@@ -86,7 +94,7 @@
 
   /* 选中文本样式 */
   ::selection {
-    @apply bg-primary-500/20 text-primary-900 dark:text-primary-100;
+    @apply bg-brand/20 text-primary-900 dark:text-primary-100;
   }
 
 
@@ -111,16 +119,16 @@
   }
 
   .btn-secondary {
-    @apply bg-white dark:bg-dark-800;
+    @apply bg-card;
     @apply text-gray-700 dark:text-gray-200;
-    @apply border border-gray-200 dark:border-dark-600;
+    @apply border border-border;
     @apply shadow-sm hover:bg-gray-50 dark:hover:bg-dark-700;
     @apply hover:border-gray-300 dark:hover:border-dark-500;
   }
 
   .btn-ghost {
     @apply bg-transparent text-gray-600 dark:text-gray-300;
-    @apply hover:bg-gray-100 dark:hover:bg-dark-800;
+    @apply hover:bg-muted;
   }
 
   .btn-danger {
@@ -190,12 +198,12 @@
   /* ============ 输入框样式 ============ */
   .input {
     @apply w-full rounded-xl px-4 py-2.5 text-sm;
-    @apply bg-white dark:bg-dark-800;
-    @apply border border-gray-200 dark:border-dark-600;
-    @apply text-gray-900 dark:text-gray-100;
+    @apply bg-card;
+    @apply border border-border;
+    @apply text-foreground;
     @apply placeholder:text-gray-400 dark:placeholder:text-dark-400;
     @apply transition-all duration-200;
-    @apply focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20;
+    @apply focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20;
     @apply dark:focus:border-primary-300 dark:focus:ring-primary-300/20;
     @apply disabled:cursor-not-allowed disabled:bg-gray-100 dark:disabled:bg-dark-900;
   }
@@ -217,7 +225,7 @@
   }
 
   .input-hint {
-    @apply mt-1 text-xs text-gray-500 dark:text-dark-400;
+    @apply mt-1 text-xs text-muted-foreground;
   }
 
   .input-error-text {
@@ -241,30 +249,30 @@
   }
 
   .glass-card {
-    @apply bg-white dark:bg-dark-900;
+    @apply bg-background;
     @apply rounded-2xl;
-    @apply border border-gray-200 dark:border-dark-700;
+    @apply border border-border;
     @apply shadow-card;
     @apply transition-all duration-300;
   }
 
   /* ============ 卡片样式 ============ */
   .card {
-    @apply bg-white dark:bg-dark-900;
+    @apply bg-background;
     @apply rounded-2xl;
-    @apply border border-gray-200 dark:border-dark-700;
+    @apply border border-border;
     @apply shadow-card;
     @apply transition-all duration-300;
   }
 
   .card-hover {
     @apply hover:-translate-y-0.5 hover:shadow-card-hover;
-    @apply hover:border-gray-200 dark:hover:border-dark-600;
+    @apply hover:border-border;
   }
 
   .card-glass {
-    @apply bg-white dark:bg-dark-900;
-    @apply border border-gray-200 dark:border-dark-700;
+    @apply bg-background;
+    @apply border border-border;
     @apply shadow-card;
   }
 
@@ -295,7 +303,7 @@
   }
 
   .stat-icon-primary {
-    @apply bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400;
+    @apply bg-brand/15 text-brand;
   }
 
   .stat-icon-success {
@@ -311,11 +319,11 @@
   }
 
   .stat-value {
-    @apply text-2xl font-bold text-gray-900 dark:text-white truncate;
+    @apply text-2xl font-bold text-foreground truncate;
   }
 
   .stat-label {
-    @apply text-sm text-gray-500 dark:text-dark-400;
+    @apply text-sm text-muted-foreground;
   }
 
   .stat-trend {
@@ -332,7 +340,7 @@
 
   /* ============ 表格样式 ============ */
   .table-container {
-    @apply overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-700;
+    @apply overflow-x-auto rounded-xl border border-border;
   }
 
   .table {
@@ -343,7 +351,7 @@
     @apply px-4 py-3 text-left font-medium;
     @apply text-gray-600 dark:text-dark-300;
     @apply bg-gray-50 dark:bg-dark-800/50;
-    @apply border-b border-gray-200 dark:border-dark-700;
+    @apply border-b border-border;
   }
 
   .table td {
@@ -368,7 +376,7 @@
   }
 
   .badge-primary {
-    @apply bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400;
+    @apply bg-brand/15 text-primary-700 dark:text-primary-400;
   }
 
   .badge-success {
@@ -394,9 +402,9 @@
   /* ============ 下拉菜单 ============ */
   .dropdown {
     @apply absolute z-50;
-    @apply bg-white dark:bg-dark-800;
+    @apply bg-card;
     @apply rounded-xl;
-    @apply border border-gray-200 dark:border-dark-700;
+    @apply border border-border;
     @apply shadow-lg;
     @apply py-1;
     @apply origin-top-right animate-scale-in;
@@ -420,21 +428,21 @@
   .modal-content {
     @apply w-full;
     @apply max-h-[95vh] sm:max-h-[90vh];
-    @apply bg-white dark:bg-dark-800;
+    @apply bg-card;
     @apply rounded-2xl shadow-2xl;
-    @apply border border-gray-200 dark:border-dark-700;
+    @apply border border-border;
     @apply flex flex-col;
   }
 
   .modal-header {
-    @apply border-b border-gray-200 px-4 py-3 dark:border-dark-700;
+    @apply border-b border-border px-4 py-3;
     @apply sm:px-6 sm:py-4;
     @apply flex items-center justify-between;
     @apply flex-shrink-0;
   }
 
   .modal-title {
-    @apply text-lg font-semibold text-gray-900 dark:text-white;
+    @apply text-lg font-semibold text-foreground;
   }
 
   .modal-body {
@@ -444,7 +452,7 @@
   }
 
   .modal-footer {
-    @apply border-t border-gray-200 px-4 py-3 dark:border-dark-700;
+    @apply border-t border-border px-4 py-3;
     @apply sm:px-6 sm:py-4;
     @apply flex items-center justify-end gap-3;
     @apply flex-shrink-0;
@@ -513,7 +521,7 @@
   .dialog-container {
     @apply flex w-full flex-col;
     @apply max-h-[90vh];
-    @apply rounded-2xl bg-white dark:bg-dark-800;
+    @apply rounded-2xl bg-card;
     @apply shadow-xl;
   }
 
@@ -536,7 +544,7 @@
   .toast {
     @apply fixed right-4 top-4 z-[100];
     @apply min-w-[320px] max-w-md;
-    @apply bg-white dark:bg-dark-800;
+    @apply bg-card;
     @apply rounded-xl shadow-lg;
     @apply border-l-4;
     @apply p-4;
@@ -556,13 +564,13 @@
   }
 
   .toast-info {
-    @apply border-l-primary-500;
+    @apply border-l-brand;
   }
 
   /* ============ 侧边栏 ============ */
   .sidebar {
     @apply fixed inset-y-0 left-0 z-40;
-    @apply w-64 bg-white dark:bg-dark-900;
+    @apply w-64 bg-background;
     @apply border-r border-gray-200 dark:border-dark-800;
     @apply flex flex-col;
     @apply transition-transform duration-300;
@@ -588,15 +596,15 @@
     @apply text-sm font-medium;
     @apply text-gray-600 dark:text-dark-300;
     @apply transition-all duration-200;
-    @apply hover:bg-gray-100 dark:hover:bg-dark-800;
-    @apply hover:text-gray-900 dark:hover:text-white;
+    @apply hover:bg-muted;
+    @apply hover:text-foreground;
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400;
     padding-left: 1.0625rem;
     padding-right: 0.875rem;
   }
 
   .sidebar-link-active {
-    @apply bg-gray-100 text-gray-900 dark:bg-dark-800 dark:text-white;
+    @apply bg-muted text-foreground;
     @apply hover:bg-gray-200 dark:hover:bg-dark-700;
   }
 
@@ -616,11 +624,11 @@
   }
 
   .page-title {
-    @apply text-2xl font-bold text-gray-900 dark:text-white;
+    @apply text-2xl font-bold text-foreground;
   }
 
   .page-description {
-    @apply mt-1 text-sm text-gray-500 dark:text-dark-400;
+    @apply mt-1 text-sm text-muted-foreground;
   }
 
   /* ============ 空状态 ============ */
@@ -635,11 +643,11 @@
   }
 
   .empty-state-title {
-    @apply mb-1 text-lg font-medium text-gray-900 dark:text-white;
+    @apply mb-1 text-lg font-medium text-foreground;
   }
 
   .empty-state-description {
-    @apply max-w-sm text-sm text-gray-500 dark:text-dark-400;
+    @apply max-w-sm text-sm text-muted-foreground;
   }
 
   /* ============ 加载状态 ============ */
@@ -660,19 +668,19 @@
   /* ============ 标签页 ============ */
   .tabs {
     @apply flex gap-1 p-1;
-    @apply rounded-xl bg-gray-100 dark:bg-dark-800;
+    @apply rounded-xl bg-muted;
   }
 
   .tab {
     @apply rounded-lg px-4 py-2 text-sm font-medium;
     @apply text-gray-600 dark:text-dark-400;
     @apply transition-all duration-200;
-    @apply hover:text-gray-900 dark:hover:text-white;
+    @apply hover:text-foreground;
   }
 
   .tab-active {
     @apply bg-white dark:bg-dark-700;
-    @apply text-gray-900 dark:text-white;
+    @apply text-foreground;
     @apply shadow-sm;
   }
 
@@ -710,9 +718,9 @@
   /* ============ 代码块 ============ */
   .code {
     @apply font-mono text-sm;
-    @apply bg-gray-100 dark:bg-dark-800;
+    @apply bg-muted;
     @apply rounded px-1.5 py-0.5;
-    @apply text-primary-600 dark:text-primary-400;
+    @apply text-brand;
   }
 
   .code-block {
@@ -814,13 +822,13 @@
   .stat-card .stat-icon { @apply absolute right-5 top-5 size-8 rounded-md bg-muted p-1.5 text-muted-foreground; }
   .stat-card .stat-label { @apply pr-10 text-sm font-medium text-muted-foreground; }
   .stat-card .stat-value { @apply text-3xl font-semibold tracking-tight; font-variant-numeric: tabular-nums; }
-  .sidebar { @apply border-border bg-gray-50 dark:bg-dark-950; }
+  .sidebar { @apply border-border bg-canvas; }
   .sidebar-header { @apply border-transparent px-5; }
   .sidebar-brand-title { @apply text-base font-semibold tracking-tight; }
   .sidebar-nav { @apply px-3 pt-3; }
   .sidebar-link { @apply gap-2.5 rounded-md py-2 text-[13px]; }
   .sidebar-link > svg { @apply size-4; }
-  .sidebar-link-active { @apply bg-white text-gray-950 shadow-sm ring-1 ring-gray-200 dark:bg-dark-800 dark:text-white dark:ring-dark-700; }
+  .sidebar-link-active { @apply bg-card text-gray-950 shadow-sm ring-1 ring-gray-200 dark:text-white dark:ring-dark-700; }
   .sidebar-section { @apply mb-5; }
   .sidebar-section-title { @apply text-[11px] font-medium tracking-normal; }
   .console-content { @apply min-w-0; }

@@ -1,19 +1,19 @@
 <template>
   <div class="model-catalog">
     <div class="catalog-page">
-      <header class="catalog-hero">
-        <div>
-          <h1>{{ t('publicSite.market.heading') }}</h1>
-          <p>{{ t('publicSite.models.subtitle') }}</p>
-        </div>
-        <a v-if="!descriptionHtml" href="/docs/api" class="market-guide"><Icon name="document" size="sm" />{{ t('publicSite.nav.apiDocs') }}</a>
-        <Button v-else variant="ghost" size="sm" @click="descriptionOpen = !descriptionOpen" :aria-expanded="descriptionOpen" aria-controls="market-description">
-          <Icon name="document" size="sm" />{{ t('publicSite.models.priceDescription') }}
-        </Button>
-      </header>
-      <div v-if="descriptionHtml" v-show="descriptionOpen" id="market-description" class="catalog-description">
+      <PageHeader class="catalog-hero" :title="t('publicSite.market.heading')" :description="t('publicSite.models.subtitle')">
+        <template #actions>
+          <Button v-if="!descriptionHtml" as-child variant="outline" size="sm">
+            <a href="/docs/api"><Icon name="document" size="sm" />{{ t('publicSite.nav.apiDocs') }}</a>
+          </Button>
+          <Button v-else variant="outline" size="sm" @click="descriptionOpen = !descriptionOpen" :aria-expanded="descriptionOpen" aria-controls="market-description">
+            <Icon name="document" size="sm" />{{ t('publicSite.models.priceDescription') }}
+          </Button>
+        </template>
+      </PageHeader>
+      <SectionCard v-if="descriptionHtml" v-show="descriptionOpen" id="market-description" class="catalog-description">
         <div class="description-markdown" v-html="descriptionHtml"></div>
-      </div>
+      </SectionCard>
 
       <div class="market-layout">
         <aside class="market-sidebar">
@@ -77,11 +77,11 @@
           <div v-if="loading" class="catalog-state" role="status" aria-live="polite"><span class="catalog-spinner"></span><span class="sr-only">{{ t('common.loading') }}</span></div>
           <div v-else-if="error" class="catalog-state catalog-error" role="alert"><Icon name="exclamationCircle" size="lg" /><p>{{ t('modelPlaza.loadFailed') }}</p></div>
           <template v-else>
-            <div v-if="!entries.length" class="catalog-state catalog-empty">
-              <Icon name="search" size="lg" />
-              <p>{{ searchQuery.trim() || activeFilterCount ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}</p>
-              <Button v-if="searchQuery.trim() || activeFilterCount" variant="outline" size="sm" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</Button>
-            </div>
+            <EmptyState v-if="!entries.length" class="catalog-state catalog-empty" :title="searchQuery.trim() || activeFilterCount ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty')">
+              <template #actions>
+                <Button v-if="searchQuery.trim() || activeFilterCount" variant="outline" size="sm" @click="resetFilters">{{ t('publicSite.models.clearFilters') }}</Button>
+              </template>
+            </EmptyState>
             <div v-else-if="viewMode === 'cards'" class="catalog-grid">
               <article v-for="{ entry, groupCount } in cards" :key="entry.key" class="catalog-card">
                 <div class="market-card-heading">
@@ -200,6 +200,7 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
+import { EmptyState, PageHeader, SectionCard } from '@/components/page'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
@@ -394,19 +395,15 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.model-catalog { --surface:#fff; --ink:#151922; --muted:#68758b; --line:#dfe5ee; --soft:#f3f5fb; --accent:#4b4cf3; color:var(--ink); background:linear-gradient(180deg,#edf2ff 0, var(--surface) 70px); }
-.dark .model-catalog { --surface:#151922; --ink:#edf0f9; --muted:#9da8be; --line:#303949; --soft:#202637; --accent:#aeb1ff; background:linear-gradient(180deg,#1d2543 0,var(--surface) 90px); }
-.catalog-page { max-width:1536px; margin:auto; padding:34px 48px 72px; }
-.catalog-hero { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:40px; }
-.catalog-hero h1 { font-size:30px; font-weight:750; letter-spacing:-.035em; line-height:1.2; }
-.catalog-hero p { color:var(--muted); font-size:14px; margin-top:14px; }
-.market-guide { display:flex; align-items:center; gap:6px; font-size:13px; white-space:nowrap; padding:6px 0; }
-.market-guide:hover { color:var(--accent); }
-.catalog-description { border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:-22px 0 24px; font-size:14px; overflow-wrap:anywhere; }
+.model-catalog { --surface:hsl(var(--card)); --ink:hsl(var(--foreground)); --muted:hsl(var(--muted-foreground)); --line:hsl(var(--border)); --soft:hsl(var(--muted)); --accent:hsl(var(--brand)); color:var(--ink); }
+.catalog-page { max-width:1440px; margin:auto; padding:28px 40px 44px; }
+.catalog-hero { margin-bottom:18px; }
+.catalog-description { margin-bottom:14px; font-size:14px; overflow-wrap:anywhere; }
 .description-markdown :deep(a) { text-decoration:underline; }
-.market-layout { display:grid; grid-template-columns:200px minmax(0,1fr); gap:24px; }
-.market-sidebar h2 { font-size:18px; font-weight:650; margin:1px 0 22px; }
-.market-sidebar details { margin-bottom:20px; }
+.market-layout { display:grid; grid-template-columns:190px minmax(0,1fr); gap:16px; }
+.market-sidebar { align-self:start; min-width:0; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:12px; }
+.market-sidebar h2 { font-size:14px; font-weight:600; margin:1px 0 14px; }
+.market-sidebar details { margin-bottom:12px; }
 .market-sidebar summary { display:flex; justify-content:space-between; cursor:pointer; align-items:center; color:var(--muted); font-size:13px; margin:0 0 9px; list-style:none; }
 .market-sidebar summary::-webkit-details-marker { display:none; }
 .market-sidebar button { width:100%; text-align:left; display:flex; gap:8px; align-items:center; padding:7px 8px; border-radius:6px; font-size:13px; overflow-wrap:anywhere; }
@@ -414,7 +411,7 @@ onUnmounted(() => {
 .market-sidebar button:disabled { opacity:.4; }
 .market-sidebar select, .market-sort { min-width:0; min-height:34px; border:1px solid var(--line); border-radius:6px; padding:4px 10px; color:var(--ink); background:var(--surface); font-size:13px; }
 .market-sidebar select { width:100%; }
-.catalog-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:16px; }
+.catalog-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; border:1px solid var(--line); border-radius:var(--radius); padding:8px; background:var(--surface); }
 .catalog-search { display:flex; align-items:center; gap:7px; width:min(320px,100%); min-height:34px; padding:0 10px; border:1px solid var(--line); border-radius:6px; color:var(--muted); background:var(--surface); }
 .catalog-search:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
 .catalog-search input { width:100%; min-width:0; border:0; padding:0; background:transparent; color:var(--ink); box-shadow:none; outline:none; font-size:13px; }
@@ -422,15 +419,15 @@ onUnmounted(() => {
 .summary-actions { display:flex; align-items:center; gap:6px; margin-left:auto; }
 .catalog-view-switch { display:flex; gap:2px; border-radius:7px; padding:2px; background:var(--soft); }
 .catalog-view-switch button { padding:6px 9px; border-radius:5px; color:var(--muted); }
-.catalog-view-switch .active { background:var(--surface); color:var(--ink); box-shadow:0 1px 5px #172e6b1c; }
+.catalog-view-switch .active { background:var(--surface); color:var(--ink); box-shadow:0 0 0 1px var(--line); }
 .filter-button { display:none; }
 .filter-count { border-radius:4px; padding:0 4px; color:var(--accent); background:var(--soft); }
-.catalog-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.catalog-card { min-height:328px; display:flex; flex-direction:column; min-width:0; border:1px solid var(--line); border-radius:12px; padding:20px; background:var(--surface); box-shadow:0 2px 8px #1c274305; transition:border-color .18s, box-shadow .18s; }
-.catalog-card:hover { border-color:var(--accent); box-shadow:0 5px 18px #3e52a116; }
+.catalog-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.catalog-card { min-height:275px; display:flex; flex-direction:column; min-width:0; border:1px solid var(--line); border-radius:var(--radius); padding:14px; background:var(--surface); transition:border-color .18s; }
+.catalog-card:hover { border-color:var(--accent); }
 .market-card-heading { display:flex; align-items:center; gap:6px; }
 .card-main { display:flex; align-items:center; gap:10px; min-width:0; text-align:left; flex:1; }
-.card-main h3 { font-size:18px; font-weight:650; overflow-wrap:anywhere; }
+.card-main h3 { font-size:16px; font-weight:650; overflow-wrap:anywhere; }
 .market-copy { color:var(--muted); border-radius:6px; padding:4px; }
 .market-copy:hover { background:var(--soft); color:var(--accent); }
 .card-badges { display:flex; flex-wrap:wrap; gap:5px; margin:12px 0; }
@@ -445,12 +442,15 @@ onUnmounted(() => {
 .card-footer button { display:inline-flex; flex-shrink:0; gap:3px; align-items:center; color:var(--accent); }
 .catalog-price-note { margin-top:14px; font-size:12px; color:var(--muted); }
 .catalog-tables { display:grid; gap:15px; }
-.catalog-state { display:grid; place-content:center; justify-items:center; gap:12px; min-height:250px; border:1px dashed var(--line); border-radius:12px; color:var(--muted); font-size:14px; }
+.catalog-state { display:grid; place-content:center; justify-items:center; gap:12px; min-height:220px; padding:1rem; border:1px dashed var(--line); border-radius:var(--radius); color:var(--muted); font-size:14px; background:var(--surface); }
+.catalog-error { color:hsl(var(--danger)); }
 .catalog-spinner { width:30px; height:30px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:market-spin .8s linear infinite; }
 @keyframes market-spin { to { transform:rotate(360deg); } }
 .catalog-filter-dialog, .catalog-detail-dialog { position:fixed; inset:0; margin:auto; width:min(calc(100% - 26px),600px); max-height:calc(100dvh - 36px); padding:0; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); }
 .catalog-detail-dialog { width:min(calc(100% - 26px),1160px); }
-.catalog-filter-dialog::backdrop, .catalog-detail-dialog::backdrop { background:#14192c70; }
+.catalog-filter-dialog { inset:8px 8px 8px auto; width:min(calc(100% - 16px),500px); max-height:calc(100dvh - 16px); height:calc(100dvh - 16px); margin:0; }
+.catalog-filter-dialog::backdrop, .catalog-detail-dialog::backdrop { background:rgb(0 0 0 / .34); }
+.dark .catalog-filter-dialog::backdrop, .dark .catalog-detail-dialog::backdrop { background:rgb(0 0 0 / .56); }
 .catalog-dialog-header, .catalog-dialog-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
 .catalog-dialog-footer { border-top:1px solid var(--line); border-bottom:0; }
 .catalog-dialog-header h2 { overflow-wrap:anywhere; font-weight:650; }
@@ -463,6 +463,6 @@ onUnmounted(() => {
 .catalog-filter-content button:disabled { opacity:.4; }
 :global(html.catalog-modal-open) { overflow:hidden; }
 @media (max-width:1190px) { .catalog-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .catalog-page { padding-inline:30px; } }
-@media (max-width:800px) { .market-layout { grid-template-columns:minmax(0,1fr); } .market-sidebar { display:none; } .filter-button { display:inline-flex; } .catalog-page { padding:27px 18px 52px; } .catalog-hero { margin-bottom:24px; } }
-@media (max-width:530px) { .catalog-grid { grid-template-columns:minmax(0,1fr); } .catalog-search { flex:1; order:-1; width:100%; flex-basis:100%; } .catalog-hero h1 { font-size:25px; } .market-sort { max-width:120px; } }
+@media (max-width:800px) { .market-layout { grid-template-columns:minmax(0,1fr); } .market-sidebar { display:none; } .filter-button { display:inline-flex; } .catalog-page { padding:22px 16px 32px; } }
+@media (max-width:530px) { .catalog-grid { grid-template-columns:minmax(0,1fr); } .catalog-search { flex:1; order:-1; width:100%; flex-basis:100%; } .market-sort { max-width:120px; } }
 </style>

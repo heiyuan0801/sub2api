@@ -47,7 +47,7 @@
             @click="clear"
           >
             <span>{{ allLabel }}</span>
-            <Icon v-if="modelValue.length === 0" name="check" size="sm" class="text-primary-500" />
+            <Icon v-if="modelValue.length === 0" name="check" size="sm" class="text-brand" />
           </button>
 
           <button
@@ -62,10 +62,10 @@
           >
             <span class="flex min-w-0 flex-1 items-center gap-2">
               <span
-                class="checkbox flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-white text-primary-500 dark:border-dark-600 dark:bg-dark-900"
-                :class="modelValue.includes(option.value) ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' : ''"
+                class="checkbox flex h-4 w-4 items-center justify-center rounded border border-gray-300 bg-background text-brand dark:border-dark-600"
+                :class="modelValue.includes(option.value) ? 'border-brand bg-brand/10' : ''"
               >
-                <Icon v-if="modelValue.includes(option.value)" name="check" size="sm" class="text-primary-500" />
+                <Icon v-if="modelValue.includes(option.value)" name="check" size="sm" class="text-brand" />
               </span>
               <span class="min-w-0 flex-1 truncate">{{ option.label }}</span>
             </span>
@@ -234,17 +234,17 @@ onBeforeUnmount(() => {
 .select-trigger {
   @apply flex w-full items-center justify-between gap-2;
   @apply rounded-xl px-4 py-2.5 text-sm;
-  @apply bg-white dark:bg-dark-800;
-  @apply border border-gray-200 dark:border-dark-600;
-  @apply text-gray-900 dark:text-gray-100;
+  @apply bg-card;
+  @apply border border-border;
+  @apply text-foreground;
   @apply transition-all duration-200;
-  @apply focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
+  @apply focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30;
   @apply hover:border-gray-300 dark:hover:border-dark-500;
   @apply cursor-pointer;
 }
 
 .select-trigger-open {
-  @apply border-primary-500 ring-2 ring-primary-500/30;
+  @apply border-brand ring-2 ring-brand/30;
 }
 
 .filter-menu summary::-webkit-details-marker {
@@ -252,7 +252,7 @@ onBeforeUnmount(() => {
 }
 
 .filter-dropdown {
-  @apply w-max min-w-[200px] max-h-[min(50vh,360px)] overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg dark:border-dark-600 dark:bg-dark-800;
+  @apply w-max min-w-[200px] max-h-[min(50vh,360px)] overflow-y-auto rounded-xl border border-border bg-card shadow-lg;
 }
 
 .dropdown-item {

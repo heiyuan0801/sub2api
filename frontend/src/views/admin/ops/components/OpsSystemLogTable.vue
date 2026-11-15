@@ -6,6 +6,8 @@ import LogRetentionSelect from './LogRetentionSelect.vue'
 import { opsAPI, type OpsRuntimeLogConfig, type OpsSystemLog, type OpsSystemLogSinkHealth } from '@/api/admin/ops'
 import Pagination from '@/components/common/Pagination.vue'
 import Select from '@/components/common/Select.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
+import { EmptyState, SectionCard, StatusBadge, Toolbar } from '@/components/page'
 import { useAppStore } from '@/stores'
 import { extractApiErrorMessage } from '@/utils/apiError'
 
@@ -101,12 +103,12 @@ const filterLevelOptions = computed(() => [
   { value: 'error', label: 'error' }
 ])
 
-const levelBadgeClass = (level: string) => {
+const levelTone = (level: string) => {
   const v = String(level || '').toLowerCase()
-  if (v === 'error' || v === 'fatal') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-  if (v === 'warn' || v === 'warning') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-  if (v === 'debug') return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-  return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+  if (v === 'error' || v === 'fatal') return 'danger'
+  if (v === 'warn' || v === 'warning') return 'warning'
+  if (v === 'debug') return 'neutral'
+  return 'info'
 }
 
 const formatTime = (value: string) => {
@@ -389,6 +391,12 @@ const applyFilters = () => {
 }
 
 const hasData = computed(() => logs.value.length > 0)
+const columns = computed(() => [
+  { key: 'created_at', label: t('admin.ops.systemLogs.time'), class: 'w-[170px]' },
+  { key: 'host', label: t('admin.ops.systemLogs.host'), class: 'w-[160px]' },
+  { key: 'level', label: t('admin.ops.systemLogs.level'), class: 'w-[80px]' },
+  { key: 'details', label: t('admin.ops.systemLogs.logDetails'), class: 'w-full' }
+])
 
 onMounted(async () => {
   if (props.platformFilter) {
@@ -399,21 +407,17 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-dark-700 dark:bg-dark-900/60">
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ t('admin.ops.systemLogs.title') }}</h3>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.systemLogs.description') }}</p>
-      </div>
+  <SectionCard :title="t('admin.ops.systemLogs.title')" :description="t('admin.ops.systemLogs.description')" heading="h3">
+    <template #actions>
       <div class="flex flex-wrap items-center gap-2 text-xs">
         <span class="rounded-md bg-gray-100 px-2 py-1 text-gray-700 dark:bg-dark-700 dark:text-gray-200">{{ t('admin.ops.systemLogs.queue') }} {{ health.queue_depth }}/{{ health.queue_capacity }}</span>
         <span class="rounded-md bg-gray-100 px-2 py-1 text-gray-700 dark:bg-dark-700 dark:text-gray-200">{{ t('admin.ops.systemLogs.written') }} {{ health.written_count }}</span>
         <span class="rounded-md bg-amber-100 px-2 py-1 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">{{ t('admin.ops.systemLogs.dropped') }} {{ health.dropped_count }}</span>
         <span class="rounded-md bg-red-100 px-2 py-1 text-red-700 dark:bg-red-900/30 dark:text-red-300">{{ t('admin.ops.systemLogs.failed') }} {{ health.write_failed_count }}</span>
       </div>
-    </div>
+    </template>
 
-    <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-dark-700 dark:bg-dark-800/70">
+    <div class="mb-4 rounded-lg border border-border bg-muted/40 p-3">
       <div class="mb-2 flex items-center justify-between">
         <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">{{ t('admin.ops.systemLogs.runtimeConfig') }}</div>
         <span v-if="runtimeLoading" class="text-xs text-gray-500">{{ t('common.loading') }}</span>
@@ -438,12 +442,12 @@ onMounted(async () => {
         <label class="text-xs text-gray-600 dark:text-gray-300">
           {{ t('admin.ops.systemLogs.retentionDays') }}
           <LogRetentionSelect v-model="runtimeConfig.retention_days" :label="t('admin.ops.systemLogs.retentionDays')" class="mt-1" />
-          <span class="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{{ t('admin.ops.systemLogs.retentionDaysHint') }}</span>
+          <span class="mt-1 block text-[11px] text-muted-foreground">{{ t('admin.ops.systemLogs.retentionDaysHint') }}</span>
         </label>
         <label class="text-xs text-gray-600 dark:text-gray-300">
           {{ t('admin.ops.systemLogs.requestRetentionDays') }}
           <LogRetentionSelect v-model="runtimeConfig.request_retention_days" :label="t('admin.ops.systemLogs.requestRetentionDays')" allow-forever class="mt-1" />
-          <span class="mt-1 block text-[11px] text-gray-500 dark:text-gray-400">{{ t('admin.ops.systemLogs.requestRetentionDaysHint') }}</span>
+          <span class="mt-1 block text-[11px] text-muted-foreground">{{ t('admin.ops.systemLogs.requestRetentionDaysHint') }}</span>
         </label>
         <div class="md:col-span-2 xl:col-span-6">
           <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
@@ -472,7 +476,7 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.systemLogs.persistAccessLogsHint') }}</p>
+      <p class="mt-2 text-xs text-muted-foreground">{{ t('admin.ops.systemLogs.persistAccessLogsHint') }}</p>
       <p v-if="health.last_error" class="mt-2 text-xs text-red-600 dark:text-red-400">{{ t('admin.ops.systemLogs.latestWriteError') }} {{ health.last_error }}</p>
     </div>
 
@@ -535,25 +539,23 @@ onMounted(async () => {
       </label>
     </div>
 
-    <div class="mb-3 flex flex-wrap gap-2">
+    <Toolbar class="mb-3">
       <button type="button" class="btn btn-primary btn-sm" @click="applyFilters">{{ t('admin.ops.systemLogs.search') }}</button>
       <button type="button" class="btn btn-secondary btn-sm" @click="resetFilters">{{ t('common.reset') }}</button>
       <button type="button" class="btn btn-danger btn-sm" @click="cleanupCurrentFilter">{{ t('admin.ops.systemLogs.cleanCurrentFilters') }}</button>
       <button type="button" class="btn btn-secondary btn-sm" @click="fetchHealth">{{ t('admin.ops.systemLogs.refreshHealth') }}</button>
-    </div>
+    </Toolbar>
 
-    <div class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
+    <div class="overflow-hidden rounded-lg border border-border">
       <div v-if="loading" class="px-4 py-8 text-center text-sm text-gray-500">{{ t('common.loading') }}</div>
-      <div v-else-if="!hasData" class="px-4 py-8 text-center text-sm text-gray-500">{{ t('admin.ops.systemLogs.empty') }}</div>
-      <div v-else-if="!isDesktopViewport" class="divide-y divide-gray-100 dark:divide-dark-800">
+      <EmptyState v-else-if="!hasData" :title="t('admin.ops.systemLogs.empty')" />
+      <div v-else-if="!isDesktopViewport" class="divide-y divide-border">
         <div v-for="row in logs" :key="row.id" class="space-y-1.5 p-3">
           <div class="flex items-center justify-between gap-2">
-            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold" :class="levelBadgeClass(row.level)">
-              {{ row.level }}
-            </span>
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatTime(row.created_at) }}</span>
+            <StatusBadge :label="row.level" :tone="levelTone(row.level)" />
+            <span class="text-xs text-muted-foreground">{{ formatTime(row.created_at) }}</span>
           </div>
-          <div v-if="row.host" class="truncate text-xs text-gray-500 dark:text-gray-400" :title="row.host">
+          <div v-if="row.host" class="truncate text-xs text-muted-foreground" :title="row.host">
             {{ row.host }}
           </div>
           <div class="whitespace-normal break-all text-xs text-gray-700 dark:text-gray-300">
@@ -561,34 +563,20 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-      <div v-else class="overflow-auto">
-        <table class="min-w-full table-fixed divide-y divide-gray-200 dark:divide-dark-700">
-          <thead class="bg-gray-50 dark:bg-dark-900">
-            <tr>
-              <th class="w-[170px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">{{ t('admin.ops.systemLogs.time') }}</th>
-              <th class="w-[160px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">{{ t('admin.ops.systemLogs.host') }}</th>
-              <th class="w-[80px] px-3 py-2 text-left text-[11px] font-semibold text-gray-500">{{ t('admin.ops.systemLogs.level') }}</th>
-              <th class="px-3 py-2 text-left text-[11px] font-semibold text-gray-500">{{ t('admin.ops.systemLogs.logDetails') }}</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-dark-800">
-            <tr v-for="row in logs" :key="row.id" class="align-top">
-              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">{{ formatTime(row.created_at) }}</td>
-              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300">
-                <span class="block truncate" :title="row.host || '-'">{{ row.host || '-' }}</span>
-              </td>
-              <td class="px-3 py-2 text-xs">
-                <span class="inline-flex rounded-full px-2 py-0.5 font-semibold" :class="levelBadgeClass(row.level)">
-                  {{ row.level }}
-                </span>
-              </td>
-              <td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-300 whitespace-normal break-all">
-                {{ formatSystemLogDetail(row) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <DataTable v-else :columns="columns" :data="logs" :sticky-first-column="false" row-key="id">
+        <template #cell-created_at="{ row }">
+          <span class="text-xs tabular-nums text-muted-foreground">{{ formatTime(row.created_at) }}</span>
+        </template>
+        <template #cell-host="{ row }">
+          <span class="block max-w-[160px] truncate text-xs text-muted-foreground" :title="row.host || '-'">{{ row.host || '-' }}</span>
+        </template>
+        <template #cell-level="{ row }">
+          <StatusBadge :label="row.level" :tone="levelTone(row.level)" />
+        </template>
+        <template #cell-details="{ row }">
+          <span class="block min-w-[16rem] whitespace-normal break-all text-xs">{{ formatSystemLogDetail(row) }}</span>
+        </template>
+      </DataTable>
       <Pagination
         :total="total"
         :page="page"
@@ -597,5 +585,5 @@ onMounted(async () => {
         @update:page-size="onPageSizeChange"
       />
     </div>
-  </section>
+  </SectionCard>
 </template>

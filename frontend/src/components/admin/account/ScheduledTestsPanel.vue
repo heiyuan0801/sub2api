@@ -8,7 +8,7 @@
     <div class="space-y-4">
       <!-- Add Plan Button -->
       <div class="flex items-center justify-between">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-muted-foreground">
           {{ t('admin.scheduledTests.title') }}
         </p>
         <button
@@ -45,7 +45,7 @@
               {{ t('admin.scheduledTests.cronExpression') }}
               <HelpTooltip>
                 <template #trigger>
-                  <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-primary-600 dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400 dark:hover:text-primary-400">
+                  <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-brand dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400">
                     ?
                   </span>
                 </template>
@@ -71,7 +71,7 @@
               {{ t('admin.scheduledTests.maxResults') }}
               <HelpTooltip>
                 <template #trigger>
-                  <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-primary-600 dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400 dark:hover:text-primary-400">
+                  <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-brand dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400">
                     ?
                   </span>
                 </template>
@@ -118,7 +118,7 @@
           <button
             @click="handleCreate"
             :disabled="!newPlan.model_id || !newPlan.cron_expression || creating"
-            class="flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon v-if="creating" name="refresh" size="sm" class="animate-spin" :stroke-width="2" />
             {{ t('common.save') }}
@@ -138,7 +138,7 @@
         class="rounded-xl border border-dashed border-gray-300 py-10 text-center dark:border-dark-600"
       >
         <Icon name="calendar" size="lg" class="mx-auto mb-2 text-gray-400" :stroke-width="1.5" />
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm text-muted-foreground">
           {{ t('admin.scheduledTests.noPlans') }}
         </p>
       </div>
@@ -148,7 +148,7 @@
         <div
           v-for="plan in plans"
           :key="plan.id"
-          class="rounded-xl border border-gray-200 bg-white transition-all dark:border-dark-600 dark:bg-dark-800"
+          class="rounded-xl border border-border bg-card transition-all"
         >
           <!-- Plan Header -->
           <div
@@ -158,10 +158,10 @@
             <div class="flex flex-1 items-center gap-4">
               <!-- Model -->
               <div class="min-w-0">
-                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-medium text-foreground">
                   {{ plan.model_id }}
                 </div>
-                <div class="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
+                <div class="mt-0.5 font-mono text-xs text-muted-foreground">
                   {{ plan.cron_expression }}
                 </div>
               </div>
@@ -172,7 +172,7 @@
                   :model-value="plan.enabled"
                   @update:model-value="(val: boolean) => handleToggleEnabled(plan, val)"
                 />
-                <span class="text-xs text-gray-500 dark:text-gray-400">
+                <span class="text-xs text-muted-foreground">
                   {{ plan.enabled ? t('admin.scheduledTests.enabled') : '' }}
                 </span>
               </div>
@@ -188,13 +188,13 @@
 
             <div class="flex items-center gap-3">
               <!-- Last Run -->
-              <div v-if="plan.last_run_at" class="hidden text-right text-xs text-gray-500 dark:text-gray-400 sm:block">
+              <div v-if="plan.last_run_at" class="hidden text-right text-xs text-muted-foreground sm:block">
                 <div>{{ t('admin.scheduledTests.lastRun') }}</div>
                 <div>{{ formatDateTime(plan.last_run_at) }}</div>
               </div>
 
               <!-- Next Run -->
-              <div v-if="plan.next_run_at" class="hidden text-right text-xs text-gray-500 dark:text-gray-400 sm:block">
+              <div v-if="plan.next_run_at" class="hidden text-right text-xs text-muted-foreground sm:block">
                 <div>{{ t('admin.scheduledTests.nextRun') }}</div>
                 <div>{{ formatDateTime(plan.next_run_at) }}</div>
               </div>
@@ -255,7 +255,7 @@
                   {{ t('admin.scheduledTests.cronExpression') }}
                   <HelpTooltip>
                     <template #trigger>
-                      <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-primary-600 dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400 dark:hover:text-primary-400">
+                      <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-brand dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400">
                         ?
                       </span>
                     </template>
@@ -281,7 +281,7 @@
                   {{ t('admin.scheduledTests.maxResults') }}
                   <HelpTooltip>
                     <template #trigger>
-                      <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-primary-600 dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400 dark:hover:text-primary-400">
+                      <span class="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400/70 text-[10px] font-semibold text-gray-400 transition-colors hover:border-primary-500 hover:text-brand dark:border-gray-500 dark:text-gray-500 dark:hover:border-primary-400">
                         ?
                       </span>
                     </template>
@@ -328,7 +328,7 @@
               <button
                 @click="handleEdit"
                 :disabled="!editForm.model_id || !editForm.cron_expression || updating"
-                class="flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Icon v-if="updating" name="refresh" size="sm" class="animate-spin" :stroke-width="2" />
                 {{ t('common.save') }}
@@ -354,7 +354,7 @@
             <!-- No Results -->
             <div
               v-else-if="results.length === 0"
-              class="py-4 text-center text-xs text-gray-500 dark:text-gray-400"
+              class="py-4 text-center text-xs text-muted-foreground"
             >
               {{ t('admin.scheduledTests.noResults') }}
             </div>
@@ -389,7 +389,7 @@
                     </span>
 
                     <!-- Latency -->
-                    <span v-if="result.latency_ms > 0" class="text-xs text-gray-500 dark:text-gray-400">
+                    <span v-if="result.latency_ms > 0" class="text-xs text-muted-foreground">
                       {{ result.latency_ms }}ms
                     </span>
                   </div>
@@ -438,7 +438,7 @@
                   </div>
                   <pre
                     v-if="expandedResultIds.has(result.id)"
-                    class="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-gray-100 p-2 text-xs text-gray-700 dark:bg-dark-800 dark:text-gray-300"
+                    class="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs text-gray-700 dark:text-gray-300"
                   >{{ result.response_text }}</pre>
                 </div>
               </div>

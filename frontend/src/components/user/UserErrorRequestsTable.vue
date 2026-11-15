@@ -1,6 +1,6 @@
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div class="card flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card">
       <IpGeoBatchToolbar :ips="rows.map((r) => r.client_ip)" @failed="emit('ipGeoBatchFailed')" />
 
       <DataTable
@@ -15,13 +15,13 @@
         @rowClick="(row) => openDetail(row.id)"
       >
         <template #cell-model="{ row }">
-          <span v-if="row.model" class="text-sm font-medium text-gray-900 dark:text-white">{{ row.model }}</span>
-          <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+          <span v-if="row.model" class="text-sm font-medium text-foreground">{{ row.model }}</span>
+          <span v-else class="text-sm text-muted-foreground">-</span>
         </template>
 
         <template #cell-key_name="{ row }">
           <div class="text-sm">
-            <span class="text-gray-900 dark:text-white">{{ row.key_name || '-' }}</span>
+            <span class="text-foreground">{{ row.key_name || '-' }}</span>
             <span
               v-if="row.key_deleted"
               class="ml-1 inline-flex items-center rounded px-1 py-px text-[10px] font-medium leading-tight bg-rose-100 text-rose-600 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:ring-rose-500/30"
@@ -32,7 +32,7 @@
         <template #cell-endpoint="{ row }">
           <div class="max-w-[320px] text-xs">
             <div class="break-all text-gray-700 dark:text-gray-300">
-              <span class="font-medium text-gray-500 dark:text-gray-400">{{ t('usage.inbound') }}:</span>
+              <span class="font-medium text-muted-foreground">{{ t('usage.inbound') }}:</span>
               <span class="ml-1">{{ row.inbound_endpoint?.trim() || '-' }}</span>
             </div>
           </div>
@@ -45,16 +45,16 @@
         </template>
 
         <template #cell-category="{ row }">
-          <span class="text-sm text-gray-900 dark:text-white">{{ t('usage.errors.categories.' + row.category) }}</span>
+          <span class="text-sm text-foreground">{{ t('usage.errors.categories.' + row.category) }}</span>
         </template>
 
         <template #cell-message="{ row }">
           <span
             v-if="row.message"
-            class="block max-w-[280px] truncate text-sm text-gray-600 dark:text-gray-400"
+            class="block max-w-[280px] truncate text-sm text-muted-foreground"
             :title="row.message"
           >{{ row.message }}</span>
-          <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+          <span v-else class="text-sm text-muted-foreground">-</span>
         </template>
 
         <template #cell-group="{ row }">
@@ -62,7 +62,7 @@
             v-if="row.group_name"
             class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
           >{{ row.group_name }}</span>
-          <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+          <span v-else class="text-sm text-muted-foreground">-</span>
         </template>
 
         <template #cell-type="{ row }">
@@ -71,37 +71,37 @@
             class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
             :class="requestTypeBadge(row)!.className"
           >{{ requestTypeBadge(row)!.label }}</span>
-          <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+          <span v-else class="text-sm text-muted-foreground">-</span>
         </template>
 
         <template #cell-platform="{ row }">
-          <span class="text-sm text-gray-900 dark:text-white">{{ row.platform || '-' }}</span>
+          <span class="text-sm text-foreground">{{ row.platform || '-' }}</span>
         </template>
 
         <template #cell-client_ip="{ row }">
           <div @click.stop>
             <div v-if="row.client_ip">
-              <span class="text-sm font-mono text-gray-600 dark:text-gray-400">{{ row.client_ip }}</span>
+              <span class="text-sm font-mono text-muted-foreground">{{ row.client_ip }}</span>
               <IpGeoCell :ip="row.client_ip" />
             </div>
-            <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+            <span v-else class="text-sm text-muted-foreground">-</span>
           </div>
         </template>
 
         <template #cell-created_at="{ row }">
-          <span class="text-sm text-gray-600 dark:text-gray-400">{{ formatDateTime(row.created_at) }}</span>
+          <span class="text-sm text-muted-foreground">{{ formatDateTime(row.created_at) }}</span>
         </template>
 
         <template #cell-user_agent="{ row }">
           <span
             v-if="row.user_agent"
-            class="block max-w-[320px] truncate text-sm text-gray-600 dark:text-gray-400"
+            class="block max-w-[320px] truncate text-sm text-muted-foreground"
             :title="row.user_agent"
           >{{ row.user_agent }}</span>
-          <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+          <span v-else class="text-sm text-muted-foreground">-</span>
         </template>
 
-        <template #empty><EmptyState :message="t('usage.errors.empty')" /></template>
+        <template #empty><EmptyState :title="t('usage.errors.empty')" /></template>
       </DataTable>
     </div>
 
@@ -123,8 +123,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import DataTable from '@/components/common/DataTable.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
+import EmptyState from '@/components/page/EmptyState.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import UserErrorDetailModal from '@/components/user/UserErrorDetailModal.vue'
 import IpGeoCell from '@/components/common/IpGeoCell.vue'

@@ -1,17 +1,18 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-6xl space-y-5">
-      <p class="text-sm text-muted-foreground">{{ t('rewards.adminRules') }}</p>
-      <p v-if="loading" class="card p-6 text-sm text-muted-foreground" role="status">{{ t('rewards.loading') }}</p>
-      <form v-else-if="form" class="space-y-5" @submit.prevent="save">
-        <section class="card space-y-4 p-5">
-          <div class="flex items-center justify-between gap-4">
-            <h2 class="text-base font-semibold">{{ t('rewards.checkIn') }}</h2>
-            <label class="flex items-center gap-2 text-sm">
-              <input v-model="form.checkIn.enabled" type="checkbox" class="size-4 accent-emerald-600" />
+    <div class="space-y-4">
+      <PageHeader as="h2" :title="t('rewards.adminTitle')" :description="t('rewards.adminRules')" />
+      <SectionCard v-if="loading">
+        <p class="text-sm text-muted-foreground" role="status">{{ t('rewards.loading') }}</p>
+      </SectionCard>
+      <form v-else-if="form" class="space-y-4" @submit.prevent="save">
+        <SectionCard :title="t('rewards.checkIn')">
+          <template #actions>
+            <label class="flex items-center gap-2 text-sm text-muted-foreground">
+              <input v-model="form.checkIn.enabled" type="checkbox" class="size-4 accent-brand" />
               {{ t('rewards.enabled') }}
             </label>
-          </div>
+          </template>
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="space-y-1 text-sm">
               <span>{{ t('rewards.checkInThreshold') }}</span>
@@ -26,16 +27,15 @@
               <input v-model.number="form.checkIn.max" type="number" class="input" :min="form.checkIn.min" max="1000000" step="0.01" required />
             </label>
           </div>
-        </section>
+        </SectionCard>
 
-        <section class="card space-y-4 p-5">
-          <div class="flex items-center justify-between gap-4">
-            <h2 class="text-base font-semibold">{{ t('rewards.wheel') }}</h2>
-            <label class="flex items-center gap-2 text-sm">
-              <input v-model="form.wheel.enabled" type="checkbox" class="size-4 accent-emerald-600" />
+        <SectionCard :title="t('rewards.wheel')">
+          <template #actions>
+            <label class="flex items-center gap-2 text-sm text-muted-foreground">
+              <input v-model="form.wheel.enabled" type="checkbox" class="size-4 accent-brand" />
               {{ t('rewards.enabled') }}
             </label>
-          </div>
+          </template>
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-1 text-sm">
               <span>{{ t('rewards.wheelThreshold') }}</span>
@@ -46,9 +46,9 @@
               <input v-model.number="form.wheel.dailyLimit" type="number" class="input" min="1" max="100" step="1" required />
             </label>
           </div>
-          <p class="text-sm text-muted-foreground">{{ t('rewards.weightHelp') }}</p>
+          <p class="mb-3 mt-4 text-sm text-muted-foreground">{{ t('rewards.weightHelp') }}</p>
           <div v-for="(prize, index) in form.wheel.prizes" :key="prize.id"
-            class="grid gap-3 rounded-lg border p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-end">
+            class="mb-2 grid gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto] sm:items-end">
             <label class="space-y-1 text-sm">
               <span>{{ t('rewards.prizeName', { index: index + 1 }) }}</span>
               <input v-model="prize.name" class="input" maxlength="40" :placeholder="prize.amount > 0 ? t('rewards.prizeAmount', { amount: prize.amount }) : t('rewards.noPrize')" />
@@ -65,7 +65,7 @@
             <Button type="button" variant="outline" :disabled="form.wheel.prizes.length <= 2" @click="form.wheel.prizes.splice(index, 1)">{{ t('rewards.removePrize') }}</Button>
           </div>
           <Button type="button" variant="outline" :disabled="form.wheel.prizes.length >= 12" @click="addPrize">{{ t('rewards.addPrize') }}</Button>
-        </section>
+        </SectionCard>
 
         <div class="flex justify-end">
           <Button type="submit" :disabled="saving">{{ saving ? t('rewards.processing') : t('rewards.save') }}</Button>
@@ -73,12 +73,14 @@
       </form>
       <Button v-else variant="outline" @click="load">{{ t('rewards.refresh') }}</Button>
 
-      <div class="space-y-2">
-        <div class="flex justify-end">
-          <Button variant="outline" :disabled="loadingClaims" @click="loadClaims">{{ t('rewards.refreshHistory') }}</Button>
-        </div>
-        <RewardClaimHistory :claims="claims" show-user />
-      </div>
+      <SectionCard :title="t('rewards.history')" flush>
+        <template #actions>
+          <Button variant="outline" size="sm" :disabled="loadingClaims" @click="loadClaims">
+            {{ t('rewards.refreshHistory') }}
+          </Button>
+        </template>
+        <AdminRewardClaims :claims="claims" />
+      </SectionCard>
     </div>
   </AppLayout>
 </template>
@@ -88,7 +90,8 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import { Button } from '@/components/ui/button'
-import RewardClaimHistory from '@/components/rewards/RewardClaimHistory.vue'
+import { PageHeader, SectionCard } from '@/components/page'
+import AdminRewardClaims from './rewards/AdminRewardClaims.vue'
 import { useAppStore } from '@/stores'
 import { getRewardActivityConfig, listRewardActivityClaims, saveRewardActivityConfig, type RewardActivityClaim, type RewardActivityConfig } from '@/api/rewardActivities'
 

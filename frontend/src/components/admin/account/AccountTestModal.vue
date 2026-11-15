@@ -18,8 +18,8 @@
             <Icon name="play" size="md" class="text-white" :stroke-width="2" />
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-gray-100">{{ account.name }}</div>
-            <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <div class="font-semibold text-foreground">{{ account.name }}</div>
+            <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span
                 class="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium uppercase dark:bg-dark-500"
               >
@@ -51,7 +51,7 @@
           :options="grokTestModeOptions"
           :disabled="status === 'connecting'"
         />
-        <p class="text-xs text-gray-500 dark:text-gray-400">
+        <p class="text-xs text-muted-foreground">
           {{ t('admin.accounts.grok.testModeHint') }}
         </p>
       </div>
@@ -93,7 +93,7 @@
       </div>
       <p
         v-else-if="isGrokAccount && promptInputHint"
-        class="text-xs text-gray-500 dark:text-gray-400"
+        class="text-xs text-muted-foreground"
       >
         {{ promptInputHint }}
       </p>
@@ -112,7 +112,7 @@
           >
             {{ t('admin.accounts.grok.chooseImageFile') }}
           </button>
-          <span class="min-w-0 truncate text-xs text-gray-500 dark:text-gray-400">
+          <span class="min-w-0 truncate text-xs text-muted-foreground">
             {{
               uploadImageName
                 ? t('common.selectedFile', { name: uploadImageName })
@@ -128,7 +128,7 @@
             @change="onImageFileChange"
           />
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ imageUploadHint }}</p>
+        <p class="text-xs text-muted-foreground">{{ imageUploadHint }}</p>
         <div v-if="uploadImagePreview" class="overflow-hidden rounded-lg border border-gray-200 dark:border-dark-500">
           <img
             :src="uploadImagePreview"
@@ -151,7 +151,7 @@
           >
             {{ t('admin.accounts.grok.chooseAudioFile') }}
           </button>
-          <span class="min-w-0 truncate text-xs text-gray-500 dark:text-gray-400">
+          <span class="min-w-0 truncate text-xs text-muted-foreground">
             {{
               uploadAudioName
                 ? t('common.selectedFile', { name: uploadAudioName })
@@ -167,7 +167,7 @@
             @change="onAudioFileChange"
           />
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.grok.audioUploadHint') }}</p>
+        <p class="text-xs text-muted-foreground">{{ t('admin.accounts.grok.audioUploadHint') }}</p>
       </div>
 
       <!-- Terminal Output -->
@@ -304,7 +304,7 @@
       </Teleport>
 
       <!-- Test Info -->
-      <div class="flex items-center justify-between px-1 text-xs text-gray-500 dark:text-gray-400">
+      <div class="flex items-center justify-between px-1 text-xs text-muted-foreground">
         <div class="flex items-center gap-3">
           <span class="flex items-center gap-1">
             <Icon name="grid" size="sm" :stroke-width="2" />
@@ -337,7 +337,7 @@
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : status === 'error'
                   ? 'bg-orange-500 text-white hover:bg-orange-600'
-                  : 'bg-primary-500 text-white hover:bg-primary-600'
+                  : 'bg-brand text-brand-foreground hover:bg-brand/90'
           ]"
         >
           <Icon

@@ -23,7 +23,7 @@
         >
           {{ statusText }}
         </button>
-        <span class="max-w-[180px] text-center text-[11px] leading-4 text-gray-500 dark:text-gray-400">
+        <span class="max-w-[180px] text-center text-[11px] leading-4 text-muted-foreground">
           {{ tempUnschedRecoveryText }}
         </span>
       </div>

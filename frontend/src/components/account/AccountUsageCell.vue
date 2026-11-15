@@ -257,7 +257,7 @@
           </a>
           <button
             type="button"
-            class="text-[10px] text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            class="text-[10px] text-muted-foreground hover:text-gray-700 dark:hover:text-gray-200"
             :title="t('admin.accounts.copyLink')"
             @click="copyValidationURL"
           >
@@ -306,7 +306,7 @@
           :color="bar.color"
         />
 
-        <div v-if="aiCreditsDisplay" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+        <div v-if="aiCreditsDisplay" class="mt-1 text-[10px] text-muted-foreground">
           💳 {{ t('admin.accounts.aiCreditsBalance') }}: {{ aiCreditsDisplay }}
         </div>
       </div>
@@ -349,11 +349,11 @@
           color="amber"
         />
 
-        <div v-if="aiCreditsDisplay" class="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+        <div v-if="aiCreditsDisplay" class="mt-1 text-[10px] text-muted-foreground">
           💳 {{ t('admin.accounts.aiCreditsBalance') }}: {{ aiCreditsDisplay }}
         </div>
       </div>
-      <div v-else-if="aiCreditsDisplay" class="text-[10px] text-gray-500 dark:text-gray-400">
+      <div v-else-if="aiCreditsDisplay" class="text-[10px] text-muted-foreground">
         💳 {{ t('admin.accounts.aiCreditsBalance') }}: {{ aiCreditsDisplay }}
       </div>
       <div v-else class="text-xs text-gray-400">-</div>
@@ -424,7 +424,7 @@
             :show-now-when-idle="true"
             color="emerald"
           />
-          <div v-else-if="grokQuotaUnknown" class="text-[10px] text-gray-500 dark:text-gray-400">
+          <div v-else-if="grokQuotaUnknown" class="text-[10px] text-muted-foreground">
             {{ grokQuotaUnknownLabel }}
           </div>
         </template>
@@ -449,7 +449,7 @@
           />
           <div
             v-if="grokPrepaidMoneyLine"
-            class="flex flex-wrap items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400"
+            class="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground"
           >
             <span
               v-if="grokPrepaidMoneyLine.showPrepaid"
@@ -466,7 +466,7 @@
               {{ grokPrepaidMoneyLine.used }}/{{ grokPrepaidMoneyLine.limit }}
             </span>
           </div>
-          <div v-if="grokQuotaUnknown" class="text-[10px] text-gray-500 dark:text-gray-400">
+          <div v-if="grokQuotaUnknown" class="text-[10px] text-muted-foreground">
             {{ grokQuotaUnknownLabel }}
           </div>
         </template>
@@ -575,7 +575,7 @@
           v-if="showGeminiTodayStats && todayStats"
           class="mb-0.5 flex items-center"
         >
-          <div class="flex items-center gap-1.5 text-[9px] text-gray-500 dark:text-gray-400">
+          <div class="flex items-center gap-1.5 text-[9px] text-muted-foreground">
             <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800">
               {{ formatKeyRequests }} req
             </span>
@@ -686,7 +686,7 @@
         v-if="todayStats"
         class="mb-0.5 flex items-center"
       >
-        <div class="flex items-center gap-1.5 text-[9px] text-gray-500 dark:text-gray-400">
+        <div class="flex items-center gap-1.5 text-[9px] text-muted-foreground">
           <span class="rounded bg-gray-100 px-1.5 py-0.5 dark:bg-gray-800">
             {{ formatKeyRequests }} req
           </span>

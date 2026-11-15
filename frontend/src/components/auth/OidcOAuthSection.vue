@@ -2,7 +2,7 @@
   <div class="space-y-4">
     <button type="button" :disabled="disabled" class="btn btn-secondary w-full" @click="startLogin">
       <span
-        class="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-xs font-semibold text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+        class="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand/15 text-xs font-semibold text-brand"
       >
         {{ providerInitial }}
       </span>
@@ -11,7 +11,7 @@
 
     <div v-if="showDivider" class="flex items-center gap-3">
       <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>
-      <span class="text-xs text-gray-500 dark:text-dark-400">
+      <span class="text-xs text-muted-foreground">
         {{ t('auth.oauthOrContinue') }}
       </span>
       <div class="h-px flex-1 bg-gray-200 dark:bg-dark-700"></div>

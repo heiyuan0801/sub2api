@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <div class="grid grid-cols-2 lg:grid-cols-4" :class="adminPresentation ? 'admin-usage-metrics gap-3' : 'gap-4'">
     <Card class="usage-metric relative flex min-w-0 flex-col gap-3 p-5">
       <div class="metric-icon">
         <Icon name="document" size="md" />
@@ -36,9 +36,9 @@
               />
             </svg>
             <span
-              class="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden w-56 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-left text-xs text-gray-700 shadow-lg group-hover:block group-focus:block dark:border-dark-600 dark:bg-dark-800 dark:text-dark-200"
+              class="pointer-events-none absolute left-1/2 top-full z-30 mt-2 hidden w-56 -translate-x-1/2 rounded-lg border border-border bg-card p-3 text-left text-xs text-gray-700 shadow-lg group-hover:block group-focus:block dark:text-dark-200"
             >
-              <span class="mb-2 block font-medium text-gray-900 dark:text-white">
+              <span class="mb-2 block font-medium text-foreground">
                 {{ cacheDetailLabel() }}
               </span>
               <span class="flex items-center justify-between gap-3">
@@ -100,6 +100,7 @@ const props = withDefaults(defineProps<{
   stats: (AdminUsageStatsResponse | UsageStatsResponse) | null
   showAccountCost?: boolean
   strikeStandardCost?: boolean
+  adminPresentation?: boolean
 }>(), {
   showAccountCost: true,
   strikeStandardCost: false,
@@ -133,4 +134,10 @@ const cacheDetailLabel = () => t('usage.cacheBreakdown')
 .usage-metric > div:last-child { @apply w-full min-w-0; }
 .usage-metric > div:last-child > p:first-child { @apply mb-3 pr-10 text-sm font-medium text-muted-foreground; }
 .metric-value { @apply mb-2 text-3xl font-semibold tracking-tight text-foreground; font-variant-numeric: tabular-nums; }
+
+/* Keep the compact admin cards visually aligned with Page StatCard. */
+.admin-usage-metrics .usage-metric { @apply gap-1.5 rounded-lg border-border px-4 pb-3 pt-3.5 shadow-none; }
+.admin-usage-metrics .metric-icon { @apply right-3 top-3 p-1.5; }
+.admin-usage-metrics .usage-metric > div:last-child > p:first-child { @apply mb-1.5 pr-8 text-xs; }
+.admin-usage-metrics .metric-value { @apply mb-2 text-2xl font-medium; }
 </style>

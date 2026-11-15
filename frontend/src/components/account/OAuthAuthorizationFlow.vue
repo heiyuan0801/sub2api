@@ -696,7 +696,7 @@
                     class="input w-full font-mono text-sm"
                     :placeholder="t('admin.accounts.oauth.gemini.projectIdPlaceholder')"
                   />
-                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p class="mt-1 text-xs text-muted-foreground">
                     {{ t('admin.accounts.oauth.gemini.projectIdHint') }}
                   </p>
                 </div>
@@ -850,7 +850,7 @@
                     class="input w-full resize-none font-mono text-sm"
                     :placeholder="oauthAuthCodePlaceholder"
                   ></textarea>
-                  <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  <p class="mt-2 text-xs text-muted-foreground">
                     <Icon name="infoCircle" size="xs" class="mr-1 inline" />
                     {{ oauthAuthCodeHint }}
                   </p>

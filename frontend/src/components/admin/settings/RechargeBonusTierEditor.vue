@@ -4,10 +4,10 @@
     <div class="border-b border-gray-100 px-4 py-3 dark:border-dark-700">
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-base font-semibold text-foreground">
             {{ t('admin.settings.payment.rechargeBonus.label') }}
           </h2>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-0.5 text-xs text-muted-foreground">
             {{ t('admin.settings.payment.rechargeBonus.hint') }}
           </p>
         </div>
@@ -31,7 +31,7 @@
           {{ t('admin.settings.payment.rechargeBonus.modeLabel') }}
         </span>
         <div
-          class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-dark-600 dark:bg-dark-800"
+          class="inline-flex rounded-lg border border-border bg-gray-50 p-0.5 dark:bg-dark-800"
           role="group"
         >
           <button
@@ -41,8 +41,8 @@
             :class="[
               'rounded-md px-3 py-1 text-sm font-medium transition-colors',
               currentMode === option.value
-                ? 'bg-white text-gray-900 shadow-sm dark:bg-dark-700 dark:text-white'
-                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200',
+                ? 'bg-white text-foreground shadow-sm dark:bg-dark-700'
+                : 'text-muted-foreground hover:text-gray-700 dark:hover:text-gray-200',
             ]"
             :aria-pressed="currentMode === option.value"
             :data-testid="`recharge-bonus-mode-${option.value}`"
@@ -61,13 +61,13 @@
       <!-- 档位列表：紧凑表格 -->
       <div
         v-if="tiers.length === 0"
-        class="rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 dark:border-dark-600 dark:text-gray-400"
+        class="rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm text-muted-foreground dark:border-dark-600"
       >
         {{ t('admin.settings.payment.rechargeBonus.empty') }}
       </div>
-      <div v-else class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-600">
+      <div v-else class="overflow-hidden rounded-xl border border-border">
         <div
-          class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-center gap-3 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500 dark:bg-dark-800 dark:text-gray-400"
+          class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2rem] items-center gap-3 bg-gray-50 px-3 py-2 text-xs font-medium text-muted-foreground dark:bg-dark-800"
         >
           <span>{{ t('admin.settings.payment.rechargeBonus.minAmountLabel') }}</span>
           <span>
@@ -141,7 +141,7 @@
       <!-- 区间预览：单行内联 -->
       <p
         v-if="intervals.length > 0"
-        class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"
         data-testid="recharge-bonus-tier-preview"
       >
         <span class="font-medium text-gray-700 dark:text-gray-300">

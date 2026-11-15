@@ -1,9 +1,9 @@
 <template>
   <AppLayout class="availability-layout">
-    <div class="availability-page space-y-5 pb-10">
+    <div class="availability-page space-y-4 pb-8">
+      <PageHeader :title="t('channelMonitorV2.channels.title')" />
       <header class="availability-header">
         <div class="monitor-header-controls">
-          <h1 class="sr-only">{{ t('channelMonitorV2.channels.title') }}</h1>
           <div class="availability-ranges" role="group" :aria-label="t('channelMonitorV2.timeRange')">
             <button v-for="range in ranges" :key="range" type="button" :class="{ selected: filter.range === range }" :aria-pressed="filter.range === range" @click="setRange(range)">{{ t(`channelMonitorV2.ranges.${range}`) }}</button>
           </div>
@@ -26,7 +26,7 @@
         <template v-else-if="snapshot?.coverage.data_through">{{ t('channelMonitorV2.updatedTo', { time: formatTime(snapshot.coverage.data_through) }) }}</template>
       </p>
       <div v-if="isAdmin || (snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive)" class="flex flex-wrap items-center justify-end gap-2">
-        <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive" class="mr-auto text-xs text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.partialCoverage') }}</span>
+        <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive" class="mr-auto text-xs text-muted-foreground">{{ t('channelMonitorV2.partialCoverage') }}</span>
         <template v-if="isAdmin">
           <router-link to="/admin/ops?open_alert_rules=1" class="availability-settings"><Icon name="bell" size="sm" />{{ t('channelMonitorV2.preferences.alerts') }}</router-link>
           <router-link to="/admin/channels/monitor" class="availability-settings"><Icon name="cog" size="sm" />{{ t('channelMonitorV2.availability.settings') }}</router-link>
@@ -48,9 +48,9 @@
         <button type="button" class="shrink-0 underline underline-offset-4" :disabled="refreshing" @click="reload(false)">{{ t('common.refresh') }}</button>
       </div>
 
-      <div v-if="bootstrapActive" class="rounded-xl border border-gray-200 p-4 dark:border-dark-700" role="status" aria-live="polite">
+      <div v-if="bootstrapActive" class="rounded-xl border border-border p-4" role="status" aria-live="polite">
         <p class="text-sm font-semibold">{{ t('channelMonitorV2.bootstrap.title') }}</p>
-        <p class="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.bootstrap.description') }}</p>
+        <p class="mt-1 text-xs leading-relaxed text-muted-foreground">{{ t('channelMonitorV2.bootstrap.description') }}</p>
         <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-dark-700" role="progressbar" :aria-valuenow="bootstrapPercent" aria-valuemin="0" aria-valuemax="100" :aria-label="t('channelMonitorV2.bootstrap.working')">
           <div class="h-full rounded-full bg-gray-900 transition-[width] duration-500 dark:bg-gray-200" :style="{ width: `${bootstrapPercent}%` }" />
         </div>
@@ -89,19 +89,19 @@
           <div v-else-if="loading" class="min-h-[280px] space-y-4" aria-hidden="true">
             <div v-for="i in 3" :key="i" class="availability-placeholder h-28 animate-pulse rounded-xl" />
           </div>
-          <div v-else class="py-16 text-center text-sm text-gray-500 dark:text-gray-400">{{ monitorDisabled ? t('channelMonitorV2.availability.disabledHint') : loadError || t('channelMonitorV2.empty.title') }}</div>
+          <EmptyState v-else :title="monitorDisabled ? t('channelMonitorV2.availability.disabledHint') : loadError || t('channelMonitorV2.empty.title')" />
         </div>
       </section>
 
         <details class="group availability-advanced">
-          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-b-3xl px-5 py-3 text-xs font-medium text-gray-600 outline-offset-[-4px] hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-300 dark:hover:bg-dark-800 sm:px-6">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-b-3xl px-5 py-3 text-xs font-medium text-muted-foreground outline-offset-[-4px] hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring sm:px-6">
             <span class="flex items-center gap-2">
               <Icon name="filter" size="sm" />{{ t('channelMonitorV2.cards.viewSettings') }}
               <span v-if="hasDimensionFilter" class="badge badge-gray">{{ t('channelMonitorV2.filters.selectedCount', { count: filter.platforms.length + filter.groupIds.length }) }}</span>
             </span>
             <Icon name="chevronDown" size="sm" class="transition-transform group-open:rotate-180" />
           </summary>
-          <div class="monitor-toolbar flex flex-wrap items-center gap-2 border-t border-gray-100 px-5 py-4 dark:border-dark-700 sm:px-6">
+          <div class="monitor-toolbar flex flex-wrap items-center gap-2 border-t border-border px-5 py-3 sm:px-6">
             <FilterMultiSelect v-model="selectedPlatformIds" compact :label="t('channelMonitorV2.filters.platform')" :all-label="t('channelMonitorV2.filters.allPlatforms')" :options="platformOptions" />
             <FilterMultiSelect v-model="selectedGroupIds" compact :label="t('channelMonitorV2.filters.group')" :all-label="t('channelMonitorV2.filters.allGroups')" :options="groupOptions" />
             <button type="button" class="btn btn-ghost btn-sm !px-2 !py-1 text-xs" :disabled="!hasDimensionFilter" @click="clearDimensions">{{ t('channelMonitorV2.clearFilters') }}</button>
@@ -172,7 +172,7 @@
         </details>
 
       <details class="card availability-details min-h-0 overflow-hidden !rounded-3xl p-0 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
-        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900 outline-offset-[-4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-100 sm:px-6">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-foreground outline-offset-[-4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 sm:px-6">
           {{ t('channelMonitorV2.cards.details') }}
           <Icon name="chevronDown" size="sm" />
         </summary>
@@ -269,7 +269,7 @@
                   <td>
                     <strong
                       class="font-semibold"
-                      :class="row.is_self ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-white'"
+                      :class="row.is_self ? 'text-brand' : 'text-foreground'"
                     >
                       {{ row.display_label }}
                       <span
@@ -319,6 +319,7 @@
 </template>
 
 <script setup lang="ts">
+import { EmptyState, PageHeader } from '@/components/page'
 import { useI18n } from 'vue-i18n'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -903,32 +904,15 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .availability-layout {
-  --channel-background: #eaf3ff;
-  --channel-text: #152b4b;
-  --channel-muted: #435d80;
-  --channel-border: #c6d9f2;
-  --channel-surface: #fafdff;
-  --channel-subtle: #e0edff;
-  --channel-gap: #a9c2e1;
-  background: var(--channel-background);
-}
-.dark .availability-layout {
-  --channel-background: #0e1c30;
-  --channel-text: #eaf3ff;
-  --channel-muted: #b2c9e9;
-  --channel-border: #324c6e;
-  --channel-surface: #182b45;
-  --channel-subtle: #233c5e;
-  --channel-gap: #536f95;
-}
-.availability-layout :deep(.console-main) {
-  border-color: var(--channel-border);
-  background: var(--channel-background);
-}
-.availability-layout :deep(.sidebar),
-.availability-layout :deep(.console-main > header) {
-  border-color: var(--channel-border);
-  background: var(--channel-surface);
+  --channel-text: hsl(var(--foreground));
+  --channel-muted: hsl(var(--muted-foreground));
+  --channel-border: hsl(var(--border));
+  --channel-surface: hsl(var(--card));
+  --channel-subtle: hsl(var(--brand) / .075);
+  --channel-gap: hsl(var(--muted-foreground) / .35);
+  --channel-healthy: hsl(var(--success));
+  --channel-warning: hsl(var(--warning));
+  --channel-critical: hsl(var(--danger));
 }
 .availability-page {
   max-width: 104rem;
@@ -963,33 +947,23 @@ onBeforeUnmount(() => {
 .availability-action, .availability-settings { display: inline-flex; flex: none; min-height: 2rem; align-items: center; justify-content: center; gap: .35rem; border: 1px solid var(--channel-border); border-radius: 6px; background: var(--channel-surface); padding: .35rem .6rem; color: var(--channel-text); font-size: .75rem; font-weight: 600; }
 .availability-action:hover:not(:disabled), .availability-settings:hover:not(:disabled) { background: var(--channel-subtle); }
 .availability-settings:disabled { cursor: wait; opacity: .6; }
-.availability-action:focus-visible, .availability-ranges button:focus-visible, .availability-settings:focus-visible { outline: 2px solid var(--channel-muted); outline-offset: 2px; }
+.availability-action:focus-visible, .availability-ranges button:focus-visible, .availability-settings:focus-visible { outline: 2px solid var(--filter-accent, hsl(var(--brand))); outline-offset: 2px; }
 .availability-workspace, .availability-results { min-width: 0; }
 .channel-filters {
-  --filter-panel: #f2f7ff;
-  --filter-surface: #fff;
-  --filter-hover: #e1edff;
-  --filter-border: #bfd3f4;
-  --filter-accent: #2458b8;
-  --filter-strong: #1c4797;
-  --filter-muted: #3b587f;
-  --filter-on-accent: #fff;
+  --filter-panel: hsl(var(--card));
+  --filter-surface: hsl(var(--background));
+  --filter-hover: hsl(var(--brand) / .08);
+  --filter-border: hsl(var(--border));
+  --filter-accent: hsl(var(--brand));
+  --filter-strong: hsl(var(--foreground));
+  --filter-muted: hsl(var(--muted-foreground));
+  --filter-on-accent: hsl(var(--brand-foreground));
   margin-bottom: 1rem;
   padding: .85rem;
   border: 1px solid var(--filter-border);
   border-radius: 10px;
   background: var(--filter-panel);
   color: var(--filter-muted);
-}
-.dark .channel-filters {
-  --filter-panel: #14233a;
-  --filter-surface: #1a2d49;
-  --filter-hover: #233e64;
-  --filter-border: #375881;
-  --filter-accent: #a1c6ff;
-  --filter-strong: #c7dfff;
-  --filter-muted: #b2c9e9;
-  --filter-on-accent: #112745;
 }
 .availability-platforms, .availability-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
 .availability-platforms button { border: 1px solid var(--filter-border); border-radius: 7px; background: var(--filter-surface); padding: .35rem .65rem; color: var(--filter-accent); font-size: .75rem; }
@@ -1001,7 +975,7 @@ onBeforeUnmount(() => {
 .channel-filters :deep(.select-trigger:hover) { border-color: var(--filter-accent); background: var(--filter-hover); }
 .channel-filters .availability-settings[aria-pressed='true'] { border-color: var(--filter-accent); background: var(--filter-hover); color: var(--filter-strong); }
 .availability-platforms button.selected, .channel-filters .availability-action { border-color: var(--filter-accent); background: var(--filter-accent); color: var(--filter-on-accent); font-weight: 650; }
-.availability-platforms button.selected:hover:not(:disabled), .channel-filters .availability-action:hover { border-color: var(--filter-strong); background: var(--filter-strong); }
+.availability-platforms button.selected:hover:not(:disabled), .channel-filters .availability-action:hover { border-color: var(--filter-accent); background: hsl(var(--brand) / .85); }
 .availability-platforms button:disabled { opacity: .6; }
 .channel-filters :is(button, input):focus-visible,
 .channel-filters :deep(.select-trigger:focus-visible) { outline: 2px solid var(--filter-accent); outline-offset: 2px; }
@@ -1012,12 +986,11 @@ onBeforeUnmount(() => {
 .availability-status { max-width: 100%; }
 .availability-legend { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .7rem; font-size: .6875rem; }
 .availability-reset { border-radius: 4px; color: var(--filter-accent); font-weight: 650; text-decoration: underline; text-underline-offset: .2em; }
-.legend-healthy { background: #00976e; }
-.legend-warning { background: #f9c32f; }
-.legend-critical { background: #ef4444; }
+.legend-healthy { background: var(--channel-healthy); }
+.legend-warning { background: var(--channel-warning); }
+.legend-critical { background: var(--channel-critical); }
 .legend-unknown { background: var(--channel-gap); }
-.availability-notice { display: flex; align-items: flex-start; gap: .75rem; border: 1px solid #fcd34d; border-radius: .75rem; background: #fffbeb; padding: 1rem; color: #92400e; font-size: .8125rem; }
-.dark .availability-notice { border-color: #92400e; background: #451a03; color: #fde68a; }
+.availability-notice { display: flex; align-items: flex-start; gap: .75rem; border: 1px solid hsl(var(--warning) / .35); border-radius: .75rem; background: hsl(var(--warning) / .08); padding: 1rem; color: hsl(var(--warning)); font-size: .8125rem; }
 .availability-advanced { border: 1px solid var(--channel-border); border-radius: .875rem; background: var(--channel-surface); }
 .availability-page .availability-details { border-color: var(--channel-border); background: var(--channel-surface); }
 .availability-placeholder { background: var(--channel-subtle); }

@@ -1,44 +1,30 @@
 <template>
-  <div class="min-h-screen bg-gray-50 px-4 py-10 dark:bg-dark-900">
-    <div class="mx-auto max-w-2xl">
-      <div class="card p-6">
-        <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
-          {{ callbackTitleText }}
-        </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          {{ errorMessage || callbackProcessingText }}
-        </p>
+  <AuthFlowFrame>
+    <SectionCard class="[&>div]:p-5 sm:[&>div]:p-6">
+      <PageHeader
+        :title="callbackTitleText"
+        :description="errorMessage ? undefined : callbackProcessingText"
+      />
 
-        <div
-          v-if="!errorMessage"
-          class="mt-6 flex items-center justify-center py-10"
-        >
-          <div
-            class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"
-          ></div>
-        </div>
-
-        <div
-          v-else
-          class="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-800/80"
-        >
-          <p class="text-sm text-gray-700 dark:text-gray-300">
-            {{ errorMessage }}
-          </p>
-          <button
-            class="btn btn-primary mt-4"
-            type="button"
-            @click="goBackToPayment"
-          >
-            {{ backToPaymentText }}
-          </button>
-        </div>
+      <div v-if="!errorMessage" class="mt-4 flex items-center py-2" role="status">
+        <span class="size-6 animate-spin rounded-full border-2 border-brand border-t-transparent" aria-hidden="true" />
+        <span class="sr-only">{{ callbackProcessingText }}</span>
       </div>
-    </div>
-  </div>
+
+      <div v-else class="mt-4 rounded-lg border border-danger/25 bg-danger/10 p-4">
+        <p role="alert" class="text-sm text-danger">{{ errorMessage }}</p>
+        <button class="btn btn-primary mt-4" type="button" @click="goBackToPayment">
+          {{ backToPaymentText }}
+        </button>
+      </div>
+    </SectionCard>
+  </AuthFlowFrame>
 </template>
 
 <script setup lang="ts">
+import AuthFlowFrame from '@/components/auth/AuthFlowFrame.vue'
+import PageHeader from '@/components/page/PageHeader.vue'
+import SectionCard from '@/components/page/SectionCard.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'

@@ -2,22 +2,23 @@
   <div class="space-y-4">
     <!-- Quick Amount Buttons -->
     <div>
-      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label class="mb-2 block text-sm font-medium text-foreground">
         {{ t('payment.quickAmounts') }}
       </label>
-      <div class="grid grid-cols-3 gap-x-4 gap-y-4 pt-2">
+      <div class="grid grid-cols-3 gap-x-2 gap-y-3 pt-2 sm:gap-x-3">
         <button
           v-for="amt in filteredAmounts"
           :key="amt"
           type="button"
           :class="[
-            'relative rounded-lg border-2 px-3 py-3 text-center font-medium transition-colors',
+            'relative rounded-md border px-2 py-2.5 text-center font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             modelValue === amt
-              ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-400 dark:bg-primary-900/40 dark:text-primary-300'
+              ? 'border-brand bg-brand/10 text-brand'
               : quoteFor(amt).percent > 0
-                ? 'border-red-200 bg-white text-gray-700 hover:border-red-300 dark:border-red-500/40 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-red-400/60'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200 dark:hover:border-dark-500',
+                ? 'border-danger/25 bg-card text-foreground hover:border-danger/50'
+                : 'border-border bg-card text-foreground hover:bg-accent',
           ]"
+          :aria-pressed="modelValue === amt"
           :data-testid="`quick-amount-${amt}`"
           @click="selectAmount(amt)"
         >
@@ -28,7 +29,7 @@
             data-testid="quick-amount-bonus-badge"
           >
             <span
-              class="relative flex items-center gap-1 whitespace-nowrap rounded bg-red-600 py-0.5 pl-1.5 pr-1 text-[11px] font-extrabold leading-tight tracking-tight text-white shadow-md ring-2 ring-white before:pointer-events-none before:absolute before:inset-[2px] before:rounded-sm before:border before:border-dotted before:border-white/70 dark:bg-red-500 dark:ring-dark-800"
+              class="relative flex items-center gap-1 whitespace-nowrap rounded bg-red-600 py-0.5 pl-1.5 pr-1 text-[11px] font-extrabold leading-tight tracking-tight text-white shadow-md ring-2 ring-card before:pointer-events-none before:absolute before:inset-[2px] before:rounded-sm before:border before:border-dotted before:border-white/70 dark:bg-red-500"
             >
               <span>{{ badgeText(amt) }}</span>
               <span class="h-1 w-1 shrink-0 rounded-full bg-white"></span>
@@ -40,7 +41,7 @@
             v-if="showSecondLine"
             :class="[
               'mt-0.5 block text-[11px] font-normal leading-tight',
-              quoteFor(amt).percent > 0 ? 'text-red-600 dark:text-red-300' : 'text-gray-400 dark:text-gray-500',
+              quoteFor(amt).percent > 0 ? 'text-danger' : 'text-muted-foreground',
             ]"
             data-testid="quick-amount-credited"
           >{{ secondLine(amt) }}</span>
@@ -50,11 +51,11 @@
 
     <!-- Custom Amount Input -->
     <div>
-      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label class="mb-2 block text-sm font-medium text-foreground">
         {{ t('payment.customAmount') }}
       </label>
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
           $
         </span>
         <input

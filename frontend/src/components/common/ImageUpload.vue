@@ -62,7 +62,7 @@
           {{ resolvedRemoveLabel }}
         </button>
       </div>
-      <p v-if="hint" class="text-xs text-gray-500 dark:text-gray-400">{{ hint }}</p>
+      <p v-if="hint" class="text-xs text-muted-foreground">{{ hint }}</p>
       <p v-if="error" class="text-xs text-red-500">{{ error }}</p>
     </div>
   </div>

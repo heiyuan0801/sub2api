@@ -1,58 +1,69 @@
 <template>
-  <aside
-    class="sidebar"
-    :class="[
-      sidebarCollapsed ? 'w-[72px]' : 'w-64',
-      { '-translate-x-full lg:translate-x-0': !mobileOpen }
-    ]"
+  <ConsoleSidebarFrame
+    :collapsed="sidebarCollapsed"
+    :mobile-open="mobileOpen"
+    :admin="isAdmin"
+    @update:mobile-open="appStore.setMobileOpen"
+    v-slot="{ collapsed }"
   >
     <!-- Logo/Brand -->
-    <div class="sidebar-header" :class="{ 'sidebar-header-collapsed': sidebarCollapsed }">
+    <div class="sidebar-header" :class="{ 'sidebar-header-collapsed': collapsed }">
       <!-- Custom Logo or Default Logo -->
       <router-link
         :to="homePath"
-        class="sidebar-logo flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl transition-opacity hover:opacity-80"
+        class="sidebar-logo flex items-center justify-center overflow-hidden rounded-lg transition-opacity hover:opacity-80"
+        :aria-label="siteName"
         @click="handleMenuItemClick(homePath)"
       >
-        <img v-if="settingsLoaded" :src="siteLogo || '/logo.svg'" alt="Logo" class="h-full w-full object-contain" />
+        <img v-if="settingsLoaded" :src="siteLogo || '/logo.svg'" alt="" class="h-full w-full object-contain" />
       </router-link>
-      <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
+      <div v-if="!collapsed" class="sidebar-brand">
         <router-link
           :to="homePath"
-          class="sidebar-brand-title text-lg font-bold text-gray-900 transition-colors hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
+          class="sidebar-brand-title text-sm font-semibold text-foreground transition-colors hover:text-brand"
           @click="handleMenuItemClick(homePath)"
         >
           {{ siteName }}
         </router-link>
         <!-- Version Badge -->
-        <VersionBadge :version="siteVersion" />
+        <VersionBadge :version="siteVersion" class="sidebar-version" />
       </div>
     </div>
 
     <!-- Navigation -->
-    <nav ref="sidebarNavRef" class="sidebar-nav scrollbar-hide">
+    <nav
+      ref="sidebarNavRef"
+      class="sidebar-nav scrollbar-hide"
+      :aria-label="t('design.shell.navigation')"
+      @scroll.passive="saveSidebarScroll"
+    >
       <!-- Admin View: Admin menu first, then personal menu -->
       <template v-if="isAdmin">
         <!-- Admin Section -->
-        <div class="sidebar-section">
-          <template v-for="item in adminNavItems" :key="item.path">
+        <div v-for="section in adminNavSections" :key="section.id" class="sidebar-section">
+          <p class="sidebar-section-title" :class="{ 'sidebar-section-title-collapsed': collapsed }">
+            <span class="sidebar-section-title-text" :class="{ 'sidebar-section-title-text-collapsed': collapsed }">{{ section.label }}</span>
+          </p>
+          <template v-for="item in section.items" :key="item.path">
             <!-- Collapsible group (has children) -->
             <template v-if="item.children?.length">
               <button
                 type="button"
                 class="sidebar-link mb-1 w-full"
                 :class="{
-                  'sidebar-link-active': isGroupActive(item) && !isGroupExpanded(item),
-                  'sidebar-link-collapsed': sidebarCollapsed
+                  'sidebar-link-active': isGroupActive(item) && (collapsed || !isGroupExpanded(item)),
+                  'sidebar-link-collapsed': collapsed
                 }"
-                :title="sidebarCollapsed ? item.label : undefined"
-                @click="handleGroupClick(item)"
+                :title="collapsed ? item.label : undefined"
+                :aria-label="item.label"
+                :aria-expanded="!collapsed && isGroupExpanded(item)"
+                @click="handleGroupClick(item, collapsed)"
               >
                 <component :is="item.icon" class="h-5 w-5 flex-shrink-0" />
                 <span
                   class="sidebar-label sidebar-label-flex"
-                  :class="{ 'sidebar-label-collapsed': sidebarCollapsed }"
-                  :aria-hidden="sidebarCollapsed ? 'true' : 'false'"
+                  :class="{ 'sidebar-label-collapsed': collapsed }"
+                  :aria-hidden="collapsed ? 'true' : 'false'"
                 >
                   <span class="min-w-0 truncate">{{ item.label }}</span>
                   <ChevronDownIcon
@@ -62,7 +73,7 @@
                 </span>
               </button>
               <!-- Children -->
-              <div v-if="!sidebarCollapsed && isGroupExpanded(item)" class="mb-1 ml-4 border-l border-gray-200 pl-2 dark:border-dark-600">
+              <div v-if="!collapsed && isGroupExpanded(item)" class="mb-1 ml-4 border-l border-border pl-2">
                 <router-link
                   v-for="child in item.children"
                   :key="child.path"
@@ -81,8 +92,10 @@
               v-else
               :to="item.path"
               class="sidebar-link mb-1"
-              :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
-              :title="sidebarCollapsed ? item.label : undefined"
+              :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': collapsed }"
+              :title="collapsed ? item.label : undefined"
+              :aria-label="collapsed ? item.label : undefined"
+              :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
               :id="
                 item.path === '/admin/accounts'
                   ? 'sidebar-channel-manage'
@@ -96,15 +109,15 @@
             >
               <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
               <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
-              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+              <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': collapsed }" :aria-hidden="collapsed ? 'true' : 'false'">{{ item.label }}</span>
             </router-link>
           </template>
         </div>
 
         <!-- Personal Section for Admin (hidden in simple mode) -->
         <div v-if="!authStore.isSimpleMode" class="sidebar-section">
-          <div class="sidebar-section-title" :class="{ 'sidebar-section-title-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
-            <span class="sidebar-section-title-text" :class="{ 'sidebar-section-title-text-collapsed': sidebarCollapsed }">
+          <div class="sidebar-section-title" :class="{ 'sidebar-section-title-collapsed': collapsed }" :aria-hidden="collapsed ? 'true' : 'false'">
+            <span class="sidebar-section-title-text" :class="{ 'sidebar-section-title-text-collapsed': collapsed }">
               {{ t('nav.myAccount') }}
             </span>
           </div>
@@ -114,14 +127,15 @@
             :key="item.path"
             :to="item.path"
             class="sidebar-link mb-1"
-            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
-            :title="sidebarCollapsed ? item.label : undefined"
+            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': collapsed }"
+            :title="collapsed ? item.label : undefined"
+            :aria-label="collapsed ? item.label : undefined"
             :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
             @click="handleMenuItemClick(item.path)"
           >
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
             <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': collapsed }" :aria-hidden="collapsed ? 'true' : 'false'">{{ item.label }}</span>
           </router-link>
         </div>
       </template>
@@ -134,61 +148,32 @@
             :key="item.path"
             :to="item.path"
             class="sidebar-link mb-1"
-            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
-            :title="sidebarCollapsed ? item.label : undefined"
+            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': collapsed }"
+            :title="collapsed ? item.label : undefined"
+            :aria-label="collapsed ? item.label : undefined"
             :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
             @click="handleMenuItemClick(item.path)"
           >
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
             <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
+            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': collapsed }" :aria-hidden="collapsed ? 'true' : 'false'">{{ item.label }}</span>
           </router-link>
         </div>
       </template>
     </nav>
 
-    <!-- Bottom Section -->
-    <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
-      <!-- Theme Toggle -->
-      <button
-        @click="toggleTheme"
-        class="sidebar-link mb-2 w-full"
-        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
-        :title="sidebarCollapsed ? (isDark ? t('nav.lightMode') : t('nav.darkMode')) : undefined"
-      >
-        <SunIcon v-if="isDark" class="h-5 w-5 flex-shrink-0" />
-        <MoonIcon v-else class="h-5 w-5 flex-shrink-0" />
-        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{
-          isDark ? t('nav.lightMode') : t('nav.darkMode')
-        }}</span>
-      </button>
-
-      <!-- Collapse Button -->
-      <button
-        @click="toggleSidebar"
-        class="sidebar-link w-full"
-        :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
-        :title="sidebarCollapsed ? t('nav.expand') : t('nav.collapse')"
-      >
-        <ChevronDoubleLeftIcon v-if="!sidebarCollapsed" class="h-5 w-5 flex-shrink-0" />
-        <ChevronDoubleRightIcon v-else class="h-5 w-5 flex-shrink-0" />
-        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ t('nav.collapse') }}</span>
-      </button>
+    <div v-if="accountName" class="mx-2 flex shrink-0 items-center gap-2 border-t border-border py-2" :class="collapsed ? 'justify-center' : 'px-2'">
+      <span class="grid size-7 shrink-0 place-items-center rounded-full border border-border bg-card text-xs font-medium" aria-hidden="true">{{ accountName.slice(0, 2).toUpperCase() }}</span>
+      <span v-if="!collapsed" class="min-w-0">
+        <span class="block truncate text-xs font-medium">{{ accountName }}</span>
+        <span class="block truncate text-[11px] text-muted-foreground">{{ accountRole }}</span>
+      </span>
     </div>
-  </aside>
-
-  <!-- Mobile Overlay -->
-  <transition name="fade">
-    <div
-      v-if="mobileOpen"
-      class="fixed inset-0 z-30 bg-black/50 lg:hidden"
-      @click="closeMobile"
-    ></div>
-  </transition>
+  </ConsoleSidebarFrame>
 </template>
 
 <script setup lang="ts">
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
@@ -199,11 +184,14 @@ import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
 import { useBatchImageAccess } from '@/composables/useBatchImageAccess'
+import ConsoleSidebarFrame from '@/components/admin-shell/ConsoleSidebarFrame.vue'
+import { ADMIN_SECTIONS, ADMIN_SECTION_LABEL_KEYS, getAdminRouteSection } from '@/components/admin-shell/adminRoutes'
+import type { SidebarCommandLink } from '@/components/admin-shell/navigation'
 
 interface NavItem {
   path: string
   label: string
-  icon: unknown
+  icon: Component | null
   iconSvg?: string
   hideInSimpleMode?: boolean
   children?: NavItem[]
@@ -236,6 +224,7 @@ function applyFeatureFlags(items: NavItem[]): NavItem[] {
   return out
 }
 
+const emit = defineEmits<{ 'navigation-change': [links: SidebarCommandLink[]] }>()
 const { t } = useI18n()
 
 const route = useRoute()
@@ -250,7 +239,8 @@ const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const mobileOpen = computed(() => appStore.mobileOpen)
 const isAdmin = computed(() => authStore.isAdmin)
 const sidebarNavRef = ref<HTMLElement | null>(null)
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const accountName = computed(() => authStore.user?.username || authStore.user?.email?.split('@')[0] || '')
+const accountRole = computed(() => authStore.user ? t('admin.users.roles.' + authStore.user.role) : '')
 
 const homePath = computed(() => (isAdmin.value ? '/admin/dashboard' : '/dashboard'))
 
@@ -539,51 +529,6 @@ const CogIcon = {
     )
 }
 
-const SunIcon = {
-  render: () =>
-    h(
-      'svg',
-      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
-      [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          d: 'M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z'
-        })
-      ]
-    )
-}
-
-const MoonIcon = {
-  render: () =>
-    h(
-      'svg',
-      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
-      [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          d: 'M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z'
-        })
-      ]
-    )
-}
-
-const ChevronDoubleLeftIcon = {
-  render: () =>
-    h(
-      'svg',
-      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
-      [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          d: 'm18.75 4.5-7.5 7.5 7.5 7.5m-6-15L5.25 12l7.5 7.5'
-        })
-      ]
-    )
-}
-
 const OrderIcon = {
   render: () =>
     h(
@@ -609,21 +554,6 @@ const OrderListIcon = {
           'stroke-linecap': 'round',
           'stroke-linejoin': 'round',
           d: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z'
-        })
-      ]
-    )
-}
-
-const ChevronDoubleRightIcon = {
-  render: () =>
-    h(
-      'svg',
-      { fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '1.5' },
-      [
-        h('path', {
-          'stroke-linecap': 'round',
-          'stroke-linejoin': 'round',
-          d: 'm5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5'
         })
       ]
     )
@@ -787,10 +717,11 @@ const customMenuItemsForAdmin = computed(() => {
 const adminNavItems = computed((): NavItem[] => {
   const baseItems: NavItem[] = [
     { path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
-    { path: '/admin/cluster', label: t('cluster.title'), icon: ChartIcon },
+    { path: '/admin/usage', label: t('nav.usage'), icon: ChartIcon },
     { path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon, featureFlag: flagOpsMonitoring },
+    { path: '/admin/cluster', label: t('cluster.title'), icon: ChartIcon },
     { path: '/admin/users', label: t('nav.users'), icon: UsersIcon, hideInSimpleMode: true },
-    { path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon },
+    { path: '/admin/accounts', label: t('nav.accounts'), icon: GlobeIcon },
     {
       path: '/admin/channels',
       label: t('nav.channelManagement'),
@@ -804,9 +735,9 @@ const adminNavItems = computed((): NavItem[] => {
     },
     // 「仅充值」站点连管理端的「订阅管理」入口也一并收起（路由本身不拦截）。
     { path: '/admin/subscriptions', label: t('nav.subscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
-    { path: '/admin/accounts', label: t('nav.accounts'), icon: GlobeIcon },
     { path: '/admin/plugins', label: t('nav.plugins'), icon: PluginIcon, featureFlag: flagPluginManagement },
     { path: '/admin/announcements', label: t('nav.announcements'), icon: BellIcon },
+    { path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon },
     { path: '/admin/proxies', label: t('nav.proxies'), icon: ServerIcon },
     {
       path: '/admin/security-audit',
@@ -849,7 +780,6 @@ const adminNavItems = computed((): NavItem[] => {
         { path: '/admin/orders/plans', label: t('nav.paymentPlans'), icon: CreditCardIcon },
       ],
     },
-    { path: '/admin/usage', label: t('nav.usage'), icon: ChartIcon },
     { path: '/admin/audit-logs', label: t('nav.auditLogs'), icon: ShieldIcon, hideInSimpleMode: true }
   ]
 
@@ -874,26 +804,45 @@ const adminNavItems = computed((): NavItem[] => {
   return visible
 })
 
-function toggleSidebar() {
-  appStore.toggleSidebar()
+const adminNavSections = computed(() => ADMIN_SECTIONS.map(id => ({
+  id,
+  label: t(ADMIN_SECTION_LABEL_KEYS[id]),
+  items: adminNavItems.value.filter(item => (
+    getAdminRouteSection(undefined, item.path) ??
+      (item.path === '/keys' ? 'resources' : 'system')
+  ) === id)
+})).filter(section => section.items.length))
+
+function collectLinks(items: NavItem[], description?: string): SidebarCommandLink[] {
+  return items.flatMap(item => item.children?.length
+    ? collectLinks(item.children, item.label)
+    : item.expandOnly ? [] : [{ path: item.path, label: item.label, icon: item.icon ?? undefined, description }]
+  )
 }
 
-function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+const commandLinks = computed(() => {
+  if (isAdmin.value) {
+    return [
+      ...adminNavSections.value.flatMap(section => collectLinks(section.items, section.label)),
+      ...(!authStore.isSimpleMode ? collectLinks(personalNavItems.value, t('nav.myAccount')) : [])
+    ]
+  }
+  return appStore.backendModeEnabled ? [] : collectLinks(userNavItems.value)
+})
+watch(commandLinks, links => emit('navigation-change', links), { immediate: true })
+
+function saveSidebarScroll(event: Event) {
+  if (event.currentTarget instanceof HTMLElement) {
+    appStore.sidebarScrollTop = event.currentTarget.scrollTop
+  }
 }
 
-function closeMobile() {
-  appStore.setMobileOpen(false)
-}
+watch(sidebarNavRef, nav => {
+  if (nav) nav.scrollTop = appStore.sidebarScrollTop
+}, { flush: 'post' })
 
 function handleMenuItemClick(itemPath: string) {
-  if (mobileOpen.value) {
-    setTimeout(() => {
-      appStore.setMobileOpen(false)
-    }, 150)
-  }
+  if (mobileOpen.value) appStore.setMobileOpen(false)
 
   // Map paths to tour selectors
   const pathToSelector: Record<string, string> = {
@@ -929,13 +878,17 @@ function toggleGroup(item: NavItem) {
 
 /**
  * Click handler for collapsible parent items.
- * - When sidebar is collapsed: do nothing (children are not visible).
+ * - When sidebar is collapsed: expand it and reveal the chosen group.
  * - When `expandOnly` is true: only toggle expand state.
  * - Otherwise (default, e.g. /admin/orders): navigate to the parent path
  *   (router-link semantics) and ensure the group is expanded.
  */
-function handleGroupClick(item: NavItem) {
-  if (sidebarCollapsed.value) return
+function handleGroupClick(item: NavItem, collapsed: boolean) {
+  if (collapsed) {
+    appStore.setSidebarCollapsed(false)
+    groupExpandOverrides.value.set(item.path, true)
+    return
+  }
   if (item.expandOnly) {
     toggleGroup(item)
     return
@@ -945,16 +898,6 @@ function handleGroupClick(item: NavItem) {
     router.push(item.path)
   }
   groupExpandOverrides.value.set(item.path, true)
-}
-
-// Initialize theme
-const savedTheme = localStorage.getItem('theme')
-if (
-  savedTheme === 'dark' ||
-  (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)
-) {
-  isDark.value = true
-  document.documentElement.classList.add('dark')
 }
 
 // Fetch admin settings (for feature-gated nav items like Ops).
@@ -992,14 +935,14 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .sidebar-logo {
-  flex: 0 0 2.25rem;
-  min-width: 2.25rem;
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .sidebar-header-collapsed {
   gap: 0;
-  padding-left: 1.125rem;
-  padding-right: 1.125rem;
+  justify-content: center;
 }
 
 .sidebar-brand {
@@ -1011,14 +954,6 @@ onBeforeUnmount(() => {
     opacity 0.14s ease,
     transform 0.14s ease;
   max-width: 12rem;
-}
-
-.sidebar-brand-collapsed {
-  max-width: 0;
-  overflow: hidden;
-  opacity: 0;
-  transform: translateX(-4px);
-  pointer-events: none;
 }
 
 .sidebar-brand-title {
@@ -1105,6 +1040,13 @@ onBeforeUnmount(() => {
   opacity: 0;
   transform: translateX(-4px);
   pointer-events: none;
+}
+
+/* Keep the legacy update menu inside the viewport on phones. */
+@media (max-width: 1023px) {
+  .sidebar-version :deep(.absolute.left-0) {
+    max-width: calc(100vw - 4rem);
+  }
 }
 
 /* Custom SVG icon in sidebar: constrain size without overriding uploaded SVG colors */

@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent"></div>
     </div>
     <div v-else-if="initError" class="card p-6 text-center">
       <p class="text-sm text-red-600 dark:text-red-400">{{ initError }}</p>
@@ -14,20 +14,20 @@
           <div class="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
             <Icon name="check" size="lg" class="text-green-500" />
           </div>
-          <p class="text-lg font-bold text-gray-900 dark:text-white">{{ t('payment.result.success') }}</p>
+          <p class="text-lg font-bold text-foreground">{{ t('payment.result.success') }}</p>
           <div class="w-full rounded-xl bg-gray-50 p-4 dark:bg-dark-800">
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.orderId') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">#{{ orderId }}</span>
+                <span class="text-muted-foreground">{{ t('payment.orders.orderId') }}</span>
+                <span class="font-medium text-foreground">#{{ orderId }}</span>
               </div>
               <div v-if="amount > 0" class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.amount') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ creditedAmountSymbol }}{{ amount.toFixed(2) }}</span>
+                <span class="text-muted-foreground">{{ t('payment.orders.amount') }}</span>
+                <span class="font-medium text-foreground">{{ creditedAmountSymbol }}{{ amount.toFixed(2) }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ paymentAmountSymbol }}{{ payAmount.toFixed(2) }}</span>
+                <span class="text-muted-foreground">{{ t('payment.orders.payAmount') }}</span>
+                <span class="font-medium text-foreground">{{ paymentAmountSymbol }}{{ payAmount.toFixed(2) }}</span>
               </div>
             </div>
           </div>

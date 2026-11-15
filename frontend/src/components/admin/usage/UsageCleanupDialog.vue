@@ -1,5 +1,5 @@
 <template>
-  <BaseDialog :show="show" :title="t('admin.usage.cleanup.title')" width="wide" @close="handleClose">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show" :title="t('admin.usage.cleanup.title')" width="wide" @close="handleClose">
     <div class="space-y-4">
       <UsageFilters
         v-model="localFilters"
@@ -14,7 +14,7 @@
         {{ t('admin.usage.cleanup.warning') }}
       </div>
 
-      <div class="rounded-xl border border-gray-200 p-4 dark:border-dark-700">
+      <div class="rounded-xl border border-border p-4">
         <div class="flex items-center justify-between">
           <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">
             {{ t('admin.usage.cleanup.recentTasks') }}
@@ -25,10 +25,10 @@
         </div>
 
         <div class="mt-3 space-y-2">
-          <div v-if="tasksLoading" class="text-sm text-gray-500 dark:text-gray-400">
+          <div v-if="tasksLoading" class="text-sm text-muted-foreground">
             {{ t('admin.usage.cleanup.loadingTasks') }}
           </div>
-          <div v-else-if="tasks.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+          <div v-else-if="tasks.length === 0" class="text-sm text-muted-foreground">
             {{ t('admin.usage.cleanup.noTasks') }}
           </div>
           <div v-else class="space-y-2">
@@ -56,7 +56,7 @@
                   {{ formatDateTime(task.created_at) }}
                 </div>
               </div>
-              <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+              <div class="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                 <span>{{ t('admin.usage.cleanup.range') }}: {{ formatRange(task) }}</span>
                 <span>{{ t('admin.usage.cleanup.deletedRows') }}: {{ task.deleted_rows.toLocaleString() }}</span>
               </div>

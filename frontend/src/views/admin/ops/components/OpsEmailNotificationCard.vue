@@ -181,11 +181,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 dark:bg-dark-800 dark:ring-dark-700">
+  <div class="rounded-lg border border-border bg-card p-4">
     <div class="mb-4 flex items-start justify-between gap-4">
       <div>
-        <h3 class="text-sm font-bold text-gray-900 dark:text-white">{{ t('admin.ops.email.title') }}</h3>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.email.description') }}</p>
+        <h3 class="text-sm font-bold text-foreground">{{ t('admin.ops.email.title') }}</h3>
+        <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.ops.email.description') }}</p>
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -202,57 +202,57 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="!config" class="text-sm text-gray-500 dark:text-gray-400">
+    <div v-if="!config" class="text-sm text-muted-foreground">
       <span v-if="loading">{{ t('admin.ops.email.loading') }}</span>
       <span v-else>{{ t('admin.ops.email.noData') }}</span>
     </div>
 
     <div v-else class="space-y-6">
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.alertTitle') }}</h4>
+        <h4 class="mb-2 text-sm font-semibold text-foreground">{{ t('admin.ops.email.alertTitle') }}</h4>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div class="text-xs text-gray-600 dark:text-gray-300">
             {{ t('common.enabled') }}:
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+            <span class="ml-1 font-medium text-foreground">
               {{ config.alert.enabled ? t('common.enabled') : t('common.disabled') }}
             </span>
           </div>
           <div class="text-xs text-gray-600 dark:text-gray-300">
             {{ t('admin.ops.email.recipients') }}:
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ config.alert.recipients.length }}</span>
+            <span class="ml-1 font-medium text-foreground">{{ config.alert.recipients.length }}</span>
           </div>
           <div class="text-xs text-gray-600 dark:text-gray-300">
             {{ t('admin.ops.email.minSeverity') }}:
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{
+            <span class="ml-1 font-medium text-foreground">{{
               config.alert.min_severity || t('admin.ops.email.minSeverityAll')
             }}</span>
           </div>
           <div class="text-xs text-gray-600 dark:text-gray-300">
             {{ t('admin.ops.email.rateLimitPerHour') }}:
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ config.alert.rate_limit_per_hour }}</span>
+            <span class="ml-1 font-medium text-foreground">{{ config.alert.rate_limit_per_hour }}</span>
           </div>
         </div>
       </div>
 
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.reportTitle') }}</h4>
+        <h4 class="mb-2 text-sm font-semibold text-foreground">{{ t('admin.ops.email.reportTitle') }}</h4>
         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div class="text-xs text-gray-600 dark:text-gray-300">
             {{ t('common.enabled') }}:
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">
+            <span class="ml-1 font-medium text-foreground">
               {{ config.report.enabled ? t('common.enabled') : t('common.disabled') }}
             </span>
           </div>
           <div class="text-xs text-gray-600 dark:text-gray-300">
             {{ t('admin.ops.email.recipients') }}:
-            <span class="ml-1 font-medium text-gray-900 dark:text-white">{{ config.report.recipients.length }}</span>
+            <span class="ml-1 font-medium text-foreground">{{ config.report.recipients.length }}</span>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <BaseDialog :show="showEditor" :title="t('admin.ops.email.title')" width="extra-wide" @close="showEditor = false">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="showEditor" :title="t('admin.ops.email.title')" width="extra-wide" @close="showEditor = false">
     <div v-if="draft" class="space-y-6">
       <div
         v-if="!editorValidation.valid"
@@ -264,7 +264,7 @@ onMounted(() => {
         </ul>
       </div>
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.alertTitle') }}</h4>
+        <h4 class="mb-3 text-sm font-semibold text-foreground">{{ t('admin.ops.email.alertTitle') }}</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('common.enabled') }}</div>
@@ -310,7 +310,7 @@ onMounted(() => {
                 </button>
               </span>
             </div>
-            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.email.recipientsHint') }}</div>
+            <div class="mt-1 text-xs text-muted-foreground">{{ t('admin.ops.email.recipientsHint') }}</div>
           </div>
 
           <div>
@@ -334,7 +334,7 @@ onMounted(() => {
       </div>
 
       <div class="rounded-2xl bg-gray-50 p-4 dark:bg-dark-700/50">
-        <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('admin.ops.email.reportTitle') }}</h4>
+        <h4 class="mb-3 text-sm font-semibold text-foreground">{{ t('admin.ops.email.reportTitle') }}</h4>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <div class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('common.enabled') }}</div>
@@ -424,7 +424,7 @@ onMounted(() => {
                 <input v-model.number="draft.report.account_health_error_rate_threshold" type="number" min="0" max="100" step="0.1" class="input" />
               </div>
             </div>
-            <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.ops.email.reportHint') }}</div>
+            <div class="mt-2 text-xs text-muted-foreground">{{ t('admin.ops.email.reportHint') }}</div>
           </div>
         </div>
       </div>

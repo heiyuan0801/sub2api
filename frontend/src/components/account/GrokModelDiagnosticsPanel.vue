@@ -1,7 +1,7 @@
 <template>
   <section
     data-testid="grok-model-diagnostics"
-    class="min-w-0 max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white text-sm text-gray-700 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-200"
+    class="min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-card text-sm text-gray-700 dark:text-gray-200"
   >
     <div
       data-testid="grok-diagnostics-summary"
@@ -9,12 +9,12 @@
     >
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-2">
-          <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <h3 class="text-sm font-medium text-foreground">
             {{ t('admin.accounts.grokModelDiagnostics.catalogTitle') }}
           </h3>
           <p data-testid="grok-diagnostics-state" :class="stateClass">{{ headline }}</p>
         </div>
-        <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">
+        <p class="mt-1 text-xs text-muted-foreground">
           <span v-if="modelCountLabel">{{ modelCountLabel }}</span>
           <span v-if="catalogHost">{{ modelCountLabel ? ' · ' : '' }}{{ catalogHost }}</span>
           <span data-testid="grok-diagnostics-last-success">
@@ -37,7 +37,7 @@
       </button>
     </div>
 
-    <p v-if="loading" class="px-4 pb-3 text-xs text-gray-500 dark:text-dark-400">
+    <p v-if="loading" class="px-4 pb-3 text-xs text-muted-foreground">
       {{ t('common.loading') }}
     </p>
     <p
@@ -111,7 +111,7 @@
       </div>
     </div>
 
-    <div class="border-t border-gray-200 dark:border-dark-600">
+    <div class="border-t border-border">
       <button
         type="button"
         data-testid="grok-diagnostics-details-toggle"
@@ -132,11 +132,11 @@
         v-if="detailsOpen"
         :id="detailsId"
         data-testid="grok-diagnostics-details"
-        class="border-t border-gray-200 p-4 dark:border-dark-600"
+        class="border-t border-border p-4"
       >
         <dl class="space-y-3 text-xs">
           <div>
-            <dt class="text-gray-500 dark:text-dark-400">
+            <dt class="text-muted-foreground">
               {{ effectiveState !== 'fresh'
                 ? t('admin.accounts.grokModelDiagnostics.historicalSource')
                 : t('admin.accounts.grokModelDiagnostics.source') }}
@@ -146,11 +146,11 @@
             </dd>
           </div>
           <div>
-            <dt class="text-gray-500 dark:text-dark-400">{{ t('admin.accounts.grokModelDiagnostics.lastSuccess') }}</dt>
+            <dt class="text-muted-foreground">{{ t('admin.accounts.grokModelDiagnostics.lastSuccess') }}</dt>
             <dd>{{ observedTime(diagnostics?.fetched_at) }}</dd>
           </div>
           <div>
-            <dt class="text-gray-500 dark:text-dark-400">{{ t('admin.accounts.grokModelDiagnostics.lastAttempt') }}</dt>
+            <dt class="text-muted-foreground">{{ t('admin.accounts.grokModelDiagnostics.lastAttempt') }}</dt>
             <dd data-testid="grok-diagnostics-last-attempt" class="min-w-0 break-all">
               <template v-if="diagnostics?.last_attempt">
                 {{ attemptLabel }}
@@ -163,7 +163,7 @@
         </dl>
 
         <div class="mt-4">
-          <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <h4 class="text-sm font-medium text-foreground">
             {{ effectiveState !== 'fresh'
               ? t('admin.accounts.grokModelDiagnostics.historicalModels')
               : t('admin.accounts.grokModelDiagnostics.upstreamModels') }}
@@ -181,13 +181,13 @@
         </div>
 
         <div class="mt-4" data-testid="grok-diagnostics-mappings">
-          <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <h4 class="text-sm font-medium text-foreground">
             {{ t('admin.accounts.grokModelDiagnostics.savedMappings') }}
           </h4>
-          <p v-if="hasFreshGaps" class="mt-1 text-xs text-gray-500 dark:text-dark-400">
+          <p v-if="hasFreshGaps" class="mt-1 text-xs text-muted-foreground">
             {{ t('admin.accounts.grokModelDiagnostics.compatibilityNotice') }}
           </p>
-          <div class="mt-2 hidden text-xs text-gray-500 dark:text-dark-400 sm:grid sm:grid-cols-2 sm:gap-3">
+          <div class="mt-2 hidden text-xs text-muted-foreground sm:grid sm:grid-cols-2 sm:gap-3">
             <span>{{ t('admin.accounts.grokModelDiagnostics.requestColumn') }}</span>
             <span>{{ t('admin.accounts.grokModelDiagnostics.targetColumn') }}</span>
           </div>
@@ -203,7 +203,7 @@
     <p
       v-if="dirty"
       data-testid="grok-diagnostics-dirty"
-      class="flex items-start gap-2 px-4 py-3 text-xs text-gray-500 dark:text-dark-400"
+      class="flex items-start gap-2 px-4 py-3 text-xs text-muted-foreground"
     >
       <Icon name="infoCircle" size="xs" aria-hidden="true" class="mt-0.5 shrink-0" />
       <span>{{ t('admin.accounts.grokModelDiagnostics.savedConfigHint') }}</span>
@@ -375,7 +375,7 @@ const stateClass = computed(() => {
     return 'text-xs font-medium text-emerald-700 dark:text-emerald-300'
   }
   if (effectiveState.value === 'unknown' && attemptStatus.value !== 'failed' && attemptStatus.value !== 'configured_fallback') {
-    return 'text-xs font-medium text-gray-500 dark:text-dark-400'
+    return 'text-xs font-medium text-muted-foreground'
   }
   return 'text-xs font-medium text-amber-800 dark:text-amber-200'
 })

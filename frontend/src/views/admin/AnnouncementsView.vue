@@ -1,10 +1,28 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('admin.announcements.title')" :description="t('admin.announcements.description')">
+          <template #actions>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm"
+              :disabled="loading"
+              @click="loadAnnouncements"
+            >
+              <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
+              {{ t('common.refresh') }}
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" @click="openCreateDialog">
+              <Icon name="plus" size="sm" />
+              {{ t('admin.announcements.createAnnouncement') }}
+            </button>
+          </template>
+        </PageHeader>
+      </template>
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
-          <!-- Left: Search + Filters -->
-          <div class="flex-1 sm:max-w-64">
+        <Toolbar :label="t('common.filter')">
+          <div class="min-w-40 flex-1 sm:max-w-64">
             <input
               v-model="searchQuery"
               type="text"
@@ -19,23 +37,7 @@
             class="w-40"
             @change="handleStatusChange"
           />
-
-          <!-- Right: Action buttons -->
-          <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <button
-              @click="loadAnnouncements"
-              :disabled="loading"
-              class="btn btn-secondary"
-              :title="t('common.refresh')"
-            >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
-            </button>
-            <button @click="openCreateDialog" class="btn btn-primary">
-              <Icon name="plus" size="md" class="mr-1" />
-              {{ t('admin.announcements.createAnnouncement') }}
-            </button>
-          </div>
-        </div>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -51,52 +53,36 @@
           <template #cell-title="{ value, row }">
             <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <span class="truncate font-medium text-gray-900 dark:text-white">{{ value }}</span>
+                <span class="truncate font-medium text-foreground">{{ value }}</span>
               </div>
-              <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-dark-400">
+              <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                 <span>#{{ row.id }}</span>
-                <span class="text-gray-300 dark:text-dark-700">·</span>
+                <span class="text-muted-foreground/50">·</span>
                 <span>{{ formatDateTime(row.created_at) }}</span>
               </div>
             </div>
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'active'
-                  ? 'badge-success'
-                  : value === 'draft'
-                    ? 'badge-gray'
-                    : 'badge-warning'
-              ]"
-            >
-              {{ statusLabel(value) }}
-            </span>
+            <StatusBadge :label="statusLabel(value)" :tone="value === 'active' ? 'success' : value === 'draft' ? 'neutral' : 'warning'" />
           </template>
 
           <template #cell-notify_mode="{ row }">
-            <span
-              :class="[
-                'badge',
-                row.notify_mode === 'popup'
-                  ? 'badge-warning'
-                  : 'badge-gray'
-              ]"
-            >
-              {{ row.notify_mode === 'popup' ? t('admin.announcements.notifyModeLabels.popup') : t('admin.announcements.notifyModeLabels.silent') }}
-            </span>
+            <StatusBadge
+              :label="row.notify_mode === 'popup' ? t('admin.announcements.notifyModeLabels.popup') : t('admin.announcements.notifyModeLabels.silent')"
+              :tone="row.notify_mode === 'popup' ? 'warning' : 'neutral'"
+              soft
+            />
           </template>
 
           <template #cell-targeting="{ row }">
-            <span class="text-sm text-gray-600 dark:text-gray-300">
+            <span class="text-sm text-muted-foreground">
               {{ targetingSummary(row.targeting) }}
             </span>
           </template>
 
           <template #cell-timeRange="{ row }">
-            <div class="text-sm text-gray-600 dark:text-gray-300">
+            <div class="text-sm text-muted-foreground">
               <div>
                 <span class="font-medium">{{ t('admin.announcements.form.startsAt') }}:</span>
                 <span class="ml-1">{{ row.starts_at ? formatDateTime(row.starts_at) : t('admin.announcements.timeImmediate') }}</span>
@@ -109,35 +95,35 @@
           </template>
 
           <template #cell-created_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">{{ formatDateTime(value) }}</span>
+            <span class="text-sm text-muted-foreground">{{ formatDateTime(value) }}</span>
           </template>
 
           <template #cell-actions="{ row }">
             <div class="flex items-center space-x-1">
               <button
                 @click="openPreview(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-info/10 hover:text-info"
                 :title="t('admin.announcements.preview')"
               >
                 <Icon name="eye" size="sm" />
               </button>
               <button
                 @click="openReadStatus(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-info/10 hover:text-info"
                 :title="t('admin.announcements.readStatus')"
               >
                 <Icon name="chartBar" size="sm" />
               </button>
               <button
                 @click="openEditDialog(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-dark-600 dark:hover:text-gray-300"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 :title="t('common.edit')"
               >
                 <Icon name="edit" size="sm" />
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
                 :title="t('common.delete')"
               >
                 <Icon name="trash" size="sm" />
@@ -149,9 +135,14 @@
             <EmptyState
               :title="t('empty.noData')"
               :description="t('admin.announcements.createFirstAnnouncement')"
-              :action-text="t('admin.announcements.createAnnouncement')"
-              @action="openCreateDialog"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary btn-sm" @click="openCreateDialog">
+                  <Icon name="plus" size="sm" />
+                  {{ t('admin.announcements.createAnnouncement') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
       </template>
@@ -173,6 +164,7 @@
       :show="showEditDialog"
       :title="isEditing ? t('admin.announcements.editAnnouncement') : t('admin.announcements.createAnnouncement')"
       width="wide"
+      presentation="sheet"
       @close="closeEdit"
     >
       <form id="announcement-form" @submit.prevent="handleSave" class="space-y-4">
@@ -267,13 +259,13 @@ import type { AdminGroup, Announcement, AnnouncementTargeting } from '@/types'
 import type { Column } from '@/components/common/types'
 
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import { EmptyState, PageHeader, StatusBadge, Toolbar } from '@/components/page'
 import Icon from '@/components/icons/Icon.vue'
 
 import AnnouncementTargetingEditor from '@/components/admin/announcements/AnnouncementTargetingEditor.vue'

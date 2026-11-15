@@ -6,11 +6,11 @@
         class="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto bg-gradient-to-br from-black/70 via-black/60 to-black/70 p-4 pt-[8vh] backdrop-blur-md"
       >
         <div
-          class="w-full max-w-[680px] overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-dark-800 dark:ring-white/10"
+          class="w-full max-w-[680px] overflow-hidden rounded-3xl bg-card shadow-2xl ring-1 ring-black/5 dark:ring-white/10"
           @click.stop
         >
           <!-- Header -->
-          <div class="relative overflow-hidden border-b border-gray-200 bg-gray-50 px-8 py-6 dark:border-dark-700 dark:bg-dark-900">
+          <div class="relative overflow-hidden border-b border-border bg-gray-50 px-8 py-6 dark:bg-dark-900">
 
             <div class="relative z-10">
               <!-- Icon and badge -->
@@ -30,7 +30,7 @@
               </div>
 
               <!-- Title -->
-              <h2 class="mb-2 text-2xl font-bold leading-tight text-gray-900 dark:text-white">
+              <h2 class="mb-2 text-2xl font-bold leading-tight text-foreground">
                 {{ displayedAnnouncement.title }}
               </h2>
 
@@ -45,7 +45,7 @@
           </div>
 
           <!-- Body -->
-          <div class="max-h-[50vh] overflow-y-auto bg-white px-8 py-8 dark:bg-dark-800">
+          <div class="max-h-[50vh] overflow-y-auto bg-card px-8 py-8">
             <div class="relative">
               <div class="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-gray-200 dark:bg-dark-600"></div>
               <div class="pl-6">

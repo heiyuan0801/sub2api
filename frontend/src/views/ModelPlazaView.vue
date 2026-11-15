@@ -1,30 +1,33 @@
 <template>
   <!-- 后台内嵌形态:?embedded=1 且已登录,套完整后台布局 -->
   <AppLayout v-if="isEmbedded">
-    <ModelPlazaContent :response="data" :loading="loading" :error="loadFailed" embedded />
+    <div class="space-y-4">
+      <PageHeader :title="t('publicSite.market.heading')" :description="t('publicSite.models.subtitle')" />
+      <ModelPlazaContent :response="data" :loading="loading" :error="loadFailed" embedded />
+    </div>
   </AppLayout>
 
   <!-- 独立形态使用与首页一致的公开站点导航。 -->
-  <div v-else class="public-model-plaza">
-    <PublicSiteHeader />
-    <main>
+  <PublicSiteLayout v-else>
+    <main class="min-w-0 flex-1 bg-canvas">
       <ModelPlazaContent :response="data" :loading="loading" :error="loadFailed" />
     </main>
-    <PublicSiteFooter />
-  </div>
+  </PublicSiteLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { PageHeader } from '@/components/page'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import PublicSiteHeader from '@/components/public/PublicSiteHeader.vue'
-import PublicSiteFooter from '@/components/public/PublicSiteFooter.vue'
+import PublicSiteLayout from '@/components/site-shell/PublicSiteLayout.vue'
 import ModelPlazaContent from '@/components/modelPlaza/ModelPlazaContent.vue'
 import { getModelPlaza, type ModelPlazaResponse } from '@/api/modelPlaza'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 
+const { t } = useI18n()
 const route = useRoute()
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -48,16 +51,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.public-model-plaza {
-  min-height: 100vh;
-  background: #fff;
-  color: #18181b;
-}
-
-.dark .public-model-plaza {
-  background: #101011;
-  color: #f4f4f5;
-}
-</style>

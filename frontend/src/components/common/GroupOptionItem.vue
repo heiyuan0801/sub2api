@@ -16,7 +16,7 @@
       <!-- Row 2: description with top spacing -->
       <span
         v-if="description"
-        class="mt-1.5 w-full whitespace-pre-line [overflow-wrap:anywhere] text-left text-xs leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3"
+        class="mt-1.5 w-full whitespace-pre-line [overflow-wrap:anywhere] text-left text-xs leading-relaxed text-muted-foreground line-clamp-3"
       >
         {{ description }}
       </span>
@@ -46,7 +46,7 @@
       <!-- Checkmark -->
       <svg
         v-if="showCheckmark && selected"
-        class="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400"
+        class="h-4 w-4 shrink-0 text-brand"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"

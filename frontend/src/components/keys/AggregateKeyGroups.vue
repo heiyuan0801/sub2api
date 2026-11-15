@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-3" role="group" :aria-label="t('keys.aggregate.groups')">
-    <p class="text-xs leading-4 text-gray-500 dark:text-gray-400">{{ t('keys.aggregate.hint') }}</p>
+    <p class="text-xs leading-4 text-muted-foreground">{{ t('keys.aggregate.hint') }}</p>
     <ol v-if="modelValue.length" class="space-y-2" :aria-label="t('keys.aggregate.groups')">
-      <li v-for="(id, index) in modelValue" :key="id" class="flex min-h-[44px] items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-dark-600">
+      <li v-for="(id, index) in modelValue" :key="id" class="flex min-h-[44px] items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
         <span class="shrink-0 text-xs text-gray-400">{{ t('keys.aggregate.route', { index: index + 1 }) }}</span>
         <div class="min-w-0 flex-1">
           <GroupBadge

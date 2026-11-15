@@ -181,7 +181,7 @@ describe('admin BackupView', () => {
     const wrapper = mountBackupView()
     await flushPromises()
 
-    expect(wrapper.find('tbody tr td:nth-child(5)').text()).toBe('-')
+    expect(wrapper.get('[data-test="backup-record-parts"]').text()).toBe('-')
     expect(wrapper.findAll('button').some(button => button.text() === 'common.delete')).toBe(false)
   })
 

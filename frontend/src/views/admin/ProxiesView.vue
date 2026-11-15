@@ -1,14 +1,17 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader :title="t('admin.proxies.title')" :description="t('admin.proxies.description')" />
+      </template>
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <Toolbar>
           <!-- Left: Search + Filters -->
           <div class="relative w-full sm:w-64">
             <Icon
               name="search"
               size="md"
-              class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
+              class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <input
               v-model="searchQuery"
@@ -37,7 +40,7 @@
           </div>
 
           <!-- Right: All action buttons -->
-          <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
+          <template #actions>
             <button
               @click="loadProxies"
               :disabled="loading"
@@ -83,8 +86,8 @@
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.proxies.createProxy') }}
             </button>
-          </div>
-        </div>
+          </template>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -101,7 +104,7 @@
           <template #header-select>
             <input
               type="checkbox"
-              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand focus:ring-brand"
               :checked="allVisibleSelected"
               @click.stop
               @change="toggleSelectAllVisible($event)"
@@ -111,7 +114,7 @@
           <template #cell-select="{ row }">
             <input
               type="checkbox"
-              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="h-4 w-4 cursor-pointer rounded border-gray-300 text-brand focus:ring-brand"
               :checked="selectedProxyIds.has(row.id)"
               @click.stop
               @change="toggleSelectRow(row.id, $event)"
@@ -119,7 +122,7 @@
           </template>
 
           <template #cell-name="{ value }">
-            <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+            <span class="font-medium text-foreground">{{ value }}</span>
           </template>
 
           <template #cell-protocol="{ value }">
@@ -138,7 +141,7 @@
               <div class="relative">
                 <button
                   type="button"
-                  class="rounded p-0.5 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                  class="rounded p-0.5 text-gray-400 hover:text-brand"
                   :title="t('admin.proxies.copyProxyUrl')"
                   @click.stop="copyProxyUrl(row)"
                   @contextmenu.prevent="toggleCopyMenu(row.id)"
@@ -156,7 +159,7 @@
                     class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-gray-100 dark:hover:bg-dark-600"
                     @click.stop="copyFormat(fmt.value)"
                   >
-                    <span class="truncate font-mono text-gray-600 dark:text-gray-300">{{ fmt.label }}</span>
+                    <span class="truncate font-mono text-muted-foreground">{{ fmt.label }}</span>
                   </button>
                 </div>
               </div>
@@ -167,7 +170,7 @@
             <div v-if="row.username || row.password" class="flex items-center gap-1.5">
               <div class="flex flex-col text-xs">
                 <span v-if="row.username" class="text-gray-700 dark:text-gray-200">{{ row.username }}</span>
-                <span v-if="row.password" class="font-mono text-gray-500 dark:text-gray-400">
+                <span v-if="row.password" class="font-mono text-muted-foreground">
                   {{ visiblePasswordIds.has(row.id) ? row.password : '••••••' }}
                 </span>
               </div>
@@ -202,14 +205,14 @@
             <button
               v-if="(value || 0) > 0"
               type="button"
-              class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-primary-700 hover:bg-gray-200 dark:bg-dark-600 dark:text-primary-300 dark:hover:bg-dark-500"
+              class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-brand hover:bg-gray-200 dark:bg-dark-600 dark:hover:bg-dark-500"
               @click="openAccountsModal(row)"
             >
               {{ t('admin.groups.accountsCount', { count: value || 0 }) }}
             </button>
             <span
               v-else
-              class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+              class="inline-flex items-center rounded border border-border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
             >
               {{ t('admin.groups.accountsCount', { count: 0 }) }}
             </span>
@@ -233,7 +236,7 @@
               <span v-else class="text-sm text-gray-400">-</span>
               <div
                 v-if="typeof row.quality_checked === 'number'"
-                class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
+                class="flex items-center gap-1 text-xs text-muted-foreground"
                 :title="row.quality_summary || undefined"
               >
                 <span>{{ t('admin.proxies.qualityInline', { grade: row.quality_grade || '-', score: row.quality_score ?? '-' }) }}</span>
@@ -253,18 +256,14 @@
           </template>
 
           <template #cell-created_at="{ row }">
-            <span class="text-xs text-gray-600 dark:text-gray-300">{{ formatDateTime(row.created_at) }}</span>
+            <span class="text-xs text-muted-foreground">{{ formatDateTime(row.created_at) }}</span>
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'active' ? 'badge-success' : value === 'expired' ? 'badge-danger' : 'badge-danger'
-              ]"
-            >
-              {{ t('admin.accounts.status.' + value) }}
-            </span>
+            <StatusBadge
+              :label="t('admin.accounts.status.' + value)"
+              :tone="value === 'active' ? 'success' : 'danger'"
+            />
           </template>
 
           <template #cell-actions="{ row }">
@@ -327,14 +326,14 @@
               </button>
               <button
                 @click="handleEdit(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-brand/10 hover:text-brand"
               >
                 <Icon name="edit" size="sm" />
                 <span class="text-xs">{{ t('common.edit') }}</span>
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-danger/10 hover:text-danger"
               >
                 <Icon name="trash" size="sm" />
                 <span class="text-xs">{{ t('common.delete') }}</span>
@@ -346,9 +345,14 @@
             <EmptyState
               :title="t('admin.proxies.noProxiesYet')"
               :description="t('admin.proxies.createFirstProxy')"
-              :action-text="t('admin.proxies.createProxy')"
-              @action="showCreateModal = true"
-            />
+            >
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="showCreateModal = true">
+                  <Icon name="plus" size="sm" class="mr-2" />
+                  {{ t('admin.proxies.createProxy') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
         </div>
@@ -375,7 +379,7 @@
     >
       <!-- Tab Switch -->
       <div
-        class="mb-6 flex items-center justify-between gap-3 border-b border-gray-200 dark:border-dark-600"
+        class="mb-6 flex items-center justify-between gap-3 border-b border-border"
       >
         <div class="flex min-w-0 shrink-0">
           <button
@@ -384,8 +388,8 @@
             :class="[
               '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
               createMode === 'standard'
-                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-muted-foreground hover:text-gray-700 dark:hover:text-gray-300'
             ]"
           >
             <Icon name="plus" size="sm" class="mr-1.5 inline" />
@@ -397,8 +401,8 @@
             :class="[
               '-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors',
               createMode === 'batch'
-                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                ? 'border-brand text-brand'
+                : 'border-transparent text-muted-foreground hover:text-gray-700 dark:hover:text-gray-300'
             ]"
           >
             <svg
@@ -550,7 +554,7 @@
         <div v-if="batchParseResult.total > 0" class="rounded-lg bg-gray-50 p-4 dark:bg-dark-700">
             <div class="flex items-center gap-4 text-sm">
               <div class="flex items-center gap-1.5">
-              <Icon name="checkCircle" size="sm" :stroke-width="2" class="text-primary-500" />
+              <Icon name="checkCircle" size="sm" :stroke-width="2" class="text-brand" />
               <span class="text-gray-700 dark:text-gray-300">
                 {{ t('admin.proxies.parsedCount', { count: batchParseResult.valid }) }}
               </span>
@@ -580,7 +584,7 @@
                   d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
                 />
               </svg>
-              <span class="text-gray-500 dark:text-gray-400">
+              <span class="text-muted-foreground">
                 {{ t('admin.proxies.duplicateCount', { count: batchParseResult.duplicate }) }}
               </span>
             </div>
@@ -663,6 +667,7 @@
     <!-- Edit Proxy Modal -->
     <BaseDialog
       :show="showEditModal"
+      presentation="sheet"
       :title="t('admin.proxies.editProxy')"
       width="normal"
       @close="closeEditModal"
@@ -847,10 +852,10 @@
       @close="closeQualityReportDialog"
     >
       <div v-if="qualityReport" class="space-y-4">
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-dark-600 dark:bg-dark-700">
+        <div class="rounded-lg border border-border bg-gray-50 p-4 dark:bg-dark-700">
           <div class="flex items-center justify-between gap-4">
             <div>
-              <div class="text-sm text-gray-500 dark:text-gray-400">
+              <div class="text-sm text-muted-foreground">
                 {{ qualityReportProxy?.name || '-' }}
               </div>
               <div class="mt-1 text-sm text-gray-700 dark:text-gray-200">
@@ -858,15 +863,15 @@
               </div>
             </div>
             <div class="text-right">
-              <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+              <div class="text-2xl font-semibold text-foreground">
                 {{ qualityReport.score }}
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="text-xs text-muted-foreground">
                 {{ t('admin.proxies.qualityGrade', { grade: qualityReport.grade }) }}
               </div>
             </div>
           </div>
-          <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300">
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
             <div>{{ t('admin.proxies.qualityExitIP') }}: {{ qualityReport.exit_ip || '-' }}</div>
             <div>{{ t('admin.proxies.qualityCountry') }}: {{ qualityReport.country || '-' }}</div>
             <div>
@@ -877,9 +882,9 @@
           </div>
         </div>
 
-        <div class="max-h-80 overflow-auto rounded-lg border border-gray-200 dark:border-dark-600">
-          <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-dark-700">
-            <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-dark-800 dark:text-dark-400">
+        <div class="max-h-80 overflow-auto rounded-lg border border-border">
+          <table class="min-w-full divide-y divide-border text-sm">
+            <thead class="bg-gray-50 text-xs uppercase text-muted-foreground dark:bg-dark-800">
               <tr>
                 <th class="whitespace-nowrap px-3 py-2 text-left">{{ t('admin.proxies.qualityTableTarget') }}</th>
                 <th class="whitespace-nowrap px-3 py-2 text-left">{{ t('admin.proxies.qualityTableStatus') }}</th>
@@ -888,17 +893,17 @@
                 <th class="px-3 py-2 text-left">{{ t('admin.proxies.qualityTableMessage') }}</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
+            <tbody class="divide-y divide-border bg-background">
               <tr v-for="item in qualityReport.items" :key="item.target">
-                <td class="whitespace-nowrap px-3 py-2 text-gray-900 dark:text-white">{{ qualityTargetLabel(item.target) }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-foreground">{{ qualityTargetLabel(item.target) }}</td>
                 <td class="whitespace-nowrap px-3 py-2">
                   <span class="badge whitespace-nowrap" :class="qualityStatusClass(item.status)">{{ qualityStatusLabel(item.status) }}</span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">{{ item.http_status ?? '-' }}</td>
-                <td class="whitespace-nowrap px-3 py-2 text-gray-600 dark:text-gray-300">
+                <td class="whitespace-nowrap px-3 py-2 text-muted-foreground">{{ item.http_status ?? '-' }}</td>
+                <td class="whitespace-nowrap px-3 py-2 text-muted-foreground">
                   {{ typeof item.latency_ms === 'number' ? `${item.latency_ms}ms` : '-' }}
                 </td>
-                <td class="px-3 py-2 text-gray-600 dark:text-gray-300">
+                <td class="px-3 py-2 text-muted-foreground">
                   <span>{{ item.message || '-' }}</span>
                   <span v-if="item.cf_ray" class="ml-1 text-xs text-gray-400">(cf-ray: {{ item.cf_ray }})</span>
                 </td>
@@ -931,21 +936,21 @@
         {{ t('admin.proxies.accountsEmpty') }}
       </div>
       <div v-else class="max-h-80 overflow-auto">
-        <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-dark-700">
-          <thead class="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-dark-800 dark:text-dark-400">
+        <table class="min-w-full divide-y divide-border text-sm">
+          <thead class="bg-gray-50 text-xs uppercase text-muted-foreground dark:bg-dark-800">
             <tr>
               <th class="px-4 py-2 text-left">{{ t('admin.proxies.accountName') }}</th>
               <th class="px-4 py-2 text-left">{{ t('admin.accounts.columns.platformType') }}</th>
               <th class="px-4 py-2 text-left">{{ t('admin.proxies.accountNotes') }}</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
+          <tbody class="divide-y divide-border bg-background">
             <tr v-for="account in proxyAccounts" :key="account.id">
-              <td class="px-4 py-2 font-medium text-gray-900 dark:text-white">{{ account.name }}</td>
+              <td class="px-4 py-2 font-medium text-foreground">{{ account.name }}</td>
               <td class="px-4 py-2">
                 <PlatformTypeBadge :platform="account.platform" :type="account.type" />
               </td>
-              <td class="px-4 py-2 text-gray-600 dark:text-gray-300">
+              <td class="px-4 py-2 text-muted-foreground">
                 {{ account.notes || '-' }}
               </td>
             </tr>
@@ -971,12 +976,15 @@ import { adminAPI } from '@/api/admin'
 import type { Proxy, ProxyAccountSummary, ProxyProtocol, ProxyQualityCheckResult } from '@/types'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import PageHeader from '@/components/page/PageHeader.vue'
+import Toolbar from '@/components/page/Toolbar.vue'
+import StatusBadge from '@/components/page/StatusBadge.vue'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import EmptyState from '@/components/page/EmptyState.vue'
 import ImportDataModal from '@/components/admin/proxy/ImportDataModal.vue'
 import Select from '@/components/common/Select.vue'
 import ProxyAdBanner from '@/components/common/ProxyAdBanner.vue'

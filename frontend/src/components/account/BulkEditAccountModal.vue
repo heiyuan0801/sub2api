@@ -1,8 +1,10 @@
 <template>
-  <BaseDialog
+  <component
+    :is="presentation === 'sheet' ? AccountFormSheet : BaseDialog"
     :show="show"
     :title="t('admin.accounts.bulkEdit.title')"
     width="wide"
+    v-bind="presentation === 'sheet' ? { childDialogOpen: showMixedChannelWarning } : {}"
     @close="handleClose"
   >
     <form id="bulk-edit-account-form" class="space-y-5" @submit.prevent="() => handleSubmit()">
@@ -34,7 +36,7 @@
       <!-- OpenAI passthrough -->
       <div
         v-if="allOpenAIPassthroughCapable"
-        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+        class="border-t border-border pt-4"
       >
         <div class="mb-3 flex items-center justify-between">
           <div class="flex-1 pr-4">
@@ -45,7 +47,7 @@
             >
               {{ t('admin.accounts.openai.oauthPassthrough') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.oauthPassthroughDesc') }}
             </p>
           </div>
@@ -54,7 +56,7 @@
             id="bulk-edit-openai-passthrough-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-passthrough-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -67,8 +69,8 @@
             id="bulk-edit-openai-passthrough-toggle"
             type="button"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              openaiPassthroughEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              openaiPassthroughEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="openaiPassthroughEnabled = !openaiPassthroughEnabled"
           >
@@ -85,7 +87,7 @@
       <!-- OpenAI Codex namespace 工具摊平（兼容开关，仅 OAuth） -->
       <div
         v-if="allOpenAIOAuthOnly"
-        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+        class="border-t border-border pt-4"
       >
         <div class="mb-3 flex items-center justify-between">
           <div class="flex-1 pr-4">
@@ -96,7 +98,7 @@
             >
               {{ t('admin.accounts.openai.flattenNamespaces') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.flattenNamespacesDesc') }}
             </p>
           </div>
@@ -105,7 +107,7 @@
             id="bulk-edit-openai-flatten-namespaces-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-flatten-namespaces-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -118,8 +120,8 @@
             id="bulk-edit-openai-flatten-namespaces-toggle"
             type="button"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              openaiFlattenNamespacesEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              openaiFlattenNamespacesEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="openaiFlattenNamespacesEnabled = !openaiFlattenNamespacesEnabled"
           >
@@ -136,7 +138,7 @@
       <!-- OpenAI API long-context billing -->
       <div
         v-if="allOpenAIPassthroughCapable"
-        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+        class="border-t border-border pt-4"
       >
         <div class="mb-3 flex items-center justify-between gap-4">
           <div class="flex-1">
@@ -147,7 +149,7 @@
             >
               {{ t('admin.accounts.openai.longContextBilling') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.longContextBillingDesc') }}
             </p>
           </div>
@@ -156,7 +158,7 @@
             id="bulk-edit-openai-long-context-billing-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-long-context-billing-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -172,8 +174,8 @@
             :disabled="!enableOpenAILongContextBilling"
             :aria-checked="openAILongContextBillingEnabled"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              openAILongContextBillingEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              openAILongContextBillingEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="openAILongContextBillingEnabled = !openAILongContextBillingEnabled"
           >
@@ -196,7 +198,7 @@
       <!-- OpenAI images: size tier routing -->
       <div
         v-if="allOpenAIPassthroughCapable"
-        class="border-t border-gray-200 pt-4 dark:border-dark-600"
+        class="border-t border-border pt-4"
       >
         <div class="mb-3 flex items-center justify-between gap-4">
           <label
@@ -212,7 +214,7 @@
             data-testid="bulk-edit-openai-image-size-tiers-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-image-size-tiers-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -231,7 +233,7 @@
       </div>
 
       <!-- Base URL (API Key only) -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-base-url-label"
@@ -245,10 +247,22 @@
             id="bulk-edit-base-url-enabled"
             type="checkbox"
             aria-controls="bulk-edit-base-url"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
+        <AccountCredentialField
+          v-if="configuredCredentialPlatform"
+          v-model="baseUrl"
+          :platform="configuredCredentialPlatform"
+          mode="bulk"
+          field="base_url"
+          input-id="bulk-edit-base-url"
+          label-id="bulk-edit-base-url-label"
+          :show-label="false"
+          :disabled="!enableBaseUrl"
+        />
         <input
+          v-else
           v-model="baseUrl"
           id="bulk-edit-base-url"
           type="text"
@@ -269,7 +283,7 @@
       </div>
 
       <!-- Model restriction -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-model-restriction-label"
@@ -283,7 +297,7 @@
             id="bulk-edit-model-restriction-enabled"
             type="checkbox"
             aria-controls="bulk-edit-model-restriction-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
 
@@ -310,7 +324,7 @@
                 :class="[
                   'flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all',
                   modelRestrictionMode === 'whitelist'
-                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                    ? 'bg-brand/15 text-primary-700 dark:text-primary-400'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-600 dark:text-gray-400 dark:hover:bg-dark-500'
                 ]"
                 @click="modelRestrictionMode = 'whitelist'"
@@ -384,7 +398,7 @@
                 :platforms="targetSelectedPlatforms"
               />
 
-              <p class="text-xs text-gray-500 dark:text-gray-400">
+              <p class="text-xs text-muted-foreground">
                 {{ t('admin.accounts.selectedModels', { count: allowedModels.length }) }}
                 <span v-if="allowedModels.length === 0">{{
                   t('admin.accounts.supportsAllModels')
@@ -501,7 +515,7 @@
       </div>
 
       <!-- Custom error codes -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <div>
             <label
@@ -511,7 +525,7 @@
             >
               {{ t('admin.accounts.customErrorCodes') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.customErrorCodesHint') }}
             </p>
           </div>
@@ -520,7 +534,7 @@
             id="bulk-edit-custom-error-codes-enabled"
             type="checkbox"
             aria-controls="bulk-edit-custom-error-codes-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
 
@@ -599,7 +613,7 @@
       </div>
 
       <!-- Intercept warmup requests (Anthropic only) -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="flex items-center justify-between">
           <div class="flex-1 pr-4">
             <label
@@ -609,7 +623,7 @@
             >
               {{ t('admin.accounts.interceptWarmupRequests') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.interceptWarmupRequestsDesc') }}
             </p>
           </div>
@@ -618,15 +632,15 @@
             id="bulk-edit-intercept-warmup-enabled"
             type="checkbox"
             aria-controls="bulk-edit-intercept-warmup-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div v-if="enableInterceptWarmup" id="bulk-edit-intercept-warmup-body" class="mt-3">
           <button
             type="button"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              interceptWarmupRequests ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              interceptWarmupRequests ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="interceptWarmupRequests = !interceptWarmupRequests"
           >
@@ -641,7 +655,7 @@
       </div>
 
       <!-- Header Override (eligible API-key platforms + grok OAuth) -->
-      <div v-if="allHeaderOverrideCapable" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allHeaderOverrideCapable" class="border-t border-border pt-4">
         <div class="flex items-center justify-between">
           <div class="flex-1 pr-4">
             <label
@@ -651,7 +665,7 @@
             >
               {{ t('admin.accounts.headerOverride.title') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.headerOverride.hint') }}
             </p>
           </div>
@@ -660,15 +674,15 @@
             id="bulk-edit-header-override-enabled"
             type="checkbox"
             aria-controls="bulk-edit-header-override-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div v-if="enableHeaderOverride" id="bulk-edit-header-override-body" class="mt-3 space-y-3">
           <button
             type="button"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              headerOverrideEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              headerOverrideEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="headerOverrideEnabled = !headerOverrideEnabled"
           >
@@ -697,14 +711,14 @@
               @update:rows="headerOverrideRows = $event"
             />
           </div>
-          <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+          <p v-else class="text-xs text-muted-foreground">
             {{ t('admin.accounts.headerOverride.bulkDisableHint') }}
           </p>
         </div>
       </div>
 
       <!-- Proxy -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-proxy-label"
@@ -718,7 +732,7 @@
             id="bulk-edit-proxy-enabled"
             type="checkbox"
             aria-controls="bulk-edit-proxy-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div id="bulk-edit-proxy-body" :class="!enableProxy && 'pointer-events-none opacity-50'">
@@ -731,7 +745,7 @@
       </div>
 
       <!-- Concurrency & Priority -->
-      <div class="grid grid-cols-2 gap-4 border-t border-gray-200 pt-4 dark:border-dark-600 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-4 border-t border-border pt-4" :class="presentation === 'sheet' ? '' : 'lg:grid-cols-4'">
         <div>
           <div class="mb-3 flex items-center justify-between">
             <label
@@ -739,21 +753,21 @@
               class="input-label mb-0"
               for="bulk-edit-concurrency-enabled"
             >
-              {{ t('admin.accounts.concurrency') }}
+              {{ t(schedulingFields.concurrency.labelKey) }}
             </label>
             <input
               v-model="enableConcurrency"
               id="bulk-edit-concurrency-enabled"
               type="checkbox"
               aria-controls="bulk-edit-concurrency"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="rounded border-gray-300 text-brand focus:ring-brand"
             />
           </div>
           <input
             v-model.number="concurrency"
             id="bulk-edit-concurrency"
             type="number"
-            min="1"
+            :min="schedulingFields.concurrency.min"
             :disabled="!enableConcurrency"
             class="input"
             :class="!enableConcurrency && 'cursor-not-allowed opacity-50'"
@@ -768,21 +782,21 @@
               class="input-label mb-0"
               for="bulk-edit-load-factor-enabled"
             >
-              {{ t('admin.accounts.loadFactor') }}
+              {{ t(schedulingFields.loadFactor.labelKey) }}
             </label>
             <input
               v-model="enableLoadFactor"
               id="bulk-edit-load-factor-enabled"
               type="checkbox"
               aria-controls="bulk-edit-load-factor"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="rounded border-gray-300 text-brand focus:ring-brand"
             />
           </div>
           <input
             v-model.number="loadFactor"
             id="bulk-edit-load-factor"
             type="number"
-            min="1"
+            :min="schedulingFields.loadFactor.min"
             :disabled="!enableLoadFactor"
             class="input"
             :class="!enableLoadFactor && 'cursor-not-allowed opacity-50'"
@@ -798,21 +812,21 @@
               class="input-label mb-0"
               for="bulk-edit-priority-enabled"
             >
-              {{ t('admin.accounts.priority') }}
+              {{ t(schedulingFields.priority.labelKey) }}
             </label>
             <input
               v-model="enablePriority"
               id="bulk-edit-priority-enabled"
               type="checkbox"
               aria-controls="bulk-edit-priority"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="rounded border-gray-300 text-brand focus:ring-brand"
             />
           </div>
           <input
             v-model.number="priority"
             id="bulk-edit-priority"
             type="number"
-            min="1"
+            :min="schedulingFields.priority.min"
             :disabled="!enablePriority"
             class="input"
             :class="!enablePriority && 'cursor-not-allowed opacity-50'"
@@ -826,22 +840,22 @@
               class="input-label mb-0"
               for="bulk-edit-rate-multiplier-enabled"
             >
-              {{ t('admin.accounts.billingRateMultiplier') }}
+              {{ t(schedulingFields.multiplier.labelKey) }}
             </label>
             <input
               v-model="enableRateMultiplier"
               id="bulk-edit-rate-multiplier-enabled"
               type="checkbox"
               aria-controls="bulk-edit-rate-multiplier"
-              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="rounded border-gray-300 text-brand focus:ring-brand"
             />
           </div>
           <input
             v-model.number="rateMultiplier"
             id="bulk-edit-rate-multiplier"
             type="number"
-            min="0"
-            step="0.01"
+            :min="schedulingFields.multiplier.min"
+            :step="schedulingFields.multiplier.step"
             :disabled="!enableRateMultiplier"
             class="input"
             :class="!enableRateMultiplier && 'cursor-not-allowed opacity-50'"
@@ -860,7 +874,7 @@
       </div>
 
       <!-- Status -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-status-label"
@@ -874,7 +888,7 @@
             id="bulk-edit-status-enabled"
             type="checkbox"
             aria-controls="bulk-edit-status"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div id="bulk-edit-status" :class="!enableStatus && 'pointer-events-none opacity-50'">
@@ -887,7 +901,7 @@
       </div>
 
       <!-- OpenAI OAuth WS mode -->
-      <div v-if="allOpenAIOAuth" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIOAuth" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-openai-ws-mode-label"
@@ -901,17 +915,17 @@
             id="bulk-edit-openai-ws-mode-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-ws-mode"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
           id="bulk-edit-openai-ws-mode"
           :class="!enableOpenAIWSMode && 'pointer-events-none opacity-50'"
         >
-          <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mb-3 text-xs text-muted-foreground">
             {{ t('admin.accounts.openai.wsModeDesc') }}
           </p>
-          <p v-if="openAIWSModeHintKey" class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <p v-if="openAIWSModeHintKey" class="mb-3 text-xs text-muted-foreground">
             {{ t(openAIWSModeHintKey) }}
           </p>
           <Select
@@ -924,7 +938,7 @@
       </div>
 
       <!-- OpenAI OAuth Codex CLI only -->
-      <div v-if="allOpenAIOAuth" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIOAuth" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-openai-codex-cli-only-label"
@@ -938,22 +952,22 @@
             id="bulk-edit-openai-codex-cli-only-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-codex-cli-only"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
           id="bulk-edit-openai-codex-cli-only"
           :class="!enableCodexCLIOnly && 'pointer-events-none opacity-50'"
         >
-          <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mb-3 text-xs text-muted-foreground">
             {{ t('admin.accounts.openai.codexCLIOnlyDesc') }}
           </p>
           <button
             id="bulk-edit-openai-codex-cli-only-toggle"
             type="button"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              codexCLIOnlyEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              codexCLIOnlyEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="codexCLIOnlyEnabled = !codexCLIOnlyEnabled"
           >
@@ -968,7 +982,7 @@
       </div>
 
       <!-- OpenAI OAuth: Codex app-server -->
-      <div v-if="allOpenAIOAuth" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIOAuth" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-openai-codex-app-server-label"
@@ -982,22 +996,22 @@
             id="bulk-edit-openai-codex-app-server-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-codex-app-server"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
           id="bulk-edit-openai-codex-app-server"
           :class="!enableCodexCLIOnlyAppServer && 'pointer-events-none opacity-50'"
         >
-          <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mb-3 text-xs text-muted-foreground">
             {{ t('admin.accounts.openai.codexCLIOnlyAppServerDesc') }}
           </p>
           <button
             id="bulk-edit-openai-codex-app-server-toggle"
             type="button"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-              codexCLIOnlyAppServerEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+              codexCLIOnlyAppServerEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
             ]"
             @click="codexCLIOnlyAppServerEnabled = !codexCLIOnlyAppServerEnabled"
           >
@@ -1012,18 +1026,18 @@
       </div>
 
       <!-- Codex 指纹收敛模式（仅 OpenAI OAuth） -->
-      <div v-if="allOpenAIOAuth" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIOAuth" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label class="input-label mb-0">{{ t('admin.accounts.openai.codexFingerprintMode') }}</label>
           <input
             id="bulk-edit-openai-codex-fingerprint-mode-enabled"
             v-model="enableCodexFingerprintMode"
             type="checkbox"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div :class="!enableCodexFingerprintMode && 'pointer-events-none opacity-50'">
-          <p class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mb-2 text-xs text-muted-foreground">
             {{ t('admin.accounts.openai.codexFingerprintModeDesc') }}
           </p>
           <Select v-model="codexFingerprintMode" data-testid="bulk-codex-fingerprint-mode-select" :options="codexFingerprintModeOptions" />
@@ -1031,7 +1045,7 @@
       </div>
 
       <!-- Upstream billing auto probe (any API-key platform) -->
-      <div v-if="allBillingProbeCapable" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allBillingProbeCapable" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <div class="flex-1 pr-4">
             <label
@@ -1041,7 +1055,7 @@
             >
               {{ t('admin.accounts.upstreamBilling.autoProbe') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.upstreamBilling.autoProbeHint') }}
             </p>
           </div>
@@ -1050,7 +1064,7 @@
             id="bulk-edit-upstream-billing-auto-probe-enabled"
             type="checkbox"
             aria-controls="bulk-edit-upstream-billing-auto-probe"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -1070,7 +1084,7 @@
       </div>
 
       <!-- OpenAI API Key endpoint capabilities -->
-      <div v-if="allOpenAIAPIKey" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIAPIKey" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between gap-4">
           <div class="flex-1">
             <label
@@ -1080,7 +1094,7 @@
             >
               {{ t('admin.accounts.openai.endpointCapabilities') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.endpointCapabilitiesDesc') }}
             </p>
           </div>
@@ -1089,7 +1103,7 @@
             id="bulk-edit-openai-endpoint-capabilities-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-endpoint-capabilities-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -1102,12 +1116,12 @@
             <label
               v-for="option in openAIEndpointCapabilityOptions"
               :key="option.value"
-              class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-dark-600"
+              class="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
             >
               <input
                 type="checkbox"
                 :disabled="!enableOpenAIEndpointCapabilities"
-                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-dark-500"
+                class="rounded border-gray-300 text-brand focus:ring-brand dark:border-dark-500"
                 :data-testid="`bulk-edit-openai-endpoint-capability-${option.value}`"
                 :checked="openAIEndpointCapabilities.includes(option.value)"
                 @change="toggleOpenAIEndpointCapability(option.value, $event)"
@@ -1119,7 +1133,7 @@
       </div>
 
       <!-- OpenAI API Key Responses route -->
-      <div v-if="allOpenAIAPIKey" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIAPIKey" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between gap-4">
           <div class="flex-1">
             <label
@@ -1129,7 +1143,7 @@
             >
               {{ t('admin.accounts.openai.responsesMode') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.responsesModeDesc') }}
             </p>
           </div>
@@ -1138,7 +1152,7 @@
             id="bulk-edit-openai-responses-mode-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-responses-mode-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -1165,7 +1179,7 @@
       </div>
 
       <!-- OpenAI API Key WS mode -->
-      <div v-if="allOpenAIAPIKey" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIAPIKey" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-openai-apikey-ws-mode-label"
@@ -1179,17 +1193,17 @@
             id="bulk-edit-openai-apikey-ws-mode-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-apikey-ws-mode"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
           id="bulk-edit-openai-apikey-ws-mode"
           :class="!enableOpenAIAPIKeyWSMode && 'pointer-events-none opacity-50'"
         >
-          <p class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mb-3 text-xs text-muted-foreground">
             {{ t('admin.accounts.openai.wsModeDesc') }}
           </p>
-          <p v-if="openAIAPIKeyWSModeHintKey" class="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          <p v-if="openAIAPIKeyWSModeHintKey" class="mb-3 text-xs text-muted-foreground">
             {{ t(openAIAPIKeyWSModeHintKey) }}
           </p>
           <Select
@@ -1202,7 +1216,7 @@
       </div>
 
       <!-- OpenAI Compact mode -->
-      <div v-if="allOpenAIPassthroughCapable" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIPassthroughCapable" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <div class="flex-1 pr-4">
             <label
@@ -1212,7 +1226,7 @@
             >
               {{ t('admin.accounts.openai.compactMode') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.compactModeDesc') }}
             </p>
           </div>
@@ -1221,7 +1235,7 @@
             id="bulk-edit-openai-compact-mode-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-compact-mode"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -1238,7 +1252,7 @@
       </div>
 
       <!-- OpenAI Compact model mapping -->
-      <div v-if="allOpenAIPassthroughCapable" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allOpenAIPassthroughCapable" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <div class="flex-1 pr-4">
             <label
@@ -1248,7 +1262,7 @@
             >
               {{ t('admin.accounts.openai.compactModelMapping') }}
             </label>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-xs text-muted-foreground">
               {{ t('admin.accounts.openai.compactModelMappingDesc') }}
             </p>
           </div>
@@ -1257,7 +1271,7 @@
             id="bulk-edit-openai-compact-model-mapping-enabled"
             type="checkbox"
             aria-controls="bulk-edit-openai-compact-model-mapping"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div
@@ -1306,7 +1320,7 @@
       </div>
 
       <!-- RPM Limit (仅全部为 Anthropic OAuth/SetupToken 时显示) -->
-      <div v-if="allAnthropicOAuthOrSetupToken" class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div v-if="allAnthropicOAuthOrSetupToken" class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-rpm-limit-label"
@@ -1320,7 +1334,7 @@
             id="bulk-edit-rpm-limit-enabled"
             type="checkbox"
             aria-controls="bulk-edit-rpm-limit-body"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
 
@@ -1336,8 +1350,8 @@
               type="button"
               @click="rpmLimitEnabled = !rpmLimitEnabled"
               :class="[
-                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
-                rpmLimitEnabled ? 'bg-primary-600' : 'bg-gray-200 dark:bg-dark-600'
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2',
+                rpmLimitEnabled ? 'bg-brand' : 'bg-gray-200 dark:bg-dark-600'
               ]"
             >
               <span
@@ -1373,7 +1387,7 @@
                   :class="[
                     'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all',
                     bulkRpmStrategy === 'tiered'
-                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                      ? 'bg-brand/15 text-primary-700 dark:text-primary-400'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-600 dark:text-gray-400 dark:hover:bg-dark-500'
                   ]"
                 >
@@ -1385,7 +1399,7 @@
                   :class="[
                     'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all',
                     bulkRpmStrategy === 'sticky_exempt'
-                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
+                      ? 'bg-brand/15 text-primary-700 dark:text-primary-400'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-600 dark:text-gray-400 dark:hover:bg-dark-500'
                   ]"
                 >
@@ -1413,7 +1427,7 @@
         <!-- 用户消息限速模式（独立于 RPM 开关，始终可见） -->
         <div class="mt-4">
           <label class="input-label">{{ t('admin.accounts.quotaControl.rpmLimit.userMsgQueue') }}</label>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 mb-2">
+          <p class="mt-1 text-xs text-muted-foreground mb-2">
             {{ t('admin.accounts.quotaControl.rpmLimit.userMsgQueueHint') }}
           </p>
           <div class="flex space-x-2">
@@ -1422,7 +1436,7 @@
               :class="[
                 'px-3 py-1.5 text-sm rounded-md border transition-colors',
                 userMsgQueueMode === opt.value
-                  ? 'bg-primary-600 text-white border-primary-600'
+                  ? 'bg-brand text-brand-foreground border-brand'
                   : 'bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-dark-500 hover:bg-gray-50 dark:hover:bg-dark-600'
               ]">
               {{ opt.label }}
@@ -1432,7 +1446,7 @@
       </div>
 
       <!-- Groups -->
-      <div class="border-t border-gray-200 pt-4 dark:border-dark-600">
+      <div class="border-t border-border pt-4">
         <div class="mb-3 flex items-center justify-between">
           <label
             id="bulk-edit-groups-label"
@@ -1446,7 +1460,7 @@
             id="bulk-edit-groups-enabled"
             type="checkbox"
             aria-controls="bulk-edit-groups"
-            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
         <div id="bulk-edit-groups" :class="!enableGroups && 'pointer-events-none opacity-50'">
@@ -1496,8 +1510,6 @@
         </button>
       </div>
     </template>
-  </BaseDialog>
-
   <ConfirmDialog
     :show="showMixedChannelWarning"
     :title="t('admin.accounts.mixedChannelWarningTitle')"
@@ -1508,6 +1520,7 @@
     @confirm="handleMixedChannelConfirm"
     @cancel="handleMixedChannelCancel"
   />
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -1525,6 +1538,15 @@ import type {
   OpenAIResponsesMode
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import AccountFormSheet from '@/views/admin/accounts/AccountFormSheet.vue'
+import {
+  AccountCredentialField,
+  buildBulkBaseUrlCredentials,
+  getAccountSchedulingField,
+  isValidBulkBaseUrl,
+  normalizeAccountUpdateLoadFactor,
+  usesConfiguredApiKeyFields
+} from '@/views/admin/accounts/platform-config'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
@@ -1563,6 +1585,7 @@ import {
 import type { OpenAIWSMode } from '@/utils/openaiWsMode'
 interface Props {
   show: boolean
+  presentation?: 'dialog' | 'sheet'
   accountIds: number[]
   selectedPlatforms: AccountPlatform[]
   selectedTypes: AccountType[]
@@ -1583,6 +1606,13 @@ const emit = defineEmits<{
   updated: []
 }>()
 
+const schedulingFields = {
+  concurrency: getAccountSchedulingField('concurrency', 'bulk'),
+  loadFactor: getAccountSchedulingField('load_factor', 'bulk'),
+  priority: getAccountSchedulingField('priority', 'bulk'),
+  multiplier: getAccountSchedulingField('rate_multiplier', 'bulk')
+}
+
 const { t } = useI18n()
 const appStore = useAppStore()
 
@@ -1591,6 +1621,11 @@ const targetMode = computed(() => props.target?.mode ?? 'selected')
 const targetPreviewCount = computed(() => props.target?.previewCount ?? props.accountIds.length)
 const targetSelectedPlatforms = computed(() => props.target?.selectedPlatforms ?? props.selectedPlatforms)
 const targetSelectedTypes = computed(() => props.target?.selectedTypes ?? props.selectedTypes)
+const configuredCredentialPlatform = computed(() => {
+  if (targetSelectedPlatforms.value.length !== 1 || !targetSelectedTypes.value.length) return undefined
+  const platform = targetSelectedPlatforms.value[0]
+  return targetSelectedTypes.value.every(type => usesConfiguredApiKeyFields(platform, type)) ? platform : undefined
+})
 // Grok 快捷端点仅在所选账号全部为 grok 平台时展示（其他平台不显示）
 const allTargetsGrok = computed(
   () =>
@@ -1995,8 +2030,7 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
 
   if (enableLoadFactor.value) {
     // 空值/NaN/0 时发送 0（后端约定 <= 0 表示清除）
-    const lf = loadFactor.value
-    updates.load_factor = (lf != null && !Number.isNaN(lf) && lf > 0) ? lf : 0
+    updates.load_factor = normalizeAccountUpdateLoadFactor(loadFactor.value)
   }
 
   if (enablePriority.value) {
@@ -2015,12 +2049,10 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     updates.group_ids = groupIds.value
   }
 
-  if (enableBaseUrl.value) {
-    const baseUrlValue = baseUrl.value.trim()
-    if (baseUrlValue) {
-      credentials.base_url = baseUrlValue
-      credentialsChanged = true
-    }
+  const baseUrlCredentials = buildBulkBaseUrlCredentials(enableBaseUrl.value, baseUrl.value)
+  if (baseUrlCredentials) {
+    credentials.base_url = baseUrlCredentials.base_url
+    credentialsChanged = true
   }
 
   if (enableOpenAIPassthrough.value) {
@@ -2289,12 +2321,9 @@ const handleSubmit = async () => {
 
   // base_url 现在也会作用于 Grok OAuth 订阅账号的转发端点；坏值会让请求期
   // 校验失败、账号请求全挂，因此保存前强制格式校验（与单账号编辑一致）。
-  if (enableBaseUrl.value) {
-    const trimmedBaseUrl = baseUrl.value.trim()
-    if (trimmedBaseUrl && !/^https?:\/\//i.test(trimmedBaseUrl)) {
-      appStore.showError(t('admin.accounts.grokCustomBaseUrl.invalid'))
-      return
-    }
+  if (enableBaseUrl.value && !isValidBulkBaseUrl(baseUrl.value)) {
+    appStore.showError(t('admin.accounts.grokCustomBaseUrl.invalid'))
+    return
   }
 
   if (enableHeaderOverride.value && headerOverrideEnabled.value) {

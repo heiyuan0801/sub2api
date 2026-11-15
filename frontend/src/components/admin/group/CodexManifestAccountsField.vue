@@ -5,7 +5,7 @@
         <label class="text-sm font-medium text-gray-700 dark:text-gray-300">
           {{ t("admin.groups.codexModelsManifest.title") }}
         </label>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-1 text-xs text-muted-foreground">
           {{ t("admin.groups.codexModelsManifest.hint") }}
         </p>
       </div>
@@ -20,7 +20,7 @@
     <div v-if="config.enabled">
       <p
         v-if="config.enabled"
-        class="mb-2 text-xs text-gray-500 dark:text-gray-400"
+        class="mb-2 text-xs text-muted-foreground"
       >
         {{ t("admin.groups.codexModelsManifest.enabledHint") }}
       </p>
@@ -38,12 +38,12 @@
         <span
           v-for="id in config.account_ids"
           :key="id"
-          class="inline-flex items-center gap-1 rounded-full bg-primary-100 px-2.5 py-1 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+          class="inline-flex items-center gap-1 rounded-full bg-brand/15 px-2.5 py-1 text-xs font-medium text-brand"
         >
           {{ accountLabel(id) }}
           <button
             type="button"
-            class="ml-0.5 text-primary-500 hover:text-primary-700 dark:hover:text-primary-200"
+            class="ml-0.5 text-brand hover:text-primary-700 dark:hover:text-primary-200"
             :aria-label="`remove account ${id}`"
             @click="removeAccount(id)"
           >
@@ -65,7 +65,7 @@
         />
         <div
           v-if="showDropdown && (searchResults.length > 0 || searchKeyword.trim() !== '')"
-          class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-white shadow-lg dark:border-dark-600 dark:bg-dark-800"
+          class="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-card shadow-lg dark:border-dark-600"
           data-testid="codex-manifest-dropdown"
         >
           <p
@@ -98,7 +98,7 @@
           <label class="text-sm text-gray-700 dark:text-gray-300">
             {{ t("admin.groups.codexModelsManifest.fallback") }}
           </label>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1 text-xs text-muted-foreground">
             {{ t("admin.groups.codexModelsManifest.fallbackHint") }}
           </p>
         </div>
@@ -119,7 +119,7 @@
         {{ t("admin.groups.codexModelsManifest.selectAtLeastOne") }}
       </p>
     </div>
-    <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+    <p v-else class="text-xs text-muted-foreground">
       {{ t("admin.groups.codexModelsManifest.disabledHint") }}
     </p>
   </div>

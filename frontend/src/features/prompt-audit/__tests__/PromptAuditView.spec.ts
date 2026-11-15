@@ -173,15 +173,16 @@ describe('PromptAuditView', () => {
     expect(wrapper.get('[data-test="dialog-preview-state"]').text()).toBe('none')
   })
 
-  it('uses native labeled switches and a responsive fixed save surface', async () => {
+  it('uses native labeled switches and a responsive bottom-pinned save surface', async () => {
     const wrapper = mountView()
     await flushPromises()
     await wrapper.get('[data-test="tab-config"]').trigger('click')
     const switches = wrapper.findAll('[role="switch"]')
     expect(switches).toHaveLength(4)
     expect(switches.every((item) => Boolean(item.attributes('aria-label')))).toBe(true)
-    expect(wrapper.html()).toContain('fixed inset-x-0 bottom-0')
-    expect(wrapper.html()).toContain('flex-wrap')
+    const surface = wrapper.get('.sticky.bottom-0')
+    expect(surface.get('.flex-wrap [data-test="save-config"]').exists()).toBe(true)
+    expect(surface.findAll('.flex-wrap [role="switch"]')).toHaveLength(4)
   })
 
   it('executes single, selected-batch, and preview-confirmed filter deletion flows', async () => {

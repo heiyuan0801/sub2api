@@ -36,14 +36,14 @@
         @start="handleOAuthStart"
       />
     </template>
-    <h1 class="sr-only">{{ pageCopy.heading }}</h1>
+    <PageHeader :title="pageCopy.heading" class="mb-5" />
     <Tabs v-model="loginMethod" class="auth-login-tabs">
       <TabsList class="auth-methods" :aria-label="t('publicSite.auth.loginMethod')">
         <TabsTrigger value="password">{{ t('publicSite.auth.passwordTab') }}</TabsTrigger>
         <TabsTrigger v-if="showPasskeyLogin" value="passkey">{{ t('publicSite.auth.passkeyTab') }}</TabsTrigger>
       </TabsList>
-      <form @submit.prevent="loginMethod === 'passkey' ? handlePasskeyLogin() : handleLogin()" class="auth-login-form space-y-5">
-        <TabsContent value="password" class="space-y-5">
+      <form @submit.prevent="loginMethod === 'passkey' ? handlePasskeyLogin() : handleLogin()" class="auth-login-form space-y-4">
+        <TabsContent value="password" class="space-y-4">
           <div>
             <label for="email" class="sr-only">{{ t('auth.emailLabel') }}</label>
             <div class="relative auth-field">
@@ -136,6 +136,7 @@
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/page/PageHeader.vue'
 import { Fingerprint, KeyRound, LoaderCircle, Mail, ShieldCheck } from '@lucide/vue'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -661,21 +662,24 @@ function handle2FACancel(): void {
 </script>
 
 <style scoped>
-.auth-login-tabs { gap: 24px; }
-.auth-methods { width: 100%; height: 64px; padding: 5px; border: 1px solid var(--auth-border); border-radius: 999px; background: var(--auth-input-background); }
-.auth-methods :deep([data-slot="tabs-trigger"]) { height: 100%; border-radius: 999px; color: var(--auth-muted); font-size: 16px; font-weight: 500; }
-.auth-methods :deep([data-state="active"]) { background: var(--auth-card-background); color: var(--auth-text); font-weight: 650; box-shadow: 0 3px 8px #1b2f4b14; }
+.auth-login-tabs { gap: 16px; }
+.auth-methods {
+  width: 100%; height: 40px; padding: 3px; border: 1px solid var(--auth-border);
+  border-radius: 7px; background: hsl(var(--muted));
+}
+.auth-methods :deep([data-slot="tabs-trigger"]) { height: 100%; border-radius: 4px; color: var(--auth-muted); font-size: 14px; font-weight: 500; }
+.auth-methods :deep([data-state="active"]) { background: var(--auth-card-background); color: var(--auth-text); font-weight: 600; }
 .auth-login-form { margin-top: 0; }
-.auth-password-tools { position: absolute; top: 0; right: 24px; height: 100%; display: flex; align-items: center; gap: 16px; }
-.auth-eye { display: grid; place-items: center; min-width: 28px; min-height: 40px; color: var(--auth-muted); }
-.auth-forgot { font-size: 14px; color: var(--auth-accent); white-space: nowrap; }
-.auth-passkey-panel { min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; color: var(--auth-accent); text-align: center; }
-.auth-passkey-panel p { color: var(--auth-muted); font-size: 14px; line-height: 1.8; max-width: 340px; }
+.auth-password-tools { position: absolute; inset-block: 0; right: 10px; display: flex; align-items: center; gap: 8px; }
+.auth-eye { display: grid; place-items: center; width: 28px; height: 32px; color: var(--auth-muted); }
+.auth-eye:hover:not(:disabled) { color: var(--auth-text); }
+.auth-forgot { font-size: 12px; color: var(--auth-accent); white-space: nowrap; }
+.auth-passkey-panel { min-height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; color: var(--auth-accent); text-align: center; }
+.auth-passkey-panel p { color: var(--auth-muted); font-size: 14px; line-height: 1.6; max-width: 340px; }
 .auth-passkey-panel[data-state="inactive"] { display: none; }
 .auth-actions.auth-actions--single { grid-template-columns: 1fr; }
-@media (min-width: 1500px) { .auth-methods { height: 72px; } .auth-methods :deep([data-slot="tabs-trigger"]) { font-size: 18px; } }
-@media (max-width: 1100px) {
-  .auth-password-row.has-recovery { padding-bottom: 30px; }
-  .auth-password-tools .auth-forgot { position: absolute; top: calc(100% + 8px); right: 0; }
+@media (max-width: 850px) {
+  .auth-password-row.has-recovery { padding-bottom: 24px; }
+  .auth-password-tools .auth-forgot { position: absolute; top: calc(100% + 6px); right: 0; }
 }
 </style>

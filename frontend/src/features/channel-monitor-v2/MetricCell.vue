@@ -64,11 +64,11 @@ const missingValue = computed(() => {
 const resolvedState = computed(() => (missingValue.value ? undefined : props.state))
 
 const stateClass = computed(() => {
-  if (!resolvedState.value) return missingValue.value ? 'text-gray-500 dark:text-dark-400' : 'text-gray-900 dark:text-white'
+  if (!resolvedState.value) return missingValue.value ? 'text-muted-foreground' : 'text-foreground'
   if (resolvedState.value === 'healthy') return 'text-emerald-600 dark:text-emerald-400'
   if (resolvedState.value === 'warning') return 'text-amber-600 dark:text-amber-400'
   if (resolvedState.value === 'critical') return 'text-red-600 dark:text-red-400'
-  return 'text-gray-500 dark:text-dark-400'
+  return 'text-muted-foreground'
 })
 
 const dotClass = computed(() => {

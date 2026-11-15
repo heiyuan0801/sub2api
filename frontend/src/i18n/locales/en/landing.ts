@@ -119,6 +119,7 @@ export default {
     title: 'API Key Usage',
     subtitle: 'Enter your API Key to view real-time spending and usage status',
     placeholder: 'sk-ant-mirror-xxxxxxxxxxxx',
+    showKey: 'Show API key',
     query: 'Query',
     querying: 'Querying...',
     privacyNote: 'Your Key is processed locally in the browser and will not be stored',

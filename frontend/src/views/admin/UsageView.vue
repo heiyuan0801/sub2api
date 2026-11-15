@@ -1,30 +1,39 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <header class="flex flex-wrap items-start justify-between gap-4"><div><p class="mb-2 text-xs font-medium text-muted-foreground">{{ t('design.overview') }}</p><h1 class="text-3xl font-semibold tracking-tight">{{ t('design.usageTitle') }}</h1><p class="mt-2 text-sm text-muted-foreground">{{ t('design.usageDescription') }}</p></div><Button variant="outline" :aria-expanded="showCharts" aria-controls="usage-analytics" @click="showCharts = !showCharts"><ChartNoAxesCombined :size="16" />{{ t(showCharts ? 'design.hideCharts' : 'design.showCharts') }}</Button></header>
-      <UsageStatsCards :stats="usageStats" />
+      <PageHeader :eyebrow="t('design.overview')" :title="t('design.usageTitle')" :description="t('design.usageDescription')">
+        <template #actions>
+          <Button variant="outline" :aria-expanded="showCharts" aria-controls="usage-analytics" @click="showCharts = !showCharts">
+            <ChartNoAxesCombined :size="16" />{{ t(showCharts ? 'design.hideCharts' : 'design.showCharts') }}
+          </Button>
+        </template>
+      </PageHeader>
+      <UsageStatsCards :stats="usageStats" admin-presentation />
       <!-- Charts Section -->
       <div class="space-y-4">
-        <Card class="card p-4">
-          <div class="flex flex-wrap items-center gap-4">
+        <SectionCard>
+          <Toolbar>
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.timeRange') }}:</span>
+              <span class="text-sm font-medium text-muted-foreground">{{ t('admin.dashboard.timeRange') }}:</span>
               <DateRangePicker
                 v-model:start-date="startDate"
                 v-model:end-date="endDate"
                 @change="onDateRangeChange"
               />
             </div>
-            <div class="ml-auto flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.granularity') }}:</span>
-              <div class="w-28">
-                <Select v-model="granularity" :options="granularityOptions" @change="loadChartData" />
+            <template #actions>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-muted-foreground">{{ t('admin.dashboard.granularity') }}:</span>
+                <div class="w-28">
+                  <Select v-model="granularity" :options="granularityOptions" @change="loadChartData" />
+                </div>
               </div>
-            </div>
-          </div>
-        </Card>
+            </template>
+          </Toolbar>
+        </SectionCard>
         <div id="usage-analytics" v-show="showCharts" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ModelDistributionChart
+            semantic-colors
             v-model:source="modelDistributionSource"
             v-model:metric="modelDistributionMetric"
             :model-stats="requestedModelStats"
@@ -38,6 +47,7 @@
             :filters="breakdownFilters"
           />
           <GroupDistributionChart
+            semantic-colors
             v-model:metric="groupDistributionMetric"
             :group-stats="groupStats"
             :loading="chartsLoading"
@@ -49,6 +59,7 @@
         </div>
         <div v-show="showCharts" class="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <EndpointDistributionChart
+            semantic-colors
             v-model:source="endpointDistributionSource"
             v-model:metric="endpointDistributionMetric"
             :endpoint-stats="inboundEndpointStats"
@@ -62,12 +73,12 @@
             :end-date="endDate"
             :filters="breakdownFilters"
           />
-          <TokenUsageTrend :trend-data="trendData" :loading="chartsLoading" />
+          <TokenUsageTrend semantic-colors :trend-data="trendData" :loading="chartsLoading" />
         </div>
       </div>
       <!-- 明细区：tab 栏 + 筛选 + 内容收进同一张卡片，消除割裂感 -->
-      <Card class="card">
-        <div class="flex flex-wrap items-center border-b border-gray-200 px-2 dark:border-dark-700 sm:px-4">
+      <SectionCard flush>
+        <div class="flex flex-wrap items-center border-b border-border px-2 sm:px-4">
           <button
             v-for="tab in detailTabs"
             :key="tab.key"
@@ -75,8 +86,8 @@
             data-testid="usage-detail-tab"
             class="-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-3 text-sm font-medium transition-colors sm:px-4"
             :class="activeTab === tab.key
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-dark-500 dark:hover:text-gray-200'"
+              ? 'border-brand text-brand'
+              : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'"
             @click="switchTab(tab.key)"
           >
             <Icon :name="tab.icon" size="sm" />
@@ -84,7 +95,7 @@
           </button>
         </div>
 
-        <UsageFilters v-model="filters" ref="usageFiltersRef" flat :mode="activeTab" class="border-b border-gray-100 dark:border-dark-700/50" :start-date="startDate" :end-date="endDate" :exporting="exporting" :model-options="modelNameOptions" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
+        <UsageFilters v-model="filters" ref="usageFiltersRef" flat :mode="activeTab" class="border-b border-border" :start-date="startDate" :end-date="endDate" :exporting="exporting" :model-options="modelNameOptions" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
           <template #after-reset>
             <div v-if="activeTab !== 'ranking'" class="relative" ref="columnDropdownRef">
               <Button variant="outline"
@@ -100,7 +111,7 @@
               </Button>
               <div
                 v-if="showColumnDropdown"
-                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg"
               >
                 <button
                   v-for="col in currentToggleableColumns"
@@ -114,7 +125,7 @@
                     v-if="isCurrentColumnVisible(col.key)"
                     name="check"
                     size="sm"
-                    class="text-primary-500"
+                    class="text-brand"
                     :stroke-width="2"
                   />
                 </button>
@@ -125,6 +136,7 @@
 
         <div v-show="activeTab === 'usage'" class="overflow-hidden rounded-b-2xl">
           <UsageTable
+            admin-presentation
             flat
             :data="usageLogs"
             :loading="loading"
@@ -163,7 +175,7 @@
             @select-user="handleRankingSelectUser"
           />
         </div>
-      </Card>
+      </SectionCard>
       <OpsErrorDetailModal v-model:show="showErrorModal" :error-id="selectedErrorId" :error-type="'request'" />
     </div>
   </AppLayout>
@@ -187,7 +199,7 @@
 <script setup lang="ts">
 import { formatUsageCacheRatePercent } from '@/utils/usageCacheRate'
 import { ChartNoAxesCombined } from '@lucide/vue'
-import { Card } from '@/components/ui/card'
+import { PageHeader, SectionCard, Toolbar } from '@/components/page'
 import { Button } from '@/components/ui/button'
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
