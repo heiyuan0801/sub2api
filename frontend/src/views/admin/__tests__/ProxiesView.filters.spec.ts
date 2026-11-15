@@ -23,6 +23,7 @@ const mountView = () => shallowMount(ProxiesView, {
       TablePageLayout: {
         template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>'
       },
+      Toolbar: { template: '<div><slot /><slot name="actions" /></div>' },
       DataTable: {
         props: ['data'],
         template: '<div data-test="rows">{{ data.map(row => row.name).join(",") }}</div>'

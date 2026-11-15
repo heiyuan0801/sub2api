@@ -85,19 +85,23 @@ describe('channel-monitor-v2 design system structure', () => {
     expect(src).toContain('dropdown-item')
   })
 
-  it('MonitorSettingsPanel uses page-header, card, btn-primary, tabs', () => {
+  it('MonitorSettingsPanel uses the shared heading and tokenized controls', () => {
     const src = read('features/channel-monitor-v2/MonitorSettingsPanel.vue')
-    expect(src).toContain('page-header')
+    expect(src).toContain('<PageHeader as="h2" :title="t(\'channelMonitorV2.settings.title\')"')
     expect(src).toContain('btn btn-primary')
-    expect(src).toContain('class="card')
+    expect(src).toContain('@click="save"')
+    expect(src).toMatch(/class="[^"]*border-border bg-card/)
     expect(src).toContain('tab-active')
     expect(src).toMatch(/max-h-\[min\(40vh/)
   })
 
   it('admin ChannelMonitorView V2 tab chrome uses project tabs', () => {
     const src = read('views/admin/ChannelMonitorView.vue')
-    expect(src).toContain('page-header')
-    expect(src).toContain('page-title')
+    expect(src).toMatch(/<PageHeader\s+:title="t\('admin\.channelMonitor\.title'\)"/)
+    expect(src).toContain('<SectionCard>')
+    expect(src).toContain('role="tablist"')
+    expect(src.match(/role="tab"/g)).toHaveLength(2)
+    expect(src.match(/:aria-selected=/g)).toHaveLength(2)
     expect(src).toContain('class="tabs')
     expect(src).toContain('tab-active')
     expect(src).toContain('MonitorSettingsPanel')

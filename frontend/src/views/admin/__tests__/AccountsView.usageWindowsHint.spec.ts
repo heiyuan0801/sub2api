@@ -177,9 +177,7 @@ describe('admin AccountsView usage windows hint', () => {
     // Column label is still shown alongside the help icon.
     expect(header.text()).toContain('admin.accounts.columns.usageWindows')
 
-    const hint = wrapper.find('[data-test="usage-windows-hint"]')
-    expect(hint.exists()).toBe(true)
-    expect(hint.text()).toBe('admin.accounts.usageWindowsHint')
+    expect(header.get('[data-test="usage-windows-hint"]').text()).toBe('admin.accounts.usageWindowsHint')
   })
 
   it('keeps Ollama Cloud in the single usage column and ignores legacy column preferences', async () => {
@@ -199,9 +197,7 @@ describe('admin AccountsView usage windows hint', () => {
     const header = wrapper.find('[data-test="upstream-billing-header"]')
     expect(header.exists()).toBe(true)
     expect(header.text()).toContain('admin.accounts.columns.upstreamBillingRate')
-    expect(wrapper.findAll('[data-test="usage-windows-hint"]').some(node =>
-      node.text() === 'admin.accounts.upstreamBilling.trustWarning'
-    )).toBe(true)
+    expect(header.get('[data-test="usage-windows-hint"]').text()).toBe('admin.accounts.upstreamBilling.trustWarning')
     const columns = wrapper.getComponent(DataTableStub).props('columns') as Array<{ key: string; sortable: boolean }>
     expect(columns.find(column => column.key === 'upstream_billing_rate')?.sortable).toBe(true)
   })

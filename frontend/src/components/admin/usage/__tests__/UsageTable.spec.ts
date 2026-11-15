@@ -150,7 +150,7 @@ describe('admin UsageTable tooltip', () => {
     const row = { ...baseImageRow, image_count: 0, billing_mode: 'token', input_tokens: 70, cache_read_tokens: 20, cache_creation_tokens: 10 }
     const wrapper = mount(UsageTable, {
       props: { data: [row] as any, columns: [{ key: 'cache_rate', label: 'Cache rate' }] },
-      global: { stubs: { DataTable: DataTableStub } },
+      global: { stubs: { LegacyDataTable: DataTableStub } },
     })
     expect(wrapper.get('[data-testid="usage-cache-rate"]').text()).toContain('20.0%')
     wrapper.unmount()
@@ -160,7 +160,7 @@ describe('admin UsageTable tooltip', () => {
     const row = { ...baseImageRow, image_count: 0, billing_mode: 'token', cache_creation_tokens: 2399, cache_creation_30m_tokens: 9, cache_creation_12h_tokens: 2390 }
     const wrapper = mount(UsageTable, {
       props: { data: [row], loading: false, columns: [] },
-      global: { stubs: { DataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
     })
     try {
       await wrapper.find('.group.relative').trigger('mouseenter')
@@ -184,7 +184,7 @@ describe('admin UsageTable tooltip', () => {
         loading: false,
         columns: [{ key: 'latency', label: 'Latency' }],
       },
-      global: { stubs: { DataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
     })
     expect(wrapper.findAll('[data-testid="output-tps"]').map(cell => cell.text())).toEqual(['50.0 tok/s', '—', '—'])
     expect(wrapper.text()).toContain('Output TPS')
@@ -233,7 +233,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -284,7 +284,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStreamStub,
+          LegacyDataTable: DataTableStreamStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -307,7 +307,7 @@ describe('admin UsageTable tooltip', () => {
   ])('shows the stored user rate %s in cost details', async (rate, expected) => {
     const wrapper = mount(UsageTable, {
       props: { data: [{ ...baseImageRow, rate_multiplier: rate }], loading: false, columns: [] },
-      global: { stubs: { DataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
     })
     const triggers = wrapper.findAll('.group.relative')
     await triggers[triggers.length - 1].trigger('mouseenter')
@@ -340,7 +340,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -384,7 +384,7 @@ describe('admin UsageTable tooltip', () => {
     }
     const wrapper = mount(UsageTable, {
       props: { data: [row], loading: false, columns: [] },
-      global: { stubs: { DataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
     })
     const triggers = wrapper.findAll('.group.relative')
     await triggers[triggers.length - 1].trigger('mouseenter')
@@ -404,7 +404,7 @@ describe('admin UsageTable tooltip', () => {
         loading: false,
         columns: [],
       },
-      global: { stubs: { DataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStub, EmptyState: true, Icon: true, Teleport: true } },
     })
     const triggers = wrapper.findAll('.group.relative')
     await triggers[triggers.length - 1].trigger('mouseenter')
@@ -438,7 +438,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -465,7 +465,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -492,7 +492,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -518,7 +518,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -558,7 +558,7 @@ describe('admin UsageTable tooltip', () => {
 			},
 			global: {
 				stubs: {
-					DataTable: DataTableStub,
+					LegacyDataTable: DataTableStub,
 					EmptyState: true,
 					Icon: true,
 					Teleport: true,
@@ -632,7 +632,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -676,7 +676,7 @@ describe('admin UsageTable tooltip', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -714,7 +714,7 @@ describe('admin UsageTable request ID column', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -741,7 +741,7 @@ describe('admin UsageTable request ID column', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStub,
+          LegacyDataTable: DataTableStub,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -785,7 +785,7 @@ describe('admin UsageTable IP geolocation batch toolbar', () => {
         loading: false,
         columns: [],
       },
-      global: { stubs: { DataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
     })
     expect(wrapper.text()).not.toContain('usage.ipGeo.batchFetch')
   })
@@ -801,7 +801,7 @@ describe('admin UsageTable IP geolocation batch toolbar', () => {
         loading: false,
         columns: [{ key: 'ip_address', label: 'IP' }],
       },
-      global: { stubs: { DataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
     })
     expect(wrapper.text()).toContain('usage.ipGeo.pending')
     const button = wrapper.find('button')
@@ -821,7 +821,7 @@ describe('admin UsageTable IP geolocation batch toolbar', () => {
         loading: false,
         columns: [{ key: 'ip_address', label: 'IP' }],
       },
-      global: { stubs: { DataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
     })
     await wrapper.find('button').trigger('click')
     expect(ipGeoMocks.fetchBatch).toHaveBeenCalledWith(['8.8.8.8', '1.1.1.1'])
@@ -836,7 +836,7 @@ describe('admin UsageTable IP geolocation batch toolbar', () => {
         loading: false,
         columns: [{ key: 'ip_address', label: 'IP' }],
       },
-      global: { stubs: { DataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
     })
     await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('ipGeoBatchFailed')).toHaveLength(1)
@@ -850,7 +850,7 @@ describe('admin UsageTable IP geolocation batch toolbar', () => {
         loading: false,
         columns: [{ key: 'ip_address', label: 'IP' }],
       },
-      global: { stubs: { DataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
+      global: { stubs: { LegacyDataTable: DataTableStubWithIp, EmptyState: true, Teleport: true } },
     })
     expect(wrapper.text()).toContain('121.35.47.43')
     expect(wrapper.text()).toContain('CN · Guangdong · Shenzhen')
@@ -899,7 +899,7 @@ describe('admin UsageTable deleted-user badge', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStubWithUser,
+          LegacyDataTable: DataTableStubWithUser,
           EmptyState: true,
           Icon: true,
           Teleport: true,
@@ -934,7 +934,7 @@ describe('admin UsageTable deleted-user badge', () => {
       },
       global: {
         stubs: {
-          DataTable: DataTableStubWithUser,
+          LegacyDataTable: DataTableStubWithUser,
           EmptyState: true,
           Icon: true,
           Teleport: true,
