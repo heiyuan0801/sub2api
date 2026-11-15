@@ -622,6 +622,7 @@ import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
 import Select from '@/components/common/Select.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import { useSettingsContext } from '../settingsContext'
+import type { DefaultSubscriptionGroupOption } from '../useSettingsForm'
 
 const {
   addAuthSourceDefaultSubscription,
