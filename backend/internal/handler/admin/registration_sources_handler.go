@@ -26,7 +26,7 @@ func parseRegistrationSourceFilter(c *gin.Context, now time.Time) (service.Regis
 		var err error
 		loc, err = time.LoadLocation(zone)
 		if err != nil {
-			return f, errors.New("Invalid timezone")
+			return f, errors.New("invalid timezone")
 		}
 	}
 	// 'Local' is Go's process-local sentinel and is not a Postgres zone name.
@@ -51,19 +51,19 @@ func parseRegistrationSourceFilter(c *gin.Context, now time.Time) (service.Regis
 		f.End, endErr = time.ParseInLocation(registrationSourceDateLayout, c.Query("end_date"), loc)
 		f.End = f.End.AddDate(0, 0, 1)
 		if startErr != nil || endErr != nil || !f.End.After(f.Start) || f.End.After(f.Start.AddDate(0, 0, 366)) {
-			return f, errors.New("Invalid date range, use at most 366 days")
+			return f, errors.New("invalid date range, use at most 366 days")
 		}
 	default:
-		return f, errors.New("Invalid registration range")
+		return f, errors.New("invalid registration range")
 	}
 	f.Dimension = c.DefaultQuery("dimension", service.RegistrationDimensionSelected)
 	if f.Dimension != service.RegistrationDimensionSelected && f.Dimension != service.RegistrationDimensionUTM {
-		return f, errors.New("Invalid source dimension")
+		return f, errors.New("invalid source dimension")
 	}
 	f.Source = strings.ToLower(strings.TrimSpace(c.Query("source")))
 	if len([]rune(f.Source)) > 120 ||
 		(f.Dimension == service.RegistrationDimensionSelected && f.Source != "" && f.Source != service.RegistrationSourceUnknown && !service.IsSelectedRegistrationSource(f.Source)) {
-		return f, errors.New("Invalid registration source")
+		return f, errors.New("invalid registration source")
 	}
 	return f, nil
 }

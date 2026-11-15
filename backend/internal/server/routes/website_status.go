@@ -103,7 +103,7 @@ func (s *kumaStatusClient) readJSON(ctx context.Context, url string, target any)
 		return err
 	}
 	if len(data) > kumaResponseSize {
-		return errors.New("Uptime Kuma response exceeds size limit")
+		return errors.New("response from Uptime Kuma exceeds size limit")
 	}
 	return json.Unmarshal(data, target)
 }
