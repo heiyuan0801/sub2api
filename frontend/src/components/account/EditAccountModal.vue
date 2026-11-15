@@ -1,16 +1,22 @@
 <template>
-  <BaseDialog
+  <component
+    :is="presentation === 'sheet' ? AccountFormSheet : BaseDialog"
     :show="show"
     :title="t('admin.accounts.editAccount')"
     width="wide"
+    v-bind="presentation === 'sheet' ? { childDialogOpen: showMixedChannelWarning, sections: editSheetSections } : {}"
     @close="handleClose"
   >
+    <template #summary>
+      <AccountEditSummary v-if="account" :account="account" :stats="windowStats" />
+    </template>
     <form
       v-if="account"
       id="edit-account-form"
       @submit.prevent="handleSubmit"
       class="space-y-5"
     >
+      <h3 v-if="presentation === 'sheet'" data-account-section="basic" tabindex="-1" class="text-sm font-medium">{{ t('design.accountForm.basic') }}</h3>
       <div>
         <label class="input-label">{{ t('common.name') }}</label>
         <input v-model="form.name" type="text" required class="input" data-tour="edit-account-form-name" />
@@ -26,9 +32,17 @@
         <p class="input-hint">{{ t('admin.accounts.notesHint') }}</p>
       </div>
 
+      <h3 v-if="presentation === 'sheet'" data-account-section="credentials" tabindex="-1" class="border-t border-border pt-3 text-sm font-medium">{{ t('design.accountForm.credentials') }}</h3>
       <!-- API Key fields (only for apikey type) -->
       <div v-if="account.type === 'apikey'" class="space-y-4">
-        <div v-if="!isCNApiKeyAccount || editApiProtocol !== 'adaptive'">
+        <AccountCredentialField
+          v-if="!isCNApiKeyAccount && usesConfiguredApiKeyFields(account.platform, account.type)"
+          v-model="editBaseUrl"
+          :platform="account.platform"
+          mode="edit"
+          field="base_url"
+        />
+        <div v-else-if="!isCNApiKeyAccount || editApiProtocol !== 'adaptive'">
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
           <input
             v-model="editBaseUrl"
@@ -36,14 +50,14 @@
             class="input"
             :placeholder="
               account.platform === 'openai'
-                ? 'https://api.openai.com'
+                ? OPENAI_DEFAULT_BASE_URL
                 : account.platform === 'gemini'
                   ? 'https://generativelanguage.googleapis.com'
                   : account.platform === 'antigravity'
                     ? 'https://cloudcode-pa.googleapis.com'
                     : account.platform === 'grok'
                       ? 'https://api.x.ai/v1'
-                      : 'https://api.anthropic.com'
+                      : ANTHROPIC_DEFAULT_BASE_URL
             "
           />
           <p v-if="baseUrlHint" class="input-hint">{{ baseUrlHint }}</p>
@@ -225,7 +239,14 @@
           </div>
           <p class="input-hint mt-2">{{ t('admin.accounts.cnProviders.zhipuTeam.hint') }}</p>
         </div>
-        <div>
+        <AccountCredentialField
+          v-if="!isCNApiKeyAccount && usesConfiguredApiKeyFields(account.platform, account.type)"
+          v-model="editApiKey"
+          :platform="account.platform"
+          mode="edit"
+          field="api_key"
+        />
+        <div v-else>
           <label class="input-label">{{ t('admin.accounts.apiKey') }}</label>
           <input
             v-model="editApiKey"
@@ -1919,6 +1940,7 @@
       </div>
 
       <div v-if="!isSparkShadow">
+        <h3 v-if="presentation === 'sheet'" data-account-section="proxy" tabindex="-1" class="mb-3 border-t border-border pt-3 text-sm font-medium">{{ t('design.accountForm.proxy') }}</h3>
         <div class="mb-1 flex items-center gap-2">
           <label class="input-label mb-0">{{ t('admin.accounts.proxy') }}</label>
           <ProxyAdBanner />
@@ -1932,37 +1954,38 @@
         :type="account.type"
       />
 
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <h3 v-if="presentation === 'sheet'" data-account-section="scheduling" tabindex="-1" class="border-t border-border pt-3 text-sm font-medium">{{ t('design.accountForm.scheduling') }}</h3>
+      <div class="grid grid-cols-2 gap-4" :class="presentation === 'sheet' ? '' : 'lg:grid-cols-4'">
         <div>
-          <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
-          <input v-model.number="form.concurrency" type="number" min="1" class="input"
+          <label class="input-label">{{ t(schedulingFields.concurrency.labelKey) }}</label>
+          <input v-model.number="form.concurrency" type="number" :min="schedulingFields.concurrency.min" class="input"
             @input="form.concurrency = Math.max(1, form.concurrency || 1)" />
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.loadFactor') }}</label>
-          <input v-model.number="form.load_factor" type="number" min="1"
+          <label class="input-label">{{ t(schedulingFields.loadFactor.labelKey) }}</label>
+          <input v-model.number="form.load_factor" type="number" :min="schedulingFields.loadFactor.min"
             class="input" :placeholder="String(form.concurrency || 1)"
             @input="form.load_factor = (form.load_factor &amp;&amp; form.load_factor >= 1) ? form.load_factor : null" />
           <p class="input-hint">{{ t('admin.accounts.loadFactorHint') }}</p>
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.priority') }}</label>
+          <label class="input-label">{{ t(schedulingFields.priority.labelKey) }}</label>
           <input
             v-model.number="form.priority"
             type="number"
-            min="1"
+            :min="schedulingFields.priority.min"
             class="input"
             data-tour="account-form-priority"
           />
           <p class="input-hint">{{ t('admin.accounts.priorityHint') }}</p>
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.billingRateMultiplier') }}</label>
+          <label class="input-label">{{ t(schedulingFields.multiplier.labelKey) }}</label>
           <input
             v-model.number="form.rate_multiplier"
             type="number"
-            min="0"
-            step="0.001"
+            :min="schedulingFields.multiplier.min"
+            :step="schedulingFields.multiplier.step"
             class="input disabled:cursor-not-allowed disabled:opacity-60"
             data-testid="account-rate-multiplier"
             :disabled="upstreamBillingRateSyncEnabled"
@@ -3371,8 +3394,6 @@
         </button>
       </div>
     </template>
-  </BaseDialog>
-
   <!-- Mixed Channel Warning Dialog -->
   <ConfirmDialog
     :show="showMixedChannelWarning"
@@ -3384,6 +3405,7 @@
     @confirm="handleMixedChannelConfirm"
     @cancel="handleMixedChannelCancel"
   />
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -3411,6 +3433,18 @@ import type {
   TempUnschedulableScope
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import AccountFormSheet from '@/views/admin/accounts/AccountFormSheet.vue'
+import {
+  AccountCredentialField,
+  ANTHROPIC_DEFAULT_BASE_URL,
+  OPENAI_DEFAULT_BASE_URL,
+  buildEditApiKeyCredentials,
+  getAccountSchedulingField,
+  normalizeAccountUpdateLoadFactor,
+  usesConfiguredApiKeyFields
+} from '@/views/admin/accounts/platform-config'
+import AccountEditSummary from '@/views/admin/accounts/AccountEditSummary.vue'
+import type { WindowStats } from '@/types'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
@@ -3509,7 +3543,9 @@ import {
 
 interface Props {
   show: boolean
+  presentation?: 'dialog' | 'sheet'
   account: Account | null
+  windowStats?: WindowStats | null
   proxies: Proxy[]
   groups: AdminGroup[]
 }
@@ -3523,6 +3559,13 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const appStore = useAppStore()
 const browserTimeZone = getBrowserTimeZone()
+
+const editSheetSections = computed(() => [
+  { id: 'basic', label: t('design.accountForm.basic') },
+  { id: 'credentials', label: t('design.accountForm.credentials') },
+  { id: 'scheduling', label: t('design.accountForm.scheduling') },
+  ...(!isSparkShadow.value ? [{ id: 'proxy', label: t('design.accountForm.proxy') }] : [])
+])
 
 const selectableGroups = computed(() => {
   const groups = new Map<number, Group>(props.groups.map(group => [group.id, group]))
@@ -3658,7 +3701,7 @@ interface TempUnschedRuleForm {
 
 // State
 const submitting = ref(false)
-const editBaseUrl = ref('https://api.anthropic.com')
+const editBaseUrl = ref(ANTHROPIC_DEFAULT_BASE_URL)
 const editApiKey = ref('')
 
 // ── 国产供应商（Kimi / Zhipu / DeepSeek）account_mode / api_protocol 编辑 ──
@@ -4482,7 +4525,7 @@ const tempUnschedPresets = computed(() => [
 
 // Computed: default base URL based on platform
 const defaultBaseUrl = computed(() => {
-  if (props.account?.platform === 'openai') return 'https://api.openai.com'
+  if (props.account?.platform === 'openai') return OPENAI_DEFAULT_BASE_URL
   if (props.account?.platform === 'gemini') return 'https://generativelanguage.googleapis.com'
   if (props.account?.platform === 'grok') return 'https://api.x.ai/v1'
   if (props.account?.platform === 'typesafe') return 'https://api.typesafe.ai'
@@ -4491,7 +4534,7 @@ const defaultBaseUrl = computed(() => {
   if (props.account && isMultiProtocolApiKeyPlatform(props.account.platform)) {
     return defaultCNBaseUrl(props.account.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
   }
-  return 'https://api.anthropic.com'
+  return ANTHROPIC_DEFAULT_BASE_URL
 })
 
 const mixedChannelWarningMessageText = computed(() => {
@@ -4501,14 +4544,21 @@ const mixedChannelWarningMessageText = computed(() => {
   return mixedChannelWarningRawMessage.value
 })
 
+const schedulingFields = {
+  concurrency: getAccountSchedulingField('concurrency', 'edit'),
+  loadFactor: getAccountSchedulingField('load_factor', 'edit'),
+  priority: getAccountSchedulingField('priority', 'edit'),
+  multiplier: getAccountSchedulingField('rate_multiplier', 'edit')
+}
+
 const form = reactive({
   name: '',
   notes: '',
   proxy_id: null as number | null,
-  concurrency: 1,
-  load_factor: null as number | null,
-  priority: 1,
-  rate_multiplier: 1,
+  concurrency: schedulingFields.concurrency.defaultValue ?? 1,
+  load_factor: schedulingFields.loadFactor.defaultValue,
+  priority: schedulingFields.priority.defaultValue ?? 1,
+  rate_multiplier: schedulingFields.multiplier.defaultValue ?? 1,
   status: 'active' as 'active' | 'inactive' | 'error',
   group_ids: [] as number[],
   expires_at: null as number | null
@@ -4931,7 +4981,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
     }
     const platformDefaultUrl =
       newAccount.platform === 'openai'
-        ? 'https://api.openai.com'
+        ? OPENAI_DEFAULT_BASE_URL
         : newAccount.platform === 'gemini'
           ? 'https://generativelanguage.googleapis.com'
           : newAccount.platform === 'grok'
@@ -4940,7 +4990,7 @@ const syncFormFromAccount = (newAccount: Account | null) => {
               ? 'https://api.typesafe.ai'
             : isMultiProtocolApiKeyPlatform(newAccount.platform)
               ? defaultCNBaseUrl(newAccount.platform, currentOpenCodeOrCNMode(), editApiProtocol.value)
-              : 'https://api.anthropic.com'
+              : ANTHROPIC_DEFAULT_BASE_URL
     editBaseUrl.value = isCNApiKeyAccount.value && editApiProtocol.value === 'adaptive'
       ? editAdaptiveBaseUrls.value.chat_completions
       : (credentials.base_url as string) || platformDefaultUrl
@@ -5013,12 +5063,12 @@ const syncFormFromAccount = (newAccount: Account | null) => {
   } else {
     const platformDefaultUrl =
       newAccount.platform === 'openai'
-        ? 'https://api.openai.com'
+        ? OPENAI_DEFAULT_BASE_URL
         : newAccount.platform === 'gemini'
           ? 'https://generativelanguage.googleapis.com'
           : newAccount.platform === 'grok'
             ? 'https://api.x.ai/v1'
-            : 'https://api.anthropic.com'
+            : ANTHROPIC_DEFAULT_BASE_URL
     editBaseUrl.value = platformDefaultUrl
 
     // Load model mappings for OpenAI/Grok OAuth accounts
@@ -5667,10 +5717,7 @@ const handleSubmit = async () => {
       updatePayload.expires_at = 0
     }
     // load_factor: 空值/NaN/0/负数 时发送 0（后端约定 <= 0 = 清除）
-    const lf = form.load_factor
-    if (lf == null || Number.isNaN(lf) || lf <= 0) {
-      updatePayload.load_factor = 0
-    }
+    updatePayload.load_factor = normalizeAccountUpdateLoadFactor(form.load_factor)
     updatePayload.auto_pause_on_expired = autoPauseOnExpired.value
     if (props.account.type === 'apikey') {
       updatePayload.upstream_billing_probe_enabled = upstreamBillingAutoProbeEnabled.value
@@ -5732,7 +5779,16 @@ const handleSubmit = async () => {
       // 两者都无才报错。
       const hasExistingApiKey =
         props.account.credentials_status?.has_api_key ?? Boolean(currentCredentials.api_key)
-      if (editApiKey.value.trim()) {
+      if (!isCNApiKeyAccount.value && usesConfiguredApiKeyFields(props.account.platform, props.account.type)) {
+        const credentials = buildEditApiKeyCredentials(
+          currentCredentials, editBaseUrl.value, editApiKey.value, defaultBaseUrl.value, hasExistingApiKey
+        )
+        if (!credentials) {
+          appStore.showError(t('admin.accounts.apiKeyIsRequired'))
+          return
+        }
+        Object.assign(newCredentials, credentials)
+      } else if (editApiKey.value.trim()) {
         newCredentials.api_key = editApiKey.value.trim()
       } else if (!hasExistingApiKey) {
         appStore.showError(t('admin.accounts.apiKeyIsRequired'))

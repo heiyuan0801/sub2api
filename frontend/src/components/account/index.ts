@@ -1,5 +1,8 @@
+/** @deprecated Use the account management Sheet presentation for new UI. */
 export { default as CreateAccountModal } from './CreateAccountModal.vue'
+/** @deprecated Use the account management Sheet presentation for new UI. */
 export { default as EditAccountModal } from './EditAccountModal.vue'
+/** @deprecated Use the account management Sheet presentation for new UI. */
 export { default as BulkEditAccountModal } from './BulkEditAccountModal.vue'
 export { default as ReAuthAccountModal } from './ReAuthAccountModal.vue'
 export { default as OAuthAuthorizationFlow } from './OAuthAuthorizationFlow.vue'

@@ -59,6 +59,16 @@ export default {
       "choose": "选择",
       "openItem": "打开",
       "togglePanel": "打开或关闭命令面板"
+    },
+    "accountForm": {
+      "basic": "基本信息",
+      "credentials": "凭据",
+      "scheduling": "调度与分组",
+      "proxy": "代理与高级",
+      "averageFirstToken": "平均首字耗时",
+      "todayFailed": "今日失败",
+      "lastUpstreamBalance": "最近上游余额",
+      "cacheHitRate": "缓存命中率"
     }
   }
 }

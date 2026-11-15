@@ -1,8 +1,10 @@
 <template>
-  <BaseDialog
+  <component
+    :is="presentation === 'sheet' ? AccountFormSheet : BaseDialog"
     :show="show"
     :title="t('admin.accounts.createAccount')"
     width="wide"
+    v-bind="presentation === 'sheet' ? { childDialogOpen: showMixedChannelWarning || showGeminiHelpDialog } : {}"
     @close="handleClose"
   >
     <!-- Step Indicator for OAuth accounts -->
@@ -1501,7 +1503,14 @@
 
       <!-- API Key input (only for apikey type, excluding Antigravity which has its own fields) -->
       <div v-if="form.type === 'apikey' && form.platform !== 'antigravity'" class="space-y-4">
-        <div v-if="!isMultiProtocolPlatform || apiProtocol !== 'adaptive'">
+        <AccountCredentialField
+          v-if="!isMultiProtocolPlatform && usesConfiguredApiKeyFields(form.platform, form.type)"
+          v-model="apiKeyBaseUrl"
+          :platform="form.platform"
+          mode="create"
+          field="base_url"
+        />
+        <div v-else-if="!isMultiProtocolPlatform || apiProtocol !== 'adaptive'">
           <label class="input-label">{{ t('admin.accounts.baseUrl') }}</label>
           <input
             v-model="apiKeyBaseUrl"
@@ -1550,7 +1559,14 @@
           :platform="form.platform"
           :plan="currentOpenCodeOrCNMode()"
         />
-        <div>
+        <AccountCredentialField
+          v-if="!isMultiProtocolPlatform && usesConfiguredApiKeyFields(form.platform, form.type)"
+          v-model="apiKeyValue"
+          :platform="form.platform"
+          mode="create"
+          field="api_key"
+        />
+        <div v-else>
           <label class="input-label">{{ t('admin.accounts.apiKeyRequired') }}</label>
           <input
             v-model="apiKeyValue"
@@ -3238,33 +3254,33 @@
         :type="form.type"
       />
 
-      <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-4" :class="presentation === 'sheet' ? '' : 'lg:grid-cols-4'">
         <div>
-          <label class="input-label">{{ t('admin.accounts.concurrency') }}</label>
-          <input v-model.number="form.concurrency" type="number" min="1" class="input"
+          <label class="input-label">{{ t(schedulingFields.concurrency.labelKey) }}</label>
+          <input v-model.number="form.concurrency" type="number" :min="schedulingFields.concurrency.min" class="input"
             @input="form.concurrency = Math.max(1, form.concurrency || 1)" />
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.loadFactor') }}</label>
-          <input v-model.number="form.load_factor" type="number" min="1"
+          <label class="input-label">{{ t(schedulingFields.loadFactor.labelKey) }}</label>
+          <input v-model.number="form.load_factor" type="number" :min="schedulingFields.loadFactor.min"
             class="input" :placeholder="String(form.concurrency || 1)"
             @input="form.load_factor = (form.load_factor &amp;&amp; form.load_factor >= 1) ? form.load_factor : null" />
           <p class="input-hint">{{ t('admin.accounts.loadFactorHint') }}</p>
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.priority') }}</label>
+          <label class="input-label">{{ t(schedulingFields.priority.labelKey) }}</label>
           <input
             v-model.number="form.priority"
             type="number"
-            min="1"
+            :min="schedulingFields.priority.min"
             class="input"
             data-tour="account-form-priority"
           />
           <p class="input-hint">{{ t('admin.accounts.priorityHint') }}</p>
         </div>
         <div>
-          <label class="input-label">{{ t('admin.accounts.billingRateMultiplier') }}</label>
-          <input v-model.number="form.rate_multiplier" type="number" min="0" step="0.001" class="input" />
+          <label class="input-label">{{ t(schedulingFields.multiplier.labelKey) }}</label>
+          <input v-model.number="form.rate_multiplier" type="number" :min="schedulingFields.multiplier.min" :step="schedulingFields.multiplier.step" class="input" />
           <p class="input-hint">{{ t('admin.accounts.billingRateMultiplierHint') }}</p>
         </div>
       </div>
@@ -3887,8 +3903,6 @@
         </button>
       </div>
     </template>
-  </BaseDialog>
-
   <!-- Gemini Help Dialog -->
   <BaseDialog
     :show="showGeminiHelpDialog"
@@ -4117,6 +4131,7 @@
     @confirm="handleMixedChannelConfirm"
     @cancel="handleMixedChannelCancel"
   />
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -4159,6 +4174,15 @@ import type {
   TempUnschedulableScope
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import AccountFormSheet from '@/views/admin/accounts/AccountFormSheet.vue'
+import {
+  AccountCredentialField,
+  ANTHROPIC_DEFAULT_BASE_URL,
+  OPENAI_DEFAULT_BASE_URL,
+  buildCreateApiKeyCredentials,
+  getAccountSchedulingField,
+  usesConfiguredApiKeyFields
+} from '@/views/admin/accounts/platform-config'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
 import HelpTooltip from '@/components/common/HelpTooltip.vue'
@@ -4291,7 +4315,7 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
   }
   switch (form.platform) {
     case 'openai':
-      return 'https://api.openai.com'
+      return OPENAI_DEFAULT_BASE_URL
     case 'gemini':
       return 'https://generativelanguage.googleapis.com'
     case 'grok':
@@ -4299,7 +4323,7 @@ const apiKeyBaseUrlPlaceholder = computed(() => {
     case 'typesafe':
       return 'https://api.typesafe.ai'
     default:
-      return 'https://api.anthropic.com'
+      return ANTHROPIC_DEFAULT_BASE_URL
   }
 })
 
@@ -4329,6 +4353,7 @@ const apiKeyValuePlaceholder = computed(() => {
 
 interface Props {
   show: boolean
+  presentation?: 'dialog' | 'sheet'
   proxies: Proxy[]
   groups: AdminGroup[]
 }
@@ -4408,7 +4433,7 @@ const step = ref(1)
 const submitting = ref(false)
 const accountCategory = ref<'oauth-based' | 'apikey' | 'bedrock' | 'service_account'>('oauth-based') // UI selection for account category
 const addMethod = ref<AddMethod>('oauth') // For oauth-based: 'oauth' or 'setup-token'
-const apiKeyBaseUrl = ref('https://api.anthropic.com')
+const apiKeyBaseUrl = ref(ANTHROPIC_DEFAULT_BASE_URL)
 const apiKeyValue = ref('')
 const upstreamBillingAutoProbeEnabled = ref(true)
 
@@ -5035,6 +5060,13 @@ const tempUnschedPresets = computed(() => [
   }
 ])
 
+const schedulingFields = {
+  concurrency: getAccountSchedulingField('concurrency', 'create'),
+  loadFactor: getAccountSchedulingField('load_factor', 'create'),
+  priority: getAccountSchedulingField('priority', 'create'),
+  multiplier: getAccountSchedulingField('rate_multiplier', 'create')
+}
+
 const form = reactive({
   name: '',
   notes: '',
@@ -5042,10 +5074,10 @@ const form = reactive({
   type: 'oauth' as AccountType, // Will be 'oauth', 'setup-token', or 'apikey'
   credentials: {} as Record<string, unknown>,
   proxy_id: null as number | null,
-  concurrency: 10,
-  load_factor: null as number | null,
-  priority: 1,
-  rate_multiplier: 1,
+  concurrency: schedulingFields.concurrency.defaultValue ?? 10,
+  load_factor: schedulingFields.loadFactor.defaultValue,
+  priority: schedulingFields.priority.defaultValue ?? 1,
+  rate_multiplier: schedulingFields.multiplier.defaultValue ?? 1,
   group_ids: [] as number[],
   expires_at: null as number | null
 })
@@ -5158,14 +5190,14 @@ watch(
     } else {
       apiKeyBaseUrl.value =
         (newPlatform === 'openai')
-          ? 'https://api.openai.com'
+          ? OPENAI_DEFAULT_BASE_URL
           : newPlatform === 'gemini'
             ? 'https://generativelanguage.googleapis.com'
             : newPlatform === 'grok'
               ? 'https://api.x.ai/v1'
               : newPlatform === 'typesafe'
                 ? 'https://api.typesafe.ai'
-              : 'https://api.anthropic.com'
+              : ANTHROPIC_DEFAULT_BASE_URL
     }
     // Clear model-related settings
     allowedModels.value = []
@@ -5646,7 +5678,7 @@ const resetForm = () => {
   apiProtocol.value = 'adaptive'
   openCodeGoProtocolRules.value = cloneOpenCodeGoProtocolRules(defaultOpenCodeProtocolRules('zen'))
   adaptiveBaseUrls.value = { chat_completions: '', anthropic: '', responses: '' }
-  apiKeyBaseUrl.value = 'https://api.anthropic.com'
+  apiKeyBaseUrl.value = ANTHROPIC_DEFAULT_BASE_URL
   apiKeyValue.value = ''
   upstreamRequestIdHeader.value = ''
   upstreamBillingAutoProbeEnabled.value = true
@@ -6128,20 +6160,17 @@ const handleSubmit = async () => {
   // Determine default base URL based on platform
   const defaultBaseUrl =
     form.platform === 'openai'
-      ? 'https://api.openai.com'
+      ? OPENAI_DEFAULT_BASE_URL
       : form.platform === 'gemini'
         ? 'https://generativelanguage.googleapis.com'
         : form.platform === 'grok'
           ? 'https://api.x.ai/v1'
           : form.platform === 'typesafe'
             ? 'https://api.typesafe.ai'
-          : 'https://api.anthropic.com'
+          : ANTHROPIC_DEFAULT_BASE_URL
 
   // Build credentials with optional model mapping
-  const credentials: Record<string, unknown> = {
-    base_url: apiKeyBaseUrl.value.trim() || defaultBaseUrl,
-    api_key: apiKeyValue.value.trim()
-  }
+  const credentials = buildCreateApiKeyCredentials(apiKeyBaseUrl.value, apiKeyValue.value, defaultBaseUrl)
   if (form.platform === 'gemini' && isOfficialGeminiBaseUrl(apiKeyBaseUrl.value)) {
     credentials.tier_id = geminiTierAIStudio.value
   }

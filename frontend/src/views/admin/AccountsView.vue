@@ -489,8 +489,18 @@
       </template>
       <template #pagination><Pagination v-if="pagination.total > 0" :page="pagination.page" :total="pagination.total" :page-size="pagination.page_size" @update:page="handlePageChange" @update:pageSize="handlePageSizeChange" /></template>
     </TablePageLayout>
-    <CreateAccountModal v-if="showCreate" :show="showCreate" :proxies="proxies" :groups="groups" @close="showCreate = false" @created="reload" />
-    <EditAccountModal v-if="showEdit" :show="showEdit" :account="edAcc" :proxies="proxies" :groups="groups" @close="showEdit = false" @updated="handleAccountUpdated" />
+    <CreateAccountModal v-if="showCreate" presentation="sheet" :show="showCreate" :proxies="proxies" :groups="groups" @close="showCreate = false" @created="reload" />
+    <EditAccountModal
+      v-if="showEdit"
+      presentation="sheet"
+      :show="showEdit"
+      :account="edAcc"
+      :window-stats="edAcc ? todayStatsByAccountId[String(edAcc.id)] : undefined"
+      :proxies="proxies"
+      :groups="groups"
+      @close="showEdit = false"
+      @updated="handleAccountUpdated"
+    />
     <ReAuthAccountModal v-if="showReAuth" :show="showReAuth" :account="reAuthAcc" @close="closeReAuthModal" @reauthorized="handleAccountUpdated" />
     <AccountTestModal v-if="showTest" :show="showTest" :account="testingAcc" @close="closeTestModal" />
     <AccountStatsModal v-if="showStats" :show="showStats" :account="statsAcc" @close="closeStatsModal" />
@@ -499,6 +509,7 @@
     <SyncFromCrsModal v-if="showSync" :show="showSync" @close="showSync = false" @synced="reload" />
     <ImportDataModal v-if="showImportData" :show="showImportData" @close="showImportData = false" @imported="handleDataImported" />
     <BulkEditAccountModal v-if="showBulkEdit"
+      presentation="sheet"
       :show="showBulkEdit"
       :account-ids="selIds"
       :selected-platforms="selPlatforms"

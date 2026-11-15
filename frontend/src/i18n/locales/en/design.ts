@@ -59,6 +59,16 @@ export default {
       "choose": "Choose",
       "openItem": "Open",
       "togglePanel": "Toggle command palette"
+    },
+    "accountForm": {
+      "basic": "Basic information",
+      "credentials": "Credentials",
+      "scheduling": "Scheduling & groups",
+      "proxy": "Proxy & advanced",
+      "averageFirstToken": "Mean first token",
+      "todayFailed": "Failed today",
+      "lastUpstreamBalance": "Last upstream balance",
+      "cacheHitRate": "Cache hit rate"
     }
   }
 }

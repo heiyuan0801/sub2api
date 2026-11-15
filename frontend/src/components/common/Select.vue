@@ -46,7 +46,7 @@
     </button>
 
     <!-- Teleport dropdown to body to escape stacking context -->
-    <Teleport to="body">
+    <Teleport :to="portalTarget" :defer="portalTarget !== 'body'">
       <Transition name="select-dropdown">
         <div
           v-if="isOpen"
@@ -122,9 +122,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { inject, ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
+import { legacyPortalTargetKey } from '@/components/ui/dialog/legacyPortalTarget'
+
+const portalTarget = inject(legacyPortalTargetKey, 'body')
 
 const { t } = useI18n()
 

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, useTemplateRef, nextTick } from 'vue'
+import { inject, onBeforeUnmount, onMounted, ref, useTemplateRef, nextTick } from 'vue'
+import { legacyPortalTargetKey } from '@/components/ui/dialog/legacyPortalTarget'
+
+const portalTarget = inject(legacyPortalTargetKey, 'body')
 
 const props = withDefaults(defineProps<{
   content?: string
@@ -127,7 +130,7 @@ onBeforeUnmount(() => {
     </slot>
 
     <!-- Teleport to body to escape modal overflow clipping -->
-    <Teleport to="body">
+    <Teleport :to="portalTarget" :defer="portalTarget !== 'body'">
       <!-- before: 伪元素向下延伸一段透明区域，盖住提示框与触发图标之间的空隙，让指针能连续移入提示框。 -->
       <div
         ref="tooltip"

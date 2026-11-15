@@ -1,5 +1,5 @@
 <template>
-  <Teleport to="body">
+  <Teleport :to="portalTarget" :defer="portalTarget !== 'body'">
     <Transition name="modal">
       <div
         v-if="show"
@@ -48,8 +48,11 @@ const openDialogs = new Set<string>()
 </script>
 
 <script setup lang="ts">
-import { computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { inject, computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
+import { legacyPortalTargetKey } from '@/components/ui/dialog/legacyPortalTarget'
+
+const portalTarget = inject(legacyPortalTargetKey, 'body')
 
 // 生成唯一ID以避免多个对话框时ID冲突
 const dialogId = `modal-title-${++dialogIdCounter}`

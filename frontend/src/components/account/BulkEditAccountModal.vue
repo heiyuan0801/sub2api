@@ -1,8 +1,10 @@
 <template>
-  <BaseDialog
+  <component
+    :is="presentation === 'sheet' ? AccountFormSheet : BaseDialog"
     :show="show"
     :title="t('admin.accounts.bulkEdit.title')"
     width="wide"
+    v-bind="presentation === 'sheet' ? { childDialogOpen: showMixedChannelWarning } : {}"
     @close="handleClose"
   >
     <form id="bulk-edit-account-form" class="space-y-5" @submit.prevent="() => handleSubmit()">
@@ -248,7 +250,19 @@
             class="rounded border-gray-300 text-brand focus:ring-brand"
           />
         </div>
+        <AccountCredentialField
+          v-if="configuredCredentialPlatform"
+          v-model="baseUrl"
+          :platform="configuredCredentialPlatform"
+          mode="bulk"
+          field="base_url"
+          input-id="bulk-edit-base-url"
+          label-id="bulk-edit-base-url-label"
+          :show-label="false"
+          :disabled="!enableBaseUrl"
+        />
         <input
+          v-else
           v-model="baseUrl"
           id="bulk-edit-base-url"
           type="text"
@@ -731,7 +745,7 @@
       </div>
 
       <!-- Concurrency & Priority -->
-      <div class="grid grid-cols-2 gap-4 border-t border-border pt-4 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-4 border-t border-border pt-4" :class="presentation === 'sheet' ? '' : 'lg:grid-cols-4'">
         <div>
           <div class="mb-3 flex items-center justify-between">
             <label
@@ -739,7 +753,7 @@
               class="input-label mb-0"
               for="bulk-edit-concurrency-enabled"
             >
-              {{ t('admin.accounts.concurrency') }}
+              {{ t(schedulingFields.concurrency.labelKey) }}
             </label>
             <input
               v-model="enableConcurrency"
@@ -753,7 +767,7 @@
             v-model.number="concurrency"
             id="bulk-edit-concurrency"
             type="number"
-            min="1"
+            :min="schedulingFields.concurrency.min"
             :disabled="!enableConcurrency"
             class="input"
             :class="!enableConcurrency && 'cursor-not-allowed opacity-50'"
@@ -768,7 +782,7 @@
               class="input-label mb-0"
               for="bulk-edit-load-factor-enabled"
             >
-              {{ t('admin.accounts.loadFactor') }}
+              {{ t(schedulingFields.loadFactor.labelKey) }}
             </label>
             <input
               v-model="enableLoadFactor"
@@ -782,7 +796,7 @@
             v-model.number="loadFactor"
             id="bulk-edit-load-factor"
             type="number"
-            min="1"
+            :min="schedulingFields.loadFactor.min"
             :disabled="!enableLoadFactor"
             class="input"
             :class="!enableLoadFactor && 'cursor-not-allowed opacity-50'"
@@ -798,7 +812,7 @@
               class="input-label mb-0"
               for="bulk-edit-priority-enabled"
             >
-              {{ t('admin.accounts.priority') }}
+              {{ t(schedulingFields.priority.labelKey) }}
             </label>
             <input
               v-model="enablePriority"
@@ -812,7 +826,7 @@
             v-model.number="priority"
             id="bulk-edit-priority"
             type="number"
-            min="1"
+            :min="schedulingFields.priority.min"
             :disabled="!enablePriority"
             class="input"
             :class="!enablePriority && 'cursor-not-allowed opacity-50'"
@@ -826,7 +840,7 @@
               class="input-label mb-0"
               for="bulk-edit-rate-multiplier-enabled"
             >
-              {{ t('admin.accounts.billingRateMultiplier') }}
+              {{ t(schedulingFields.multiplier.labelKey) }}
             </label>
             <input
               v-model="enableRateMultiplier"
@@ -840,8 +854,8 @@
             v-model.number="rateMultiplier"
             id="bulk-edit-rate-multiplier"
             type="number"
-            min="0"
-            step="0.01"
+            :min="schedulingFields.multiplier.min"
+            :step="schedulingFields.multiplier.step"
             :disabled="!enableRateMultiplier"
             class="input"
             :class="!enableRateMultiplier && 'cursor-not-allowed opacity-50'"
@@ -1496,8 +1510,6 @@
         </button>
       </div>
     </template>
-  </BaseDialog>
-
   <ConfirmDialog
     :show="showMixedChannelWarning"
     :title="t('admin.accounts.mixedChannelWarningTitle')"
@@ -1508,6 +1520,7 @@
     @confirm="handleMixedChannelConfirm"
     @cancel="handleMixedChannelCancel"
   />
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -1525,6 +1538,15 @@ import type {
   OpenAIResponsesMode
 } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import AccountFormSheet from '@/views/admin/accounts/AccountFormSheet.vue'
+import {
+  AccountCredentialField,
+  buildBulkBaseUrlCredentials,
+  getAccountSchedulingField,
+  isValidBulkBaseUrl,
+  normalizeAccountUpdateLoadFactor,
+  usesConfiguredApiKeyFields
+} from '@/views/admin/accounts/platform-config'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'
 import ProxySelector from '@/components/common/ProxySelector.vue'
@@ -1563,6 +1585,7 @@ import {
 import type { OpenAIWSMode } from '@/utils/openaiWsMode'
 interface Props {
   show: boolean
+  presentation?: 'dialog' | 'sheet'
   accountIds: number[]
   selectedPlatforms: AccountPlatform[]
   selectedTypes: AccountType[]
@@ -1583,6 +1606,13 @@ const emit = defineEmits<{
   updated: []
 }>()
 
+const schedulingFields = {
+  concurrency: getAccountSchedulingField('concurrency', 'bulk'),
+  loadFactor: getAccountSchedulingField('load_factor', 'bulk'),
+  priority: getAccountSchedulingField('priority', 'bulk'),
+  multiplier: getAccountSchedulingField('rate_multiplier', 'bulk')
+}
+
 const { t } = useI18n()
 const appStore = useAppStore()
 
@@ -1591,6 +1621,11 @@ const targetMode = computed(() => props.target?.mode ?? 'selected')
 const targetPreviewCount = computed(() => props.target?.previewCount ?? props.accountIds.length)
 const targetSelectedPlatforms = computed(() => props.target?.selectedPlatforms ?? props.selectedPlatforms)
 const targetSelectedTypes = computed(() => props.target?.selectedTypes ?? props.selectedTypes)
+const configuredCredentialPlatform = computed(() => {
+  if (targetSelectedPlatforms.value.length !== 1 || !targetSelectedTypes.value.length) return undefined
+  const platform = targetSelectedPlatforms.value[0]
+  return targetSelectedTypes.value.every(type => usesConfiguredApiKeyFields(platform, type)) ? platform : undefined
+})
 // Grok 快捷端点仅在所选账号全部为 grok 平台时展示（其他平台不显示）
 const allTargetsGrok = computed(
   () =>
@@ -1995,8 +2030,7 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
 
   if (enableLoadFactor.value) {
     // 空值/NaN/0 时发送 0（后端约定 <= 0 表示清除）
-    const lf = loadFactor.value
-    updates.load_factor = (lf != null && !Number.isNaN(lf) && lf > 0) ? lf : 0
+    updates.load_factor = normalizeAccountUpdateLoadFactor(loadFactor.value)
   }
 
   if (enablePriority.value) {
@@ -2015,12 +2049,10 @@ const buildUpdatePayload = (): Record<string, unknown> | null => {
     updates.group_ids = groupIds.value
   }
 
-  if (enableBaseUrl.value) {
-    const baseUrlValue = baseUrl.value.trim()
-    if (baseUrlValue) {
-      credentials.base_url = baseUrlValue
-      credentialsChanged = true
-    }
+  const baseUrlCredentials = buildBulkBaseUrlCredentials(enableBaseUrl.value, baseUrl.value)
+  if (baseUrlCredentials) {
+    credentials.base_url = baseUrlCredentials.base_url
+    credentialsChanged = true
   }
 
   if (enableOpenAIPassthrough.value) {
@@ -2289,12 +2321,9 @@ const handleSubmit = async () => {
 
   // base_url 现在也会作用于 Grok OAuth 订阅账号的转发端点；坏值会让请求期
   // 校验失败、账号请求全挂，因此保存前强制格式校验（与单账号编辑一致）。
-  if (enableBaseUrl.value) {
-    const trimmedBaseUrl = baseUrl.value.trim()
-    if (trimmedBaseUrl && !/^https?:\/\//i.test(trimmedBaseUrl)) {
-      appStore.showError(t('admin.accounts.grokCustomBaseUrl.invalid'))
-      return
-    }
+  if (enableBaseUrl.value && !isValidBulkBaseUrl(baseUrl.value)) {
+    appStore.showError(t('admin.accounts.grokCustomBaseUrl.invalid'))
+    return
   }
 
   if (enableHeaderOverride.value && headerOverrideEnabled.value) {
