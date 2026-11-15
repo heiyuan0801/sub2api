@@ -353,6 +353,8 @@ func TestAPIContracts(t *testing.T) {
 					{
 						"id": 10,
 						"name": "Group One",
+						"display_tags": [],
+						"custom_display_tags": [],
 						"description": "desc",
 						"platform": "anthropic",
 						"rate_multiplier": 1.5,
