@@ -1,6 +1,6 @@
 <template>
+  <!-- The sibling step-up prompt must remain focusable above this form. -->
   <BaseDialog
-    presentation="sheet"
     :show="show"
     :title="t('admin.users.createUser')"
     width="normal"
