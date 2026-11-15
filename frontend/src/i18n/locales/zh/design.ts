@@ -16,6 +16,31 @@ export default {
     "charts": "用量分析",
     "hideCharts": "收起分析",
     "showCharts": "展开分析",
-    "consoleDescription": "管理密钥、查看用量，让每一次调用清晰可见。"
+    "consoleDescription": "管理密钥、查看用量，让每一次调用清晰可见。",
+    "pagination": {
+      "label": "分页",
+      "first": "第一页",
+      "last": "最后一页",
+      "previous": "上一页",
+      "next": "下一页",
+      "ellipsis": "更多页"
+    },
+    "table": {
+      "columns": "显示列",
+      "compactRows": "紧凑行距",
+      "selected": "已选 {count} 项",
+      "selectPage": "选择本页全部行",
+      "selectRow": "选择第 {row} 行",
+      "empty": "没有找到结果。"
+    },
+    "command": {
+      "label": "命令面板",
+      "description": "搜索页面或操作。",
+      "placeholder": "搜索页面或操作…",
+      "empty": "没有匹配的命令。"
+    },
+    "toast": {
+      "notifications": "通知"
+    }
   }
 }

@@ -16,6 +16,31 @@ export default {
     "charts": "Usage analytics",
     "hideCharts": "Hide analytics",
     "showCharts": "Show analytics",
-    "consoleDescription": "Manage keys and understand every API call in one place."
+    "consoleDescription": "Manage keys and understand every API call in one place.",
+    "pagination": {
+      "label": "Pagination",
+      "first": "First page",
+      "last": "Last page",
+      "previous": "Previous",
+      "next": "Next",
+      "ellipsis": "More pages"
+    },
+    "table": {
+      "columns": "Columns",
+      "compactRows": "Compact rows",
+      "selected": "{count} selected",
+      "selectPage": "Select all rows on this page",
+      "selectRow": "Select row {row}",
+      "empty": "No results found."
+    },
+    "command": {
+      "label": "Command palette",
+      "description": "Search for a page or action.",
+      "placeholder": "Search pages or actions…",
+      "empty": "No matching commands."
+    },
+    "toast": {
+      "notifications": "Notifications"
+    }
   }
 }
