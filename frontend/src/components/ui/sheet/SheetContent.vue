@@ -15,6 +15,9 @@ import SheetOverlay from "./SheetOverlay.vue"
 
 interface SheetContentProps extends DialogContentProps {
   class?: HTMLAttributes["class"]
+  showCloseButton?: boolean
+  zIndex?: number
+  style?: HTMLAttributes["style"]
   side?: "top" | "right" | "bottom" | "left"
 }
 
@@ -24,18 +27,19 @@ defineOptions({
 
 const props = withDefaults(defineProps<SheetContentProps>(), {
   side: "right",
+  showCloseButton: true,
 })
 const { t } = useI18n()
 const emits = defineEmits<DialogContentEmits>()
 
-const delegatedProps = reactiveOmit(props, "class", "side")
+const delegatedProps = reactiveOmit(props, "class", "side", "showCloseButton", "zIndex", "style")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
   <DialogPortal>
-    <SheetOverlay />
+    <SheetOverlay :style="zIndex === undefined ? undefined : { zIndex }" />
     <DialogContent
       data-slot="sheet-content"
       :class="cn(
@@ -50,10 +54,12 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           && 'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 max-h-full border-t border-border',
         props.class)"
       v-bind="{ ...$attrs, ...forwarded }"
+      :style="[props.style, zIndex === undefined ? undefined : { zIndex }]"
     >
       <slot />
 
       <DialogClose
+        v-if="showCloseButton"
         class="ring-offset-background focus:ring-ring absolute right-3.5 top-3.5 inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none"
       >
         <X class="size-4" aria-hidden="true" />

@@ -1,5 +1,15 @@
 <template>
-  <Teleport :to="portalTarget" :defer="portalTarget !== 'body'">
+  <FormSheet
+    v-if="presentation === 'sheet'"
+    :show="show" :title="title" :width="width" :show-close-button="showCloseButton"
+    :z-index="zIndex" :panel-class="panelClass"
+    :close-on-escape="closeOnEscape" :close-on-click-outside="closeOnClickOutside"
+    @close="emit('close')"
+  >
+    <slot />
+    <template v-if="$slots.footer" #footer><slot name="footer" /></template>
+  </FormSheet>
+  <Teleport v-else :to="portalTarget" :defer="portalTarget !== 'body'">
     <Transition name="modal">
       <div
         v-if="show"
@@ -20,7 +30,7 @@
             <button
               v-if="showCloseButton"
               @click="emit('close')"
-              class="-mr-2 rounded-xl p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 focus-visible:ring-offset-2 dark:text-dark-500 dark:hover:bg-dark-700 dark:hover:text-dark-300 dark:focus-visible:ring-offset-dark-900"
+              class="-mr-2 rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Close modal"
             >
               <Icon name="x" size="md" />
@@ -48,6 +58,7 @@ const openDialogs = new Set<string>()
 </script>
 
 <script setup lang="ts">
+import FormSheet from '@/components/ui/sheet/FormSheet.vue'
 import { inject, computed, watch, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import Icon from '@/components/icons/Icon.vue'
 import { legacyPortalTargetKey } from '@/components/ui/dialog/legacyPortalTarget'
@@ -67,6 +78,7 @@ type DialogWidth = 'narrow' | 'normal' | 'wide' | 'extra-wide' | 'full'
 interface Props {
   show: boolean
   title: string
+  presentation?: 'dialog' | 'sheet'
   width?: DialogWidth
   panelClass?: string
   closeOnEscape?: boolean
@@ -130,6 +142,7 @@ const updateScrollLock = (isOpen: boolean) => {
 watch(
   () => props.show,
   async (isOpen) => {
+    if (props.presentation === 'sheet') return
     if (isOpen) {
       // 保存当前焦点元素
       previousActiveElement = document.activeElement as HTMLElement
@@ -160,12 +173,12 @@ watch(
 )
 
 onMounted(() => {
-  document.addEventListener('keydown', handleEscape)
+  if (props.presentation !== 'sheet') document.addEventListener('keydown', handleEscape)
 })
 
 onUnmounted(() => {
   document.removeEventListener('keydown', handleEscape)
   // 确保组件卸载时移除滚动锁定
-  updateScrollLock(false)
+  if (props.presentation !== 'sheet') updateScrollLock(false)
 })
 </script>

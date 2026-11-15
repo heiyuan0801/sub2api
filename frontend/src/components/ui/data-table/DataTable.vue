@@ -46,6 +46,14 @@ const props = defineProps<{
   ascendingFirst?: boolean
   customHeaderColumns?: string[]
   hideControls?: boolean
+  /** Existing lists control the contents of their column and selection cells. */
+  columnClass?: (id: string) => HTMLAttributes['class']
+  headerAlignment?: (id: string) => string | undefined
+  selectionLabel?: (row: T, index: number) => string
+  clickableRows?: boolean
+  rowDataId?: (row: T, index: number) => string | number
+  selectPageLabel?: string
+  replaceRowsOnLoad?: boolean
   loading?: boolean
   virtualizeThreshold?: number
   estimateRowHeight?: number
@@ -61,6 +69,8 @@ defineSlots<{
   empty?: () => unknown
   footer?: (props: { table: TableInstance<T> }) => unknown
 }>()
+
+const emit = defineEmits<{ rowClick: [row: T] }>()
 
 const sorting = defineModel<SortingState>('sorting', { default: () => [] })
 const selection = defineModel<RowSelectionState>('rowSelection', { default: () => ({}) })
@@ -223,7 +233,8 @@ defineExpose({ table, virtualizer: rowVirtualizer, sortedData, scrollElement })
           >
             <input
               type="checkbox" class="size-4 align-middle accent-brand"
-              :aria-label="t('design.table.selectPage')"
+              :aria-label="selectPageLabel ?? t('design.table.selectPage')"
+              data-test="select-all"
               :checked="allOnPageSelected"
               :indeterminate.prop="selectedOnPage > 0 && !allOnPageSelected"
               :disabled="!selectableRows.length"
@@ -236,9 +247,12 @@ defineExpose({ table, virtualizer: rowVirtualizer, sortedData, scrollElement })
             :data-column-id="header.column.id"
             :scope="header.isPlaceholder ? undefined : header.subHeaders.length ? 'colgroup' : 'col'"
             :aria-sort="!header.isPlaceholder && header.column.getCanSort() ? ariaSort(header.column.getIsSorted()) : undefined"
-            class="px-3 text-xs text-muted-foreground"
+            :class="['px-3 text-xs text-muted-foreground', columnClass?.(header.column.id)]"
           >
-            <div v-if="!header.isPlaceholder" class="flex items-center gap-1">
+            <div
+              v-if="!header.isPlaceholder" class="flex items-center gap-1"
+              :class="headerAlignment?.(header.column.id)"
+            >
               <slot
                 v-if="customHeaderColumns?.includes(header.column.id)"
                 name="column-header"
@@ -265,7 +279,7 @@ defineExpose({ table, virtualizer: rowVirtualizer, sortedData, scrollElement })
         </TableRow>
       </TableHeader>
       <TableBody>
-        <template v-if="loading && !rows.length">
+        <template v-if="loading && (replaceRowsOnLoad || !rows.length)">
           <tr v-for="index in 5" :key="index" aria-hidden="true">
             <TableCell v-for="column in columnCount" :key="column" class="px-3 py-3">
               <div class="h-3 w-3/4 animate-pulse rounded bg-muted" />
@@ -277,22 +291,26 @@ defineExpose({ table, virtualizer: rowVirtualizer, sortedData, scrollElement })
           <TableRow
             v-for="{ row, index, measure } in renderRows" :key="row.id"
             :ref="measure ? measureRow : undefined"
-            :data-row-id="row.id" :data-index="index"
+            :data-row-id="rowDataId?.(row.original, index) ?? row.id" :data-index="index"
             :data-state="row.getIsSelected() ? 'selected' : undefined"
+            :class="{ 'cursor-pointer': clickableRows }"
+            @click="clickableRows && emit('rowClick', row.original)"
           >
             <TableCell v-if="selectable" class="px-3" :class="density === 'compact' ? 'py-1' : 'py-2.5'">
               <input
                 type="checkbox" class="size-4 align-middle accent-brand"
-                :aria-label="t('design.table.selectRow', { row: row.id })"
+                :aria-label="selectionLabel?.(row.original, row.index) ?? t('design.table.selectRow', { row: row.id })"
                 :checked="row.getIsSelected()"
                 :disabled="!row.getCanSelect()"
+                data-test="select-row"
+                @click.stop
                 @change="row.getToggleSelectedHandler()($event)"
               />
             </TableCell>
             <TableCell
               v-for="cell in row.getVisibleCells()" :key="cell.id"
               :data-column-id="cell.column.id"
-              class="px-3" :class="density === 'compact' ? 'py-1' : 'py-2.5'"
+              class="px-3" :class="[density === 'compact' ? 'py-1' : 'py-2.5', columnClass?.(cell.column.id)]"
             >
               <slot name="cell" :cell="cell">
                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
