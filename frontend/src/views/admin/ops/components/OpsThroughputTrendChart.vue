@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useChartColors } from '@/design/useChartColors'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Chart as ChartJS, CategoryScale, Filler, Legend, LineElement, LinearScale, PointElement, Title, Tooltip } from 'chart.js'
@@ -43,14 +44,14 @@ watch(
   }
 )
 
-const isDarkMode = computed(() => document.documentElement.classList.contains('dark'))
+const { color } = useChartColors()
 const colors = computed(() => ({
-  blue: '#3b82f6',
-  blueAlpha: '#3b82f620',
-  green: '#10b981',
-  greenAlpha: '#10b98120',
-  grid: isDarkMode.value ? '#374151' : '#f3f4f6',
-  text: isDarkMode.value ? '#9ca3af' : '#6b7280'
+  blue: color('brand'),
+  blueAlpha: color('brand', 0.125),
+  green: color('success'),
+  greenAlpha: color('success', 0.125),
+  grid: color('border'),
+  text: color('muted-foreground')
 }))
 
 const totalRequests = computed(() => sumNumbers(props.points.map((p) => p.request_count)))
@@ -104,9 +105,9 @@ const options = computed(() => {
         labels: { color: c.text, usePointStyle: true, boxWidth: 6, font: { size: 10 } }
       },
       tooltip: {
-        backgroundColor: isDarkMode.value ? '#1f2937' : '#ffffff',
-        titleColor: isDarkMode.value ? '#f3f4f6' : '#111827',
-        bodyColor: isDarkMode.value ? '#d1d5db' : '#4b5563',
+        backgroundColor: color('popover'),
+        titleColor: color('foreground'),
+        bodyColor: color('muted-foreground'),
         borderColor: c.grid,
         borderWidth: 1,
         padding: 10,
@@ -173,7 +174,7 @@ function downloadChart() {
 </script>
 
 <template>
-  <div class="flex h-full min-w-0 flex-col rounded-3xl bg-card p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+  <div class="flex h-full min-w-0 flex-col rounded-lg border border-border bg-card p-4">
     <div
       data-testid="throughput-chart-header"
       class="mb-4 flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"

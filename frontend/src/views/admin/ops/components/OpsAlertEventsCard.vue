@@ -368,7 +368,7 @@ const empty = computed(() => events.value.length === 0 && !loading.value)
 </script>
 
 <template>
-  <div class="rounded-3xl bg-card p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+  <div class="rounded-lg border border-border bg-card p-4">
     <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <div>
         <h3 class="text-sm font-bold text-foreground">{{ t('admin.ops.alertEvents.title') }}</h3>
@@ -556,8 +556,7 @@ const empty = computed(() => events.value.length === 0 && !loading.value)
       </div>
     </div>
 
-    <BaseDialog
-      :show="showDetail"
+    <BaseDialog panel-class="rounded-lg border border-border" :show="showDetail"
       :title="t('admin.ops.alertEvents.detail.title')"
       width="wide"
       :close-on-click-outside="true"

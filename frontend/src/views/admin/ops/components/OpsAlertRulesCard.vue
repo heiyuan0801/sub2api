@@ -423,7 +423,7 @@ function cancelDelete() {
 </script>
 
 <template>
-  <div class="rounded-3xl bg-card p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+  <div class="rounded-lg border border-border bg-card p-4">
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3 sm:gap-4">
       <div>
         <h3 class="text-sm font-bold text-foreground">{{ t('admin.ops.alertRules.title') }}</h3>
@@ -539,8 +539,7 @@ function cancelDelete() {
       </div>
     </div>
 
-    <BaseDialog
-      :show="showEditor"
+    <BaseDialog panel-class="rounded-lg border border-border" :show="showEditor"
       :title="editingId ? t('admin.ops.alertRules.editTitle') : t('admin.ops.alertRules.createTitle')"
       width="wide"
       @close="showEditor = false"

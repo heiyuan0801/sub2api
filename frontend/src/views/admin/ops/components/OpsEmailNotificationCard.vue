@@ -181,7 +181,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="rounded-3xl bg-card p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+  <div class="rounded-lg border border-border bg-card p-4">
     <div class="mb-4 flex items-start justify-between gap-4">
       <div>
         <h3 class="text-sm font-bold text-foreground">{{ t('admin.ops.email.title') }}</h3>
@@ -252,7 +252,7 @@ onMounted(() => {
     </div>
   </div>
 
-  <BaseDialog :show="showEditor" :title="t('admin.ops.email.title')" width="extra-wide" @close="showEditor = false">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="showEditor" :title="t('admin.ops.email.title')" width="extra-wide" @close="showEditor = false">
     <div v-if="draft" class="space-y-6">
       <div
         v-if="!editorValidation.valid"

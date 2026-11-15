@@ -22,9 +22,7 @@
         </template>
 
         <template #cell-type="{ row }">
-          <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium" :class="getTypeBadge(row).className">
-            {{ getTypeBadge(row).label }}
-          </span>
+          <StatusBadge :label="getTypeBadge(row).label" :tone="getTypeBadge(row).tone" />
         </template>
 
         <template #cell-endpoint="{ row }">
@@ -161,7 +159,7 @@
           </button>
         </template>
 
-        <template #empty><EmptyState :message="t('admin.ops.errorLog.noErrors')" /></template>
+        <template #empty><EmptyState :title="t('admin.ops.errorLog.noErrors')" /></template>
       </DataTable>
     </div>
 
@@ -181,8 +179,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import DataTable from '@/components/common/DataTable.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
+import { EmptyState, StatusBadge, type PageTone } from '@/components/page'
 import Pagination from '@/components/common/Pagination.vue'
 import IpGeoCell from '@/components/common/IpGeoCell.vue'
 import IpGeoBatchToolbar from '@/components/common/IpGeoBatchToolbar.vue'
@@ -257,32 +255,31 @@ function formatRequestType(type: number | null | undefined): string {
   }
 }
 
-// 徽章配色对齐用量明细(UsageTable)的 bg-X-100/text-X-800 体系
-function getTypeBadge(log: OpsErrorLog): { label: string; className: string } {
+function getTypeBadge(log: OpsErrorLog): { label: string; tone: PageTone } {
   const phase = String(log.phase || '').toLowerCase()
   const owner = String(log.error_owner || '').toLowerCase()
 
   if (isUpstreamRow(log)) {
-    return { label: t('admin.ops.errorLog.typeUpstream'), className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' }
+    return { label: t('admin.ops.errorLog.typeUpstream'), tone: 'danger' }
   }
   if (phase === 'request' && owner === 'client') {
-    return { label: t('admin.ops.errorLog.typeRequest'), className: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' }
+    return { label: t('admin.ops.errorLog.typeRequest'), tone: 'warning' }
   }
   if (phase === 'auth' && owner === 'client') {
-    return { label: t('admin.ops.errorLog.typeAuth'), className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' }
+    return { label: t('admin.ops.errorLog.typeAuth'), tone: 'info' }
   }
   if (phase === 'account_auth') {
-    return { label: t('admin.ops.errorLog.typeAccountAuth'), className: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' }
+    return { label: t('admin.ops.errorLog.typeAccountAuth'), tone: 'warning' }
   }
   if (phase === 'routing' && owner === 'platform') {
-    return { label: t('admin.ops.errorLog.typeRouting'), className: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' }
+    return { label: t('admin.ops.errorLog.typeRouting'), tone: 'brand' }
   }
   if (phase === 'internal' && owner === 'platform') {
-    return { label: t('admin.ops.errorLog.typeInternal'), className: 'bg-gray-100 text-gray-800 dark:bg-dark-700 dark:text-gray-200' }
+    return { label: t('admin.ops.errorLog.typeInternal'), tone: 'neutral' }
   }
 
   const fallback = phase || owner || t('common.unknown')
-  return { label: fallback, className: 'bg-gray-100 text-gray-800 dark:bg-dark-700 dark:text-gray-200' }
+  return { label: fallback, tone: 'neutral' }
 }
 
 interface Props {

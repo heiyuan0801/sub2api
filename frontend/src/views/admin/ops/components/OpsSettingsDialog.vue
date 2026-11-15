@@ -236,7 +236,7 @@ async function saveAllSettings() {
 </script>
 
 <template>
-  <BaseDialog :show="show" :title="t('admin.ops.settings.title')" width="extra-wide" @close="emit('close')">
+  <BaseDialog panel-class="rounded-lg border border-border" :show="show" :title="t('admin.ops.settings.title')" width="extra-wide" @close="emit('close')">
     <div v-if="loading" class="py-10 text-center text-sm text-gray-500">
       {{ t('common.loading') }}
     </div>

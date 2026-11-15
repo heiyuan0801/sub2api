@@ -341,7 +341,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-full flex-col rounded-3xl bg-card p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
+  <div class="flex h-full flex-col rounded-lg border border-border bg-card p-4">
     <!-- 头部 -->
     <div class="mb-4 flex shrink-0 items-center justify-between gap-3">
       <h3 class="flex items-center gap-2 text-sm font-bold text-foreground">
