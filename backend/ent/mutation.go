@@ -22231,6 +22231,10 @@ type GroupMutation struct {
 	name                                    *string
 	description                             *string
 	i18n                                    *domain.GroupI18n
+	display_tags                            *[]string
+	appenddisplay_tags                      []string
+	custom_display_tags                     *[]domain.GroupDisplayTag
+	appendcustom_display_tags               []domain.GroupDisplayTag
 	rate_multiplier                         *float64
 	addrate_multiplier                      *float64
 	peak_rate_enabled                       *bool
@@ -22685,6 +22689,108 @@ func (m *GroupMutation) OldI18n(ctx context.Context) (v domain.GroupI18n, err er
 // ResetI18n resets all changes to the "i18n" field.
 func (m *GroupMutation) ResetI18n() {
 	m.i18n = nil
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (m *GroupMutation) SetDisplayTags(s []string) {
+	m.display_tags = &s
+	m.appenddisplay_tags = nil
+}
+
+// DisplayTags returns the value of the "display_tags" field in the mutation.
+func (m *GroupMutation) DisplayTags() (r []string, exists bool) {
+	v := m.display_tags
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayTags returns the old "display_tags" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldDisplayTags(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayTags is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayTags requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayTags: %w", err)
+	}
+	return oldValue.DisplayTags, nil
+}
+
+// AppendDisplayTags adds s to the "display_tags" field.
+func (m *GroupMutation) AppendDisplayTags(s []string) {
+	m.appenddisplay_tags = append(m.appenddisplay_tags, s...)
+}
+
+// AppendedDisplayTags returns the list of values that were appended to the "display_tags" field in this mutation.
+func (m *GroupMutation) AppendedDisplayTags() ([]string, bool) {
+	if len(m.appenddisplay_tags) == 0 {
+		return nil, false
+	}
+	return m.appenddisplay_tags, true
+}
+
+// ResetDisplayTags resets all changes to the "display_tags" field.
+func (m *GroupMutation) ResetDisplayTags() {
+	m.display_tags = nil
+	m.appenddisplay_tags = nil
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (m *GroupMutation) SetCustomDisplayTags(ddt []domain.GroupDisplayTag) {
+	m.custom_display_tags = &ddt
+	m.appendcustom_display_tags = nil
+}
+
+// CustomDisplayTags returns the value of the "custom_display_tags" field in the mutation.
+func (m *GroupMutation) CustomDisplayTags() (r []domain.GroupDisplayTag, exists bool) {
+	v := m.custom_display_tags
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCustomDisplayTags returns the old "custom_display_tags" field's value of the Group entity.
+// If the Group object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GroupMutation) OldCustomDisplayTags(ctx context.Context) (v []domain.GroupDisplayTag, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCustomDisplayTags is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCustomDisplayTags requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCustomDisplayTags: %w", err)
+	}
+	return oldValue.CustomDisplayTags, nil
+}
+
+// AppendCustomDisplayTags adds ddt to the "custom_display_tags" field.
+func (m *GroupMutation) AppendCustomDisplayTags(ddt []domain.GroupDisplayTag) {
+	m.appendcustom_display_tags = append(m.appendcustom_display_tags, ddt...)
+}
+
+// AppendedCustomDisplayTags returns the list of values that were appended to the "custom_display_tags" field in this mutation.
+func (m *GroupMutation) AppendedCustomDisplayTags() ([]domain.GroupDisplayTag, bool) {
+	if len(m.appendcustom_display_tags) == 0 {
+		return nil, false
+	}
+	return m.appendcustom_display_tags, true
+}
+
+// ResetCustomDisplayTags resets all changes to the "custom_display_tags" field.
+func (m *GroupMutation) ResetCustomDisplayTags() {
+	m.custom_display_tags = nil
+	m.appendcustom_display_tags = nil
 }
 
 // SetRateMultiplier sets the "rate_multiplier" field.
@@ -26139,7 +26245,7 @@ func (m *GroupMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GroupMutation) Fields() []string {
-	fields := make([]string, 0, 68)
+	fields := make([]string, 0, 70)
 	if m.created_at != nil {
 		fields = append(fields, group.FieldCreatedAt)
 	}
@@ -26157,6 +26263,12 @@ func (m *GroupMutation) Fields() []string {
 	}
 	if m.i18n != nil {
 		fields = append(fields, group.FieldI18n)
+	}
+	if m.display_tags != nil {
+		fields = append(fields, group.FieldDisplayTags)
+	}
+	if m.custom_display_tags != nil {
+		fields = append(fields, group.FieldCustomDisplayTags)
 	}
 	if m.rate_multiplier != nil {
 		fields = append(fields, group.FieldRateMultiplier)
@@ -26364,6 +26476,10 @@ func (m *GroupMutation) Field(name string) (ent.Value, bool) {
 		return m.Description()
 	case group.FieldI18n:
 		return m.I18n()
+	case group.FieldDisplayTags:
+		return m.DisplayTags()
+	case group.FieldCustomDisplayTags:
+		return m.CustomDisplayTags()
 	case group.FieldRateMultiplier:
 		return m.RateMultiplier()
 	case group.FieldPeakRateEnabled:
@@ -26509,6 +26625,10 @@ func (m *GroupMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldDescription(ctx)
 	case group.FieldI18n:
 		return m.OldI18n(ctx)
+	case group.FieldDisplayTags:
+		return m.OldDisplayTags(ctx)
+	case group.FieldCustomDisplayTags:
+		return m.OldCustomDisplayTags(ctx)
 	case group.FieldRateMultiplier:
 		return m.OldRateMultiplier(ctx)
 	case group.FieldPeakRateEnabled:
@@ -26683,6 +26803,20 @@ func (m *GroupMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetI18n(v)
+		return nil
+	case group.FieldDisplayTags:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayTags(v)
+		return nil
+	case group.FieldCustomDisplayTags:
+		v, ok := value.([]domain.GroupDisplayTag)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCustomDisplayTags(v)
 		return nil
 	case group.FieldRateMultiplier:
 		v, ok := value.(float64)
@@ -27646,6 +27780,12 @@ func (m *GroupMutation) ResetField(name string) error {
 		return nil
 	case group.FieldI18n:
 		m.ResetI18n()
+		return nil
+	case group.FieldDisplayTags:
+		m.ResetDisplayTags()
+		return nil
+	case group.FieldCustomDisplayTags:
+		m.ResetCustomDisplayTags()
 		return nil
 	case group.FieldRateMultiplier:
 		m.ResetRateMultiplier()
@@ -41190,32 +41330,39 @@ func (m *SettingMutation) ResetEdge(name string) error {
 // SubscriptionPlanMutation represents an operation that mutates the SubscriptionPlan nodes in the graph.
 type SubscriptionPlanMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int64
-	group_id          *int64
-	addgroup_id       *int64
-	name              *string
-	description       *string
-	price             *float64
-	addprice          *float64
-	original_price    *float64
-	addoriginal_price *float64
-	currency          *string
-	validity_days     *int
-	addvalidity_days  *int
-	validity_unit     *string
-	features          *string
-	product_name      *string
-	for_sale          *bool
-	sort_order        *int
-	addsort_order     *int
-	created_at        *time.Time
-	updated_at        *time.Time
-	clearedFields     map[string]struct{}
-	done              bool
-	oldValue          func(context.Context) (*SubscriptionPlan, error)
-	predicates        []predicate.SubscriptionPlan
+	op                         Op
+	typ                        string
+	id                         *int64
+	group_id                   *int64
+	addgroup_id                *int64
+	name                       *string
+	description                *string
+	price                      *float64
+	addprice                   *float64
+	original_price             *float64
+	addoriginal_price          *float64
+	currency                   *string
+	validity_days              *int
+	addvalidity_days           *int
+	validity_unit              *string
+	features                   *string
+	product_name               *string
+	for_sale                   *bool
+	sort_order                 *int
+	addsort_order              *int
+	display_tags               *[]string
+	appenddisplay_tags         []string
+	visibility_scope           *string
+	visibility_user_ids        *[]int64
+	appendvisibility_user_ids  []int64
+	visibility_group_ids       *[]int64
+	appendvisibility_group_ids []int64
+	created_at                 *time.Time
+	updated_at                 *time.Time
+	clearedFields              map[string]struct{}
+	done                       bool
+	oldValue                   func(context.Context) (*SubscriptionPlan, error)
+	predicates                 []predicate.SubscriptionPlan
 }
 
 var _ ent.Mutation = (*SubscriptionPlanMutation)(nil)
@@ -41862,6 +42009,195 @@ func (m *SubscriptionPlanMutation) ResetSortOrder() {
 	m.addsort_order = nil
 }
 
+// SetDisplayTags sets the "display_tags" field.
+func (m *SubscriptionPlanMutation) SetDisplayTags(s []string) {
+	m.display_tags = &s
+	m.appenddisplay_tags = nil
+}
+
+// DisplayTags returns the value of the "display_tags" field in the mutation.
+func (m *SubscriptionPlanMutation) DisplayTags() (r []string, exists bool) {
+	v := m.display_tags
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayTags returns the old "display_tags" field's value of the SubscriptionPlan entity.
+// If the SubscriptionPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPlanMutation) OldDisplayTags(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayTags is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayTags requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayTags: %w", err)
+	}
+	return oldValue.DisplayTags, nil
+}
+
+// AppendDisplayTags adds s to the "display_tags" field.
+func (m *SubscriptionPlanMutation) AppendDisplayTags(s []string) {
+	m.appenddisplay_tags = append(m.appenddisplay_tags, s...)
+}
+
+// AppendedDisplayTags returns the list of values that were appended to the "display_tags" field in this mutation.
+func (m *SubscriptionPlanMutation) AppendedDisplayTags() ([]string, bool) {
+	if len(m.appenddisplay_tags) == 0 {
+		return nil, false
+	}
+	return m.appenddisplay_tags, true
+}
+
+// ResetDisplayTags resets all changes to the "display_tags" field.
+func (m *SubscriptionPlanMutation) ResetDisplayTags() {
+	m.display_tags = nil
+	m.appenddisplay_tags = nil
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (m *SubscriptionPlanMutation) SetVisibilityScope(s string) {
+	m.visibility_scope = &s
+}
+
+// VisibilityScope returns the value of the "visibility_scope" field in the mutation.
+func (m *SubscriptionPlanMutation) VisibilityScope() (r string, exists bool) {
+	v := m.visibility_scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibilityScope returns the old "visibility_scope" field's value of the SubscriptionPlan entity.
+// If the SubscriptionPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPlanMutation) OldVisibilityScope(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibilityScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibilityScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibilityScope: %w", err)
+	}
+	return oldValue.VisibilityScope, nil
+}
+
+// ResetVisibilityScope resets all changes to the "visibility_scope" field.
+func (m *SubscriptionPlanMutation) ResetVisibilityScope() {
+	m.visibility_scope = nil
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (m *SubscriptionPlanMutation) SetVisibilityUserIds(i []int64) {
+	m.visibility_user_ids = &i
+	m.appendvisibility_user_ids = nil
+}
+
+// VisibilityUserIds returns the value of the "visibility_user_ids" field in the mutation.
+func (m *SubscriptionPlanMutation) VisibilityUserIds() (r []int64, exists bool) {
+	v := m.visibility_user_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibilityUserIds returns the old "visibility_user_ids" field's value of the SubscriptionPlan entity.
+// If the SubscriptionPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPlanMutation) OldVisibilityUserIds(ctx context.Context) (v []int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibilityUserIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibilityUserIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibilityUserIds: %w", err)
+	}
+	return oldValue.VisibilityUserIds, nil
+}
+
+// AppendVisibilityUserIds adds i to the "visibility_user_ids" field.
+func (m *SubscriptionPlanMutation) AppendVisibilityUserIds(i []int64) {
+	m.appendvisibility_user_ids = append(m.appendvisibility_user_ids, i...)
+}
+
+// AppendedVisibilityUserIds returns the list of values that were appended to the "visibility_user_ids" field in this mutation.
+func (m *SubscriptionPlanMutation) AppendedVisibilityUserIds() ([]int64, bool) {
+	if len(m.appendvisibility_user_ids) == 0 {
+		return nil, false
+	}
+	return m.appendvisibility_user_ids, true
+}
+
+// ResetVisibilityUserIds resets all changes to the "visibility_user_ids" field.
+func (m *SubscriptionPlanMutation) ResetVisibilityUserIds() {
+	m.visibility_user_ids = nil
+	m.appendvisibility_user_ids = nil
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (m *SubscriptionPlanMutation) SetVisibilityGroupIds(i []int64) {
+	m.visibility_group_ids = &i
+	m.appendvisibility_group_ids = nil
+}
+
+// VisibilityGroupIds returns the value of the "visibility_group_ids" field in the mutation.
+func (m *SubscriptionPlanMutation) VisibilityGroupIds() (r []int64, exists bool) {
+	v := m.visibility_group_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVisibilityGroupIds returns the old "visibility_group_ids" field's value of the SubscriptionPlan entity.
+// If the SubscriptionPlan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SubscriptionPlanMutation) OldVisibilityGroupIds(ctx context.Context) (v []int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVisibilityGroupIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVisibilityGroupIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVisibilityGroupIds: %w", err)
+	}
+	return oldValue.VisibilityGroupIds, nil
+}
+
+// AppendVisibilityGroupIds adds i to the "visibility_group_ids" field.
+func (m *SubscriptionPlanMutation) AppendVisibilityGroupIds(i []int64) {
+	m.appendvisibility_group_ids = append(m.appendvisibility_group_ids, i...)
+}
+
+// AppendedVisibilityGroupIds returns the list of values that were appended to the "visibility_group_ids" field in this mutation.
+func (m *SubscriptionPlanMutation) AppendedVisibilityGroupIds() ([]int64, bool) {
+	if len(m.appendvisibility_group_ids) == 0 {
+		return nil, false
+	}
+	return m.appendvisibility_group_ids, true
+}
+
+// ResetVisibilityGroupIds resets all changes to the "visibility_group_ids" field.
+func (m *SubscriptionPlanMutation) ResetVisibilityGroupIds() {
+	m.visibility_group_ids = nil
+	m.appendvisibility_group_ids = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *SubscriptionPlanMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -41968,7 +42304,7 @@ func (m *SubscriptionPlanMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SubscriptionPlanMutation) Fields() []string {
-	fields := make([]string, 0, 14)
+	fields := make([]string, 0, 18)
 	if m.group_id != nil {
 		fields = append(fields, subscriptionplan.FieldGroupID)
 	}
@@ -42004,6 +42340,18 @@ func (m *SubscriptionPlanMutation) Fields() []string {
 	}
 	if m.sort_order != nil {
 		fields = append(fields, subscriptionplan.FieldSortOrder)
+	}
+	if m.display_tags != nil {
+		fields = append(fields, subscriptionplan.FieldDisplayTags)
+	}
+	if m.visibility_scope != nil {
+		fields = append(fields, subscriptionplan.FieldVisibilityScope)
+	}
+	if m.visibility_user_ids != nil {
+		fields = append(fields, subscriptionplan.FieldVisibilityUserIds)
+	}
+	if m.visibility_group_ids != nil {
+		fields = append(fields, subscriptionplan.FieldVisibilityGroupIds)
 	}
 	if m.created_at != nil {
 		fields = append(fields, subscriptionplan.FieldCreatedAt)
@@ -42043,6 +42391,14 @@ func (m *SubscriptionPlanMutation) Field(name string) (ent.Value, bool) {
 		return m.ForSale()
 	case subscriptionplan.FieldSortOrder:
 		return m.SortOrder()
+	case subscriptionplan.FieldDisplayTags:
+		return m.DisplayTags()
+	case subscriptionplan.FieldVisibilityScope:
+		return m.VisibilityScope()
+	case subscriptionplan.FieldVisibilityUserIds:
+		return m.VisibilityUserIds()
+	case subscriptionplan.FieldVisibilityGroupIds:
+		return m.VisibilityGroupIds()
 	case subscriptionplan.FieldCreatedAt:
 		return m.CreatedAt()
 	case subscriptionplan.FieldUpdatedAt:
@@ -42080,6 +42436,14 @@ func (m *SubscriptionPlanMutation) OldField(ctx context.Context, name string) (e
 		return m.OldForSale(ctx)
 	case subscriptionplan.FieldSortOrder:
 		return m.OldSortOrder(ctx)
+	case subscriptionplan.FieldDisplayTags:
+		return m.OldDisplayTags(ctx)
+	case subscriptionplan.FieldVisibilityScope:
+		return m.OldVisibilityScope(ctx)
+	case subscriptionplan.FieldVisibilityUserIds:
+		return m.OldVisibilityUserIds(ctx)
+	case subscriptionplan.FieldVisibilityGroupIds:
+		return m.OldVisibilityGroupIds(ctx)
 	case subscriptionplan.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case subscriptionplan.FieldUpdatedAt:
@@ -42176,6 +42540,34 @@ func (m *SubscriptionPlanMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetSortOrder(v)
+		return nil
+	case subscriptionplan.FieldDisplayTags:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayTags(v)
+		return nil
+	case subscriptionplan.FieldVisibilityScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibilityScope(v)
+		return nil
+	case subscriptionplan.FieldVisibilityUserIds:
+		v, ok := value.([]int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibilityUserIds(v)
+		return nil
+	case subscriptionplan.FieldVisibilityGroupIds:
+		v, ok := value.([]int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVisibilityGroupIds(v)
 		return nil
 	case subscriptionplan.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -42347,6 +42739,18 @@ func (m *SubscriptionPlanMutation) ResetField(name string) error {
 		return nil
 	case subscriptionplan.FieldSortOrder:
 		m.ResetSortOrder()
+		return nil
+	case subscriptionplan.FieldDisplayTags:
+		m.ResetDisplayTags()
+		return nil
+	case subscriptionplan.FieldVisibilityScope:
+		m.ResetVisibilityScope()
+		return nil
+	case subscriptionplan.FieldVisibilityUserIds:
+		m.ResetVisibilityUserIds()
+		return nil
+	case subscriptionplan.FieldVisibilityGroupIds:
+		m.ResetVisibilityGroupIds()
 		return nil
 	case subscriptionplan.FieldCreatedAt:
 		m.ResetCreatedAt()

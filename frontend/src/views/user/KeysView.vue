@@ -169,6 +169,8 @@
                 <GroupBadge
                   v-if="row.group"
                   :name="row.group.name"
+                  :display-tags="row.group.display_tags"
+                  :custom-display-tags="row.group.custom_display_tags"
                   :platform="row.group.platform"
                   :subscription-type="row.group.subscription_type"
                   :rate-multiplier="row.group.rate_multiplier"
@@ -581,6 +583,8 @@
               <GroupBadge
                 v-if="option"
                 :name="(option as unknown as GroupOption).label"
+              :display-tags="(option as unknown as GroupOption).displayTags"
+              :custom-display-tags="(option as unknown as GroupOption).customDisplayTags"
                 :platform="(option as unknown as GroupOption).platform"
                 :subscription-type="(option as unknown as GroupOption).subscriptionType"
                 :rate-multiplier="(option as unknown as GroupOption).rate"
@@ -595,6 +599,8 @@
             <template #option="{ option, selected }">
               <GroupOptionItem
                 :name="(option as unknown as GroupOption).label"
+                :display-tags="(option as unknown as GroupOption).displayTags"
+                :custom-display-tags="(option as unknown as GroupOption).customDisplayTags"
                 :platform="(option as unknown as GroupOption).platform"
                 :subscription-type="(option as unknown as GroupOption).subscriptionType"
                 :rate-multiplier="(option as unknown as GroupOption).rate"
@@ -1203,6 +1209,8 @@
           >
             <GroupOptionItem
               :name="option.label"
+              :display-tags="option.displayTags"
+              :custom-display-tags="option.customDisplayTags"
               :platform="option.platform"
               :subscription-type="option.subscriptionType"
               :rate-multiplier="option.rate"
@@ -1255,6 +1263,7 @@ import MagpieImportModal from '@/components/keys/MagpieImportModal.vue'
 	import UseKeyModal from '@/components/keys/UseKeyModal.vue'
 	import EndpointPopover from '@/components/keys/EndpointPopover.vue'
 	import GroupBadge from '@/components/common/GroupBadge.vue'
+import type { CustomGroupDisplayTag, GroupDisplayTag } from '@/constants/groupDisplayTags'
 	import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
 	import type { ApiKey, Group, PublicSettings, SubscriptionType, GroupPlatform, UpdateApiKeyRequest } from '@/types'
 import type { Column } from '@/components/common/types'
@@ -1278,6 +1287,8 @@ const formatDateTimeLocal = (isoDate: string): string => {
 }
 
 interface GroupOption {
+  displayTags?: GroupDisplayTag[] | null
+  customDisplayTags?: CustomGroupDisplayTag[] | null
   value: number
   label: string
   description: string | null
@@ -1553,6 +1564,8 @@ const groupOptions = computed(() =>
   groups.value.map((group) => ({
     value: group.id,
     label: group.name,
+    displayTags: group.display_tags,
+    customDisplayTags: group.custom_display_tags,
     description: group.description,
     rate: group.rate_multiplier,
     userRate: userGroupRates.value[group.id] ?? null,

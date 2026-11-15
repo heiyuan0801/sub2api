@@ -16,6 +16,8 @@ type AnnouncementService struct {
 	readRepo         AnnouncementReadRepository
 	userRepo         UserRepository
 	userSubRepo      UserSubscriptionRepository
+	deliveryRepo     AnnouncementDeliveryRepository
+	paymentPlans     *PaymentConfigService
 }
 
 func NewAnnouncementService(
@@ -32,15 +34,30 @@ func NewAnnouncementService(
 	}
 }
 
+func ProvideAnnouncementService(
+	announcementRepo AnnouncementRepository,
+	readRepo AnnouncementReadRepository,
+	userRepo UserRepository,
+	userSubRepo UserSubscriptionRepository,
+	deliveryRepo AnnouncementDeliveryRepository,
+	paymentPlans *PaymentConfigService,
+) *AnnouncementService {
+	s := NewAnnouncementService(announcementRepo, readRepo, userRepo, userSubRepo)
+	s.deliveryRepo = deliveryRepo
+	s.paymentPlans = paymentPlans
+	return s
+}
+
 type CreateAnnouncementInput struct {
-	Title      string
-	Content    string
-	Status     string
-	NotifyMode string
-	Targeting  AnnouncementTargeting
-	StartsAt   *time.Time
-	EndsAt     *time.Time
-	ActorID    *int64 // 管理员用户ID
+	Title       string
+	Content     string
+	Status      string
+	NotifyMode  string
+	Targeting   AnnouncementTargeting
+	StartsAt    *time.Time
+	EndsAt      *time.Time
+	ActorID     *int64 // 管理员用户ID
+	Publication *AnnouncementPublication
 }
 
 type UpdateAnnouncementInput struct {
@@ -52,11 +69,20 @@ type UpdateAnnouncementInput struct {
 	StartsAt   **time.Time
 	EndsAt     **time.Time
 	ActorID    *int64 // 管理员用户ID
+	Kind       *string
+	PlanID     **int64
+	GroupID    **int64
+	Audience   *AnnouncementAudience
 }
 
 type UserAnnouncement struct {
-	Announcement Announcement
-	ReadAt       *time.Time
+	Announcement         Announcement
+	ReadAt               *time.Time
+	Kind                 string
+	PlanID               *int64
+	GroupID              *int64
+	GroupName            string
+	GroupActionAvailable bool
 }
 
 type AnnouncementUserReadStatus struct {
@@ -127,6 +153,24 @@ func (s *AnnouncementService) Create(ctx context.Context, input *CreateAnnouncem
 		a.UpdatedBy = input.ActorID
 	}
 
+	if input.Publication != nil {
+		if s.deliveryRepo == nil {
+			return nil, ErrAnnouncementDeliveryDisabled
+		}
+		if status != AnnouncementStatusDraft {
+			return nil, ErrAnnouncementPublicationState
+		}
+		publication, err := normalizeAnnouncementPublication(*input.Publication)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.deliveryRepo.Create(ctx, a, publication); err != nil {
+			return nil, fmt.Errorf("create announcement publication: %w", err)
+		}
+		// The no-match legacy rule is never returned as the managed audience.
+		return a, nil
+	}
+
 	if err := s.announcementRepo.Create(ctx, a); err != nil {
 		return nil, fmt.Errorf("create announcement: %w", err)
 	}
@@ -146,6 +190,17 @@ func (s *AnnouncementService) Update(ctx context.Context, id int64, input *Updat
 	a, err := s.announcementRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	publications, err := s.Publications(ctx, []int64{id})
+	if err != nil {
+		return nil, err
+	}
+	publication, managed := publications[id]
+	if managed && (input.Targeting != nil || (input.Status != nil && *input.Status != a.Status)) {
+		return nil, ErrAnnouncementPublicationState
+	}
+	if !managed && (input.Kind != nil || input.PlanID != nil || input.GroupID != nil || input.Audience != nil) {
+		return nil, ErrAnnouncementPublicationState
 	}
 
 	if input.Title != nil {
@@ -187,6 +242,11 @@ func (s *AnnouncementService) Update(ctx context.Context, id int64, input *Updat
 	}
 
 	if input.StartsAt != nil {
+		if managed {
+			// Managed schedules are changed through the publish operation,
+			// which also updates the durable dispatch deadline.
+			return nil, ErrAnnouncementPublicationState
+		}
 		a.StartsAt = *input.StartsAt
 	}
 	if input.EndsAt != nil {
@@ -201,6 +261,29 @@ func (s *AnnouncementService) Update(ctx context.Context, id int64, input *Updat
 
 	if input.ActorID != nil && *input.ActorID > 0 {
 		a.UpdatedBy = input.ActorID
+	}
+
+	if managed {
+		if input.Kind != nil {
+			publication.Kind = *input.Kind
+		}
+		if input.PlanID != nil {
+			publication.PlanID = *input.PlanID
+		}
+		if input.GroupID != nil {
+			publication.GroupID = *input.GroupID
+		}
+		if input.Audience != nil {
+			publication.Audience = *input.Audience
+		}
+		publication, err = normalizeAnnouncementPublication(publication)
+		if err != nil {
+			return nil, err
+		}
+		if err := s.deliveryRepo.Update(ctx, a, publication); err != nil {
+			return nil, fmt.Errorf("update announcement publication: %w", err)
+		}
+		return a, nil
 	}
 
 	if err := s.announcementRepo.Update(ctx, a); err != nil {
@@ -224,7 +307,7 @@ func (s *AnnouncementService) List(ctx context.Context, params pagination.Pagina
 	return s.announcementRepo.List(ctx, params, filters)
 }
 
-func (s *AnnouncementService) ListForUser(ctx context.Context, userID int64, unreadOnly bool) ([]UserAnnouncement, error) {
+func (s *AnnouncementService) listLegacyForUser(ctx context.Context, userID int64, unreadOnly bool) ([]UserAnnouncement, error) {
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get user: %w", err)
@@ -299,36 +382,10 @@ func (s *AnnouncementService) ListForUser(ctx context.Context, userID int64, unr
 }
 
 func (s *AnnouncementService) MarkRead(ctx context.Context, userID, announcementID int64) error {
-	// 安全：仅允许标记当前用户“可见”的公告
-	user, err := s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("get user: %w", err)
-	}
-
-	a, err := s.announcementRepo.GetByID(ctx, announcementID)
-	if err != nil {
+	if _, err := s.GetForUser(ctx, userID, announcementID); err != nil {
 		return err
 	}
-
-	now := time.Now()
-	if !a.IsActiveAt(now) {
-		return ErrAnnouncementNotFound
-	}
-
-	activeSubs, err := s.userSubRepo.ListActiveByUserID(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("list active subscriptions: %w", err)
-	}
-	activeGroupIDs := make(map[int64]struct{}, len(activeSubs))
-	for i := range activeSubs {
-		activeGroupIDs[activeSubs[i].GroupID] = struct{}{}
-	}
-
-	if !a.Targeting.Matches(user.Balance, activeGroupIDs) {
-		return ErrAnnouncementNotFound
-	}
-
-	if err := s.readRepo.MarkRead(ctx, announcementID, userID, now); err != nil {
+	if err := s.readRepo.MarkRead(ctx, announcementID, userID, time.Now()); err != nil {
 		return fmt.Errorf("mark read: %w", err)
 	}
 	return nil

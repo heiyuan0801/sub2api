@@ -1,3 +1,4 @@
+import { captureRegistrationCampaign } from '@/utils/registrationAttribution'
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -31,6 +32,7 @@ function initThemeClass() {
 }
 
 async function bootstrap() {
+  captureRegistrationCampaign(window.location.search)
   // Apply theme class globally before app mount to keep all routes consistent.
   initThemeClass()
   initIOSViewportZoomFix()
@@ -44,10 +46,6 @@ async function bootstrap() {
   const appStore = useAppStore()
   appStore.initFromInjectedConfig()
 
-  // Set document title immediately after config is loaded
-  if (appStore.siteName && appStore.siteName !== 'Sub2API') {
-    document.title = `${appStore.siteName} - AI API Gateway`
-  }
   updateFavicon(appStore.siteLogo)
 
   await initI18n()

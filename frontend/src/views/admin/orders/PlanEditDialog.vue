@@ -37,7 +37,8 @@
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="input-label">{{ t('payment.admin.price') }} <span class="text-red-500">*</span></label>
-          <input v-model.number="planForm.price" type="number" step="0.01" min="0.01" class="input" required />
+          <input v-model.number="planForm.price" type="number" step="0.01" min="0.01" class="input" :readonly="Boolean(plan)" required />
+          <p v-if="plan" class="mt-1 text-xs text-gray-500">{{ t('planOps.priceEditHint') }}</p>
           <p v-if="subscriptionCnyPreview" class="mt-1 text-xs font-medium text-primary-600 dark:text-primary-400">
             {{ t('payment.admin.subscriptionCnyPayPreview', { amount: subscriptionCnyPreview.amount }) }}
             <span v-if="subscriptionCnyPreview.feeRate > 0">
@@ -64,10 +65,42 @@
         <textarea v-model="planFeaturesText" rows="3" class="input" :placeholder="t('payment.admin.featuresPlaceholder')"></textarea>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.featuresHint') }}</p>
       </div>
+      <fieldset>
+        <legend class="input-label">{{ t('planOps.displayTags') }}</legend>
+        <div class="flex flex-wrap gap-x-4 gap-y-2">
+          <label v-for="tag in subscriptionPlanTags" :key="tag" class="flex items-center gap-2 text-sm">
+            <input v-model="tags" type="checkbox" :value="tag" />
+            {{ t('planOps.tags.' + tag) }}
+          </label>
+        </div>
+      </fieldset>
+      <div class="space-y-2">
+        <label class="block">
+          <span class="input-label">{{ t('planOps.visibility') }}</span>
+          <select v-model="visibility" class="input">
+            <option v-for="mode in visibilityModes" :key="mode" :value="mode">{{ t('planOps.visibilityModes.' + mode) }}</option>
+          </select>
+        </label>
+        <label v-if="visibility === 'users'" class="block">
+          <span class="input-label">{{ t('planOps.userIDs') }}</span>
+          <input v-model="userIds" type="text" class="input" placeholder="123, 456" />
+        </label>
+        <div v-if="visibility === 'groups'">
+          <p class="mb-2 text-xs text-gray-500">{{ t('planOps.groupHint') }}</p>
+          <div class="grid max-h-36 gap-1 overflow-y-auto rounded-lg border border-gray-200 p-2 dark:border-dark-600 sm:grid-cols-2">
+            <label v-for="group in groups" :key="group.id" class="flex items-center gap-2 text-sm">
+              <input v-model="visibilityGroupIds" type="checkbox" :value="group.id" /> {{ group.name }} (#{{ group.id }})
+            </label>
+          </div>
+        </div>
+      </div>
       <div class="flex items-center gap-3">
         <label class="text-sm text-gray-700 dark:text-gray-300">{{ t('payment.admin.forSale') }}</label>
         <button
           type="button"
+          role="switch"
+          :aria-checked="planForm.for_sale"
+          :aria-label="t('payment.admin.forSale')"
           :class="[
             'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
             planForm.for_sale ? 'bg-primary-500' : 'bg-gray-300 dark:bg-dark-600'
@@ -80,6 +113,10 @@
           ]" />
         </button>
       </div>
+      <label v-if="!plan || (plan.for_sale && !planForm.for_sale)" class="flex items-center gap-2 text-sm">
+        <input v-model="notify" type="checkbox" />
+        {{ t('planOps.notifyDraft') }}
+      </label>
     </form>
     <template #footer>
       <div class="flex justify-end gap-3">
@@ -93,12 +130,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { adminPaymentAPI } from '@/api/admin/payment'
 import type { AdminPaymentConfig } from '@/api/admin/payment'
 import { extractApiErrorMessage } from '@/utils/apiError'
 import { formatPaymentAmount } from '@/components/payment/currency'
-import type { SubscriptionPlan } from '@/types/payment'
+import { subscriptionPlanTags, type SubscriptionPlan, type SubscriptionPlanTag, type PlanVisibilityScope } from '@/types/payment'
 import type { AdminGroup } from '@/types'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Select from '@/components/common/Select.vue'
@@ -120,10 +158,17 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const router = useRouter()
 
 const saving = ref(false)
 const planForm = reactive({ name: '', group_id: null as number | null, description: '', price: 0, original_price: 0, currency: '', validity_days: 30, validity_unit: 'days', sort_order: 0, for_sale: true })
 const planFeaturesText = ref('')
+const tags = ref<SubscriptionPlanTag[]>([])
+const visibilityModes = ['all', 'users', 'groups'] as const
+const visibility = ref<PlanVisibilityScope>('all')
+const userIds = ref('')
+const visibilityGroupIds = ref<number[]>([])
+const notify = ref(false)
 
 const validityUnitOptions = computed(() => [
   { value: 'days', label: t('payment.admin.days') },
@@ -174,6 +219,11 @@ const subscriptionCnyPreview = computed(() => {
 // Reset form when dialog opens
 watch(() => props.show, (visible) => {
   if (!visible) return
+  tags.value = [...(props.plan?.display_tags ?? [])]
+  visibility.value = props.plan?.visibility_scope ?? 'all'
+  userIds.value = props.plan?.visibility_user_ids?.join(', ') ?? ''
+  visibilityGroupIds.value = [...(props.plan?.visibility_group_ids ?? [])]
+  notify.value = false
   if (props.plan) {
     Object.assign(planForm, { name: props.plan.name, group_id: props.plan.group_id, description: props.plan.description, price: props.plan.price, original_price: props.plan.original_price || 0, currency: props.plan.currency || '', validity_days: props.plan.validity_days, validity_unit: props.plan.validity_unit || 'days', sort_order: props.plan.sort_order || 0, for_sale: props.plan.for_sale })
     planFeaturesText.value = (props.plan.features || []).join('\n')
@@ -190,7 +240,7 @@ function buildPlanPayload() {
     name: planForm.name,
     group_id: planForm.group_id,
     description: planForm.description,
-    price: planForm.price,
+    ...(props.plan ? {} : { price: planForm.price }),
     original_price: planForm.original_price || 0,
     currency: planForm.currency.trim().toUpperCase(),
     validity_days: planForm.validity_days,
@@ -198,7 +248,15 @@ function buildPlanPayload() {
     sort_order: planForm.sort_order,
     for_sale: planForm.for_sale,
     features,
+    display_tags: tags.value,
+    visibility_scope: visibility.value,
+    visibility_user_ids: visibility.value === 'users' ? parseUserIds() : [],
+    visibility_group_ids: visibility.value === 'groups' ? visibilityGroupIds.value : [],
   }
+}
+
+function parseUserIds() {
+  return [...new Set(userIds.value.split(/[,，\s]+/).filter(Boolean).map(Number))]
 }
 
 async function handleSavePlan() {
@@ -214,14 +272,25 @@ async function handleSavePlan() {
     appStore.showError(t('payment.admin.validityRequired'))
     return
   }
+  const audienceIds = visibility.value === 'users' ? parseUserIds() : visibilityGroupIds.value
+  if (visibility.value !== 'all' && (!audienceIds.length || audienceIds.some(id => !Number.isSafeInteger(id) || id <= 0))) {
+    appStore.showError(t('planOps.audienceRequired'))
+    return
+  }
   saving.value = true
   try {
     const data = buildPlanPayload()
-    if (props.plan) { await adminPaymentAPI.updatePlan(props.plan.id, data) }
-    else { await adminPaymentAPI.createPlan(data) }
+    const existing = props.plan
+    const result = existing ? await adminPaymentAPI.updatePlan(existing.id, data) : await adminPaymentAPI.createPlan(data)
     appStore.showSuccess(t('common.saved'))
     emit('close')
     emit('saved')
+    if (notify.value && (!existing || (existing.for_sale && !planForm.for_sale))) {
+      await router.push({
+        path: '/admin/announcements',
+        query: { compose: '1', kind: existing ? 'plan_unlisted' : 'new_plan', plan_id: result.data.id },
+      })
+    }
   } catch (err: unknown) { appStore.showError(extractApiErrorMessage(err, t('common.error'))) }
   finally { saving.value = false }
 }

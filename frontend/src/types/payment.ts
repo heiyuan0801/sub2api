@@ -122,6 +122,36 @@ export interface PaymentOrder {
 
 // ==================== Plans & Channels ====================
 
+export const subscriptionPlanTags = ['recommended', 'popular', 'new'] as const
+export type SubscriptionPlanTag = typeof subscriptionPlanTags[number]
+export type PlanVisibilityScope = 'all' | 'users' | 'groups'
+
+export interface PlanPriceChange {
+  id: number
+  plan_id: number
+  plan_name: string
+  group_id: number
+  currency: string
+  old_price: number
+  new_price: number
+  delta: number
+  percent: number | null
+  reason: string
+  actor_id: number
+  cancelled_by?: number
+  status: 'pending' | 'applied' | 'cancelled' | 'conflict'
+  effective_at: string
+  created_at: string
+  resolved_at?: string
+}
+
+export interface PlanPriceChangeRequest {
+  expected_price: number
+  new_price: number
+  reason: string
+  effective_at?: string
+}
+
 export interface SubscriptionPlan {
   id: number
   group_id: number
@@ -148,6 +178,10 @@ export interface SubscriptionPlan {
   features: string[]
   for_sale: boolean
   sort_order: number
+  display_tags?: SubscriptionPlanTag[]
+  visibility_scope?: PlanVisibilityScope
+  visibility_user_ids?: number[]
+  visibility_group_ids?: number[]
 }
 
 export interface PaymentChannel {

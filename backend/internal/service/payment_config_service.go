@@ -173,6 +173,7 @@ type UpdateProviderInstanceRequest struct {
 	AllowUserRefund *bool             `json:"allow_user_refund"`
 }
 type CreatePlanRequest struct {
+	PlanPresentation
 	GroupID       int64    `json:"group_id"`
 	Name          string   `json:"name"`
 	Description   string   `json:"description"`
@@ -188,18 +189,24 @@ type CreatePlanRequest struct {
 }
 
 type UpdatePlanRequest struct {
-	GroupID       *int64   `json:"group_id"`
-	Name          *string  `json:"name"`
-	Description   *string  `json:"description"`
-	Price         *float64 `json:"price"`
-	OriginalPrice *float64 `json:"original_price"`
-	Currency      *string  `json:"currency"`
-	ValidityDays  *int     `json:"validity_days"`
-	ValidityUnit  *string  `json:"validity_unit"`
-	Features      *string  `json:"features"`
-	ProductName   *string  `json:"product_name"`
-	ForSale       *bool    `json:"for_sale"`
-	SortOrder     *int     `json:"sort_order"`
+	DisplayTags        *[]string `json:"display_tags"`
+	VisibilityScope    *string   `json:"visibility_scope"`
+	VisibilityUserIDs  *[]int64  `json:"visibility_user_ids"`
+	VisibilityGroupIDs *[]int64  `json:"visibility_group_ids"`
+	PriceReason        string    `json:"price_reason"`
+	ActorID            int64     `json:"-"`
+	GroupID            *int64    `json:"group_id"`
+	Name               *string   `json:"name"`
+	Description        *string   `json:"description"`
+	Price              *float64  `json:"price"`
+	OriginalPrice      *float64  `json:"original_price"`
+	Currency           *string   `json:"currency"`
+	ValidityDays       *int      `json:"validity_days"`
+	ValidityUnit       *string   `json:"validity_unit"`
+	Features           *string   `json:"features"`
+	ProductName        *string   `json:"product_name"`
+	ForSale            *bool     `json:"for_sale"`
+	SortOrder          *int      `json:"sort_order"`
 }
 
 // PaymentConfigService manages payment configuration and CRUD for

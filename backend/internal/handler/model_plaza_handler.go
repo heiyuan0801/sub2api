@@ -22,6 +22,7 @@ type ModelPlazaHandler struct {
 	plazaService   *service.ModelPlazaService
 	apiKeyService  *service.APIKeyService
 	settingService *service.SettingService
+	monitorService *service.ChannelMonitorV2Service
 }
 
 // NewModelPlazaHandler 创建模型广场 handler。
@@ -29,11 +30,13 @@ func NewModelPlazaHandler(
 	plazaService *service.ModelPlazaService,
 	apiKeyService *service.APIKeyService,
 	settingService *service.SettingService,
+	monitorService *service.ChannelMonitorV2Service,
 ) *ModelPlazaHandler {
 	return &ModelPlazaHandler{
 		plazaService:   plazaService,
 		apiKeyService:  apiKeyService,
 		settingService: settingService,
+		monitorService: monitorService,
 	}
 }
 
@@ -78,18 +81,20 @@ type modelPlazaModel struct {
 
 // modelPlazaGroup 广场分组条目（白名单字段）。
 type modelPlazaGroup struct {
-	ID                 int64    `json:"id"`
-	Name               string   `json:"name"`
-	Description        string   `json:"description"`
-	Platform           string   `json:"platform"`
-	SubscriptionType   string   `json:"subscription_type"`
-	RateMultiplier     float64  `json:"rate_multiplier"`
-	UserRateMultiplier *float64 `json:"user_rate_multiplier,omitempty"`
-	PeakRateEnabled    bool     `json:"peak_rate_enabled"`
-	PeakStart          string   `json:"peak_start"`
-	PeakEnd            string   `json:"peak_end"`
-	PeakRateMultiplier float64  `json:"peak_rate_multiplier"`
-	IsExclusive        bool     `json:"is_exclusive"`
+	ID                 int64                     `json:"id"`
+	Name               string                    `json:"name"`
+	Description        string                    `json:"description"`
+	DisplayTags        []string                  `json:"display_tags"`
+	CustomDisplayTags  []service.GroupDisplayTag `json:"custom_display_tags"`
+	Platform           string                    `json:"platform"`
+	SubscriptionType   string                    `json:"subscription_type"`
+	RateMultiplier     float64                   `json:"rate_multiplier"`
+	UserRateMultiplier *float64                  `json:"user_rate_multiplier,omitempty"`
+	PeakRateEnabled    bool                      `json:"peak_rate_enabled"`
+	PeakStart          string                    `json:"peak_start"`
+	PeakEnd            string                    `json:"peak_end"`
+	PeakRateMultiplier float64                   `json:"peak_rate_multiplier"`
+	IsExclusive        bool                      `json:"is_exclusive"`
 	// 生图独立倍率：为 true 时图片计费模型的实付倍率取 ImageRateMultiplier，
 	// 不取分组/用户专属倍率。
 	ImageRateIndependent bool    `json:"image_rate_independent"`
@@ -114,42 +119,61 @@ type modelPlazaLatestModel struct {
 	FirstListedAt time.Time `json:"first_listed_at"`
 }
 
-// Get 返回模型广场数据。
-// GET /api/v1/model-plaza
-func (h *ModelPlazaHandler) Get(c *gin.Context) {
+func (h *ModelPlazaHandler) requireAccess(c *gin.Context) (service.ModelPlazaRuntime, middleware.AuthSubject, bool, bool) {
 	if h.settingService == nil {
 		response.NotFound(c, "Model plaza is not enabled")
-		return
+		return service.ModelPlazaRuntime{}, middleware.AuthSubject{}, false, false
 	}
 	rt := h.settingService.GetModelPlazaRuntime(c.Request.Context())
 	if !rt.Enabled {
 		response.NotFound(c, "Model plaza is not enabled")
-		return
+		return rt, middleware.AuthSubject{}, false, false
 	}
 
 	subject, authed := middleware.GetAuthSubjectFromContext(c)
 	if rt.RequireAuth && !authed {
 		response.Unauthorized(c, "Authentication required")
-		return
+		return rt, subject, authed, false
 	}
+	return rt, subject, authed, true
+}
 
+func (h *ModelPlazaHandler) visibleGroups(c *gin.Context, subject middleware.AuthSubject, authed bool) ([]service.PlazaGroup, bool) {
 	groups, err := h.plazaService.ListGroups(c.Request.Context())
 	if err != nil {
 		response.ErrorFrom(c, err)
-		return
+		return nil, false
 	}
 
 	// allowedGroups == nil 表示匿名；登录用户恒为非 nil（可能为空集合）。
 	var allowedGroups map[int64]struct{}
 	var restrictPublicGroups bool
-	var userRates map[int64]float64
 	if authed {
 		allowedGroups, restrictPublicGroups, err = h.apiKeyService.GetUserGroupVisibility(c.Request.Context(), subject.UserID)
 		if err != nil {
 			// 可见性数据拿不到时不能静默降级成匿名视图（会错漏专属分组），直接报错。
 			response.ErrorFrom(c, err)
-			return
+			return nil, false
 		}
+	}
+	return filterPlazaVisibleGroups(groups, allowedGroups, restrictPublicGroups), true
+}
+
+// Get 返回模型广场数据。
+// GET /api/v1/model-plaza
+func (h *ModelPlazaHandler) Get(c *gin.Context) {
+	rt, subject, authed, ok := h.requireAccess(c)
+	if !ok {
+		return
+	}
+	visible, ok := h.visibleGroups(c, subject, authed)
+	if !ok {
+		return
+	}
+
+	var userRates map[int64]float64
+	if authed {
+		var err error
 		userRates, err = h.apiKeyService.GetUserGroupRates(c.Request.Context(), subject.UserID)
 		if err != nil {
 			// 专属倍率仅是展示增强，失败降级为分组默认倍率。
@@ -157,8 +181,6 @@ func (h *ModelPlazaHandler) Get(c *gin.Context) {
 			userRates = nil
 		}
 	}
-
-	visible := filterPlazaVisibleGroups(groups, allowedGroups, restrictPublicGroups)
 
 	// 广场可匿名访问，分组文案随请求语言变化，提示中间缓存按语言区分。
 	// 追加而非覆盖：CORS 中间件已为具体来源写入 Vary: Origin。
@@ -231,6 +253,8 @@ func toModelPlazaGroupDTO(g *service.PlazaGroup, userRates map[int64]float64) mo
 		ID:                        g.ID,
 		Name:                      g.Name,
 		Description:               g.Description,
+		DisplayTags:               append([]string{}, g.DisplayTags...),
+		CustomDisplayTags:         append([]service.GroupDisplayTag{}, g.CustomDisplayTags...),
 		Platform:                  g.Platform,
 		SubscriptionType:          g.SubscriptionType,
 		RateMultiplier:            g.RateMultiplier,

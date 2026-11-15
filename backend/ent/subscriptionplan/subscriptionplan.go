@@ -37,6 +37,14 @@ const (
 	FieldForSale = "for_sale"
 	// FieldSortOrder holds the string denoting the sort_order field in the database.
 	FieldSortOrder = "sort_order"
+	// FieldDisplayTags holds the string denoting the display_tags field in the database.
+	FieldDisplayTags = "display_tags"
+	// FieldVisibilityScope holds the string denoting the visibility_scope field in the database.
+	FieldVisibilityScope = "visibility_scope"
+	// FieldVisibilityUserIds holds the string denoting the visibility_user_ids field in the database.
+	FieldVisibilityUserIds = "visibility_user_ids"
+	// FieldVisibilityGroupIds holds the string denoting the visibility_group_ids field in the database.
+	FieldVisibilityGroupIds = "visibility_group_ids"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -60,6 +68,10 @@ var Columns = []string{
 	FieldProductName,
 	FieldForSale,
 	FieldSortOrder,
+	FieldDisplayTags,
+	FieldVisibilityScope,
+	FieldVisibilityUserIds,
+	FieldVisibilityGroupIds,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -99,6 +111,16 @@ var (
 	DefaultForSale bool
 	// DefaultSortOrder holds the default value on creation for the "sort_order" field.
 	DefaultSortOrder int
+	// DefaultDisplayTags holds the default value on creation for the "display_tags" field.
+	DefaultDisplayTags []string
+	// DefaultVisibilityScope holds the default value on creation for the "visibility_scope" field.
+	DefaultVisibilityScope string
+	// VisibilityScopeValidator is a validator for the "visibility_scope" field. It is called by the builders before save.
+	VisibilityScopeValidator func(string) error
+	// DefaultVisibilityUserIds holds the default value on creation for the "visibility_user_ids" field.
+	DefaultVisibilityUserIds []int64
+	// DefaultVisibilityGroupIds holds the default value on creation for the "visibility_group_ids" field.
+	DefaultVisibilityGroupIds []int64
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -173,6 +195,11 @@ func ByForSale(opts ...sql.OrderTermOption) OrderOption {
 // BySortOrder orders the results by the sort_order field.
 func BySortOrder(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSortOrder, opts...).ToFunc()
+}
+
+// ByVisibilityScope orders the results by the visibility_scope field.
+func ByVisibilityScope(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVisibilityScope, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

@@ -13,9 +13,10 @@ vi.mock('@/i18n', () => ({
   ]
 }))
 
-vi.mock('vue-i18n', () => ({ useI18n: () => ({ locale: { value: 'zh' } }) }))
+vi.mock('vue-i18n', () => ({ useI18n: () => ({ locale: { value: 'zh' }, t: (key: string) => key }) }))
 
 const reload = vi.fn()
+const assign = vi.fn()
 
 const mountSwitcher = () =>
   mount(LocaleSwitcher, { global: { stubs: { Icon: true, transition: false } } })
@@ -31,7 +32,8 @@ describe('LocaleSwitcher', () => {
   beforeEach(() => {
     setLocale.mockReset().mockResolvedValue(undefined)
     reload.mockReset()
-    vi.stubGlobal('location', { ...window.location, reload })
+    assign.mockReset()
+    vi.stubGlobal('location', { pathname: '/dashboard', search: '', hash: '', reload, assign })
   })
 
   afterEach(() => {
@@ -47,6 +49,14 @@ describe('LocaleSwitcher', () => {
     expect(setLocale).toHaveBeenCalledWith('en')
     expect(reload).toHaveBeenCalledTimes(1)
     expect(setLocale.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0])
+  })
+
+  it('opens a stable locale URL without dropping public page filters or anchors', async () => {
+    vi.stubGlobal('location', { pathname: '/model-plaza', search: '?search=gpt&lang=zh', hash: '#results', reload, assign })
+    const wrapper = mountSwitcher()
+    await choose(wrapper, 'English')
+    expect(assign).toHaveBeenCalledWith('/model-plaza?search=gpt#results')
+    expect(reload).not.toHaveBeenCalled()
   })
 
   it('does nothing when the current language is chosen again', async () => {

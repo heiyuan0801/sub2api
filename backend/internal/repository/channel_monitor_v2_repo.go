@@ -14,7 +14,10 @@ import (
 	"github.com/lib/pq"
 )
 
-type channelMonitorV2Repository struct{ db *sql.DB }
+type channelMonitorV2Repository struct {
+	db       *sql.DB
+	plazaTPS plazaTPSCache
+}
 
 func NewChannelMonitorV2Repository(db *sql.DB) service.ChannelMonitorV2Repository {
 	return &channelMonitorV2Repository{db: db}
@@ -1374,6 +1377,10 @@ func channelMonitorV2Where(filter service.ChannelMonitorV2Filter, cfg service.Ch
 	} else if len(groups) > 0 {
 		args = append(args, pq.Array(groups))
 		conditions = append(conditions, fmt.Sprintf("%s.group_id = ANY($%d)", alias, len(args)))
+	}
+	if filter.ExactModel != "" {
+		args = append(args, filter.ExactModel)
+		conditions = append(conditions, fmt.Sprintf("lower(%s.model) = $%d", alias, len(args)))
 	}
 	return "WHERE " + strings.Join(conditions, " AND "), args
 }

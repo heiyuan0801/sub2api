@@ -1201,9 +1201,18 @@ onMounted(async () => {
       }
     }
     await resumeWechatPaymentFromQuery()
+    // Notice links can select only plans present in this user's checkout catalog.
+    const linkedPlanId = typeof route.query.plan_id === 'string' && /^[1-9][0-9]*$/.test(route.query.plan_id)
+      ? Number(route.query.plan_id)
+      : 0
+    if (subscriptionEnabled.value && paymentPhase.value === 'select' && !hasWechatResumeQuery(route.query) && linkedPlanId) {
+      activeTab.value = 'subscription'
+      selectedPlan.value = checkout.value.plans.find(plan => plan.id === linkedPlanId) ?? null
+      if (!selectedPlan.value) appStore.showError(t('operations.planUnavailable'))
+    }
     // balance_disabled → the tabs watcher above moves activeTab to the subscription tab (when enabled).
     // Handle renewal navigation: ?tab=subscription&group=123 (ignored when subscriptions are disabled)
-    if (route.query.tab === 'subscription' && subscriptionEnabled.value) {
+    if (!linkedPlanId && route.query.tab === 'subscription' && subscriptionEnabled.value) {
       activeTab.value = 'subscription'
       if (route.query.group) {
         const groupId = Number(route.query.group)

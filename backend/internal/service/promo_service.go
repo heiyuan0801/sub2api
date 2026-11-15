@@ -123,9 +123,10 @@ func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code st
 		return ErrPromoCodeAlreadyUsed
 	}
 
-	// 增加用户余额
-	if err := s.userRepo.UpdateBalance(txCtx, userID, promoCode.BonusAmount); err != nil {
-		return fmt.Errorf("update user balance: %w", err)
+	if promoCode.BonusAmount > 0 {
+		if err := s.userRepo.UpdateBalance(txCtx, userID, promoCode.BonusAmount); err != nil {
+			return fmt.Errorf("update user balance: %w", err)
+		}
 	}
 
 	// 创建使用记录
@@ -148,6 +149,9 @@ func (s *PromoService) ApplyPromoCode(ctx context.Context, userID int64, code st
 		return fmt.Errorf("commit transaction: %w", err)
 	}
 
+	if promoCode.BonusAmount == 0 {
+		return nil
+	}
 	s.invalidatePromoCaches(ctx, userID, promoCode.BonusAmount)
 
 	// 失效余额缓存

@@ -3,10 +3,13 @@
  * 用户侧「可用渠道」聚合查询：渠道 + 用户可访问的分组 + 支持模型（含定价）。
  */
 
+import type { CustomGroupDisplayTag, GroupDisplayTag } from '@/constants/groupDisplayTags'
 import { apiClient } from './client'
 import type { BillingMode } from '@/constants/channel'
 
 export interface UserAvailableGroup {
+  display_tags?: GroupDisplayTag[] | null
+  custom_display_tags?: CustomGroupDisplayTag[] | null
   id: number
   name: string
   platform: string

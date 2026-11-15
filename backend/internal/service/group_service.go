@@ -235,7 +235,7 @@ func (s *GroupService) Update(ctx context.Context, id int64, req UpdateGroupRequ
 		group.ImageRateMultiplier = *req.ImageRateMultiplier
 	}
 
-	if err := s.groupRepo.Update(ctx, group); err != nil {
+	if err := updateGroupRecord(ctx, s.groupRepo, group, false); err != nil {
 		return nil, fmt.Errorf("update group: %w", err)
 	}
 	if s.authCacheInvalidator != nil {

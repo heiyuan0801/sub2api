@@ -186,6 +186,7 @@
             required
             class="input"
           />
+          <p class="input-hint">{{ t('operations.zeroBonusHint') }}</p>
         </div>
         <div>
           <label class="input-label">
@@ -261,6 +262,7 @@
             required
             class="input"
           />
+          <p class="input-hint">{{ t('operations.zeroBonusHint') }}</p>
         </div>
         <div>
           <label class="input-label">

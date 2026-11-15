@@ -7,9 +7,11 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/group"
+	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
+	"github.com/shopspring/decimal"
 )
 
 // normalizePlanCurrency validates and normalizes the display-only currency label.
@@ -33,7 +35,7 @@ func validatePlanRequired(name string, groupID int64, price float64, validityDay
 	if groupID <= 0 {
 		return infraerrors.BadRequest("PLAN_GROUP_REQUIRED", "group is required")
 	}
-	if price <= 0 {
+	if !validPlanPrice(price) {
 		return infraerrors.BadRequest("PLAN_PRICE_INVALID", "price must be > 0")
 	}
 	if validityDays <= 0 {
@@ -56,7 +58,7 @@ func validatePlanPatch(req UpdatePlanRequest) error {
 	if req.GroupID != nil && *req.GroupID <= 0 {
 		return infraerrors.BadRequest("PLAN_GROUP_REQUIRED", "group is required")
 	}
-	if req.Price != nil && *req.Price <= 0 {
+	if req.Price != nil && !validPlanPrice(*req.Price) {
 		return infraerrors.BadRequest("PLAN_PRICE_INVALID", "price must be > 0")
 	}
 	if req.ValidityDays != nil && *req.ValidityDays <= 0 {
@@ -69,6 +71,14 @@ func validatePlanPatch(req UpdatePlanRequest) error {
 		return infraerrors.BadRequest("PLAN_ORIGINAL_PRICE_INVALID", "original price must be >= 0")
 	}
 	return nil
+}
+
+func validPlanPrice(value float64) bool {
+	if !(value >= 0.01 && value < 1e12) {
+		return false
+	}
+	amount := decimal.NewFromFloat(value)
+	return amount.Equal(amount.Round(2))
 }
 
 // --- Plan CRUD ---
@@ -129,11 +139,43 @@ func (s *PaymentConfigService) GetGroupInfoMap(ctx context.Context, plans []*dbe
 }
 
 func (s *PaymentConfigService) ListPlans(ctx context.Context) ([]*dbent.SubscriptionPlan, error) {
-	return s.entClient.SubscriptionPlan.Query().Order(subscriptionplan.BySortOrder()).All(ctx)
+	return s.entClient.SubscriptionPlan.Query().Order(subscriptionplan.BySortOrder(), subscriptionplan.ByID()).All(ctx)
 }
 
-func (s *PaymentConfigService) ListPlansForSale(ctx context.Context) ([]*dbent.SubscriptionPlan, error) {
-	return s.entClient.SubscriptionPlan.Query().Where(subscriptionplan.ForSaleEQ(true)).Order(subscriptionplan.BySortOrder()).All(ctx)
+func (s *PaymentConfigService) ListPlansForSale(ctx context.Context, userID int64) ([]*dbent.SubscriptionPlan, error) {
+	plans, err := s.entClient.SubscriptionPlan.Query().Where(subscriptionplan.ForSaleEQ(true)).
+		Order(subscriptionplan.BySortOrder(), subscriptionplan.ByID()).All(ctx)
+	if err != nil || len(plans) == 0 {
+		return plans, err
+	}
+	activeIDs := make([]int64, 0, len(plans))
+	var groups map[int64]bool
+	for _, plan := range plans {
+		activeIDs = append(activeIDs, plan.GroupID)
+		if groups == nil && plan.VisibilityScope == "groups" {
+			groups, err = planViewerGroups(ctx, s.entClient, userID)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	activeIDs, err = s.entClient.Group.Query().Where(
+		group.IDIn(activeIDs...), group.StatusEQ(StatusActive), group.SubscriptionTypeEQ(SubscriptionTypeSubscription),
+	).IDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+	activeGroups := make(map[int64]bool, len(activeIDs))
+	for _, id := range activeIDs {
+		activeGroups[id] = true
+	}
+	result := make([]*dbent.SubscriptionPlan, 0, len(plans))
+	for _, plan := range plans {
+		if activeGroups[plan.GroupID] && canSeePaymentPlan(plan, userID, groups) {
+			result = append(result, plan)
+		}
+	}
+	return result, nil
 }
 
 func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanRequest) (*dbent.SubscriptionPlan, error) {
@@ -144,11 +186,20 @@ func (s *PaymentConfigService) CreatePlan(ctx context.Context, req CreatePlanReq
 	if err != nil {
 		return nil, err
 	}
+	presentation, err := normalizePlanPresentation(ctx, s.entClient, req.PlanPresentation)
+	if err != nil {
+		return nil, err
+	}
+	if err := validatePlanGroup(ctx, s.entClient, req.GroupID); err != nil {
+		return nil, err
+	}
 	b := s.entClient.SubscriptionPlan.Create().
 		SetGroupID(req.GroupID).SetName(req.Name).SetDescription(req.Description).
 		SetPrice(req.Price).SetCurrency(currency).SetValidityDays(req.ValidityDays).SetValidityUnit(req.ValidityUnit).
 		SetFeatures(req.Features).SetProductName(req.ProductName).
-		SetForSale(req.ForSale).SetSortOrder(req.SortOrder)
+		SetForSale(req.ForSale).SetSortOrder(req.SortOrder).
+		SetDisplayTags(presentation.DisplayTags).SetVisibilityScope(presentation.VisibilityScope).
+		SetVisibilityUserIds(presentation.VisibilityUserIDs).SetVisibilityGroupIds(presentation.VisibilityGroupIDs)
 	if req.OriginalPrice != nil {
 		b.SetOriginalPrice(*req.OriginalPrice)
 	}
@@ -162,8 +213,23 @@ func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req Upd
 	if err := validatePlanPatch(req); err != nil {
 		return nil, err
 	}
-	u := s.entClient.SubscriptionPlan.UpdateOneID(id)
+	tx, err := s.entClient.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	client := tx.Client()
+	current, err := lockPlan(ctx, client, id)
+	if err != nil {
+		return nil, err
+	}
+	u := client.SubscriptionPlan.UpdateOneID(id)
 	if req.GroupID != nil {
+		if *req.GroupID != current.GroupID {
+			if err := validatePlanGroup(ctx, client, *req.GroupID); err != nil {
+				return nil, err
+			}
+		}
 		u.SetGroupID(*req.GroupID)
 	}
 	if req.Name != nil {
@@ -203,11 +269,57 @@ func (s *PaymentConfigService) UpdatePlan(ctx context.Context, id int64, req Upd
 	if req.SortOrder != nil {
 		u.SetSortOrder(*req.SortOrder)
 	}
-	return u.Save(ctx)
+	if req.DisplayTags != nil || req.VisibilityScope != nil || req.VisibilityUserIDs != nil || req.VisibilityGroupIDs != nil {
+		meta := PlanPresentationFromPlan(current)
+		if req.DisplayTags != nil {
+			meta.DisplayTags = *req.DisplayTags
+		}
+		if req.VisibilityScope != nil {
+			meta.VisibilityScope = *req.VisibilityScope
+		}
+		if req.VisibilityUserIDs != nil {
+			meta.VisibilityUserIDs = *req.VisibilityUserIDs
+		}
+		if req.VisibilityGroupIDs != nil {
+			meta.VisibilityGroupIDs = *req.VisibilityGroupIDs
+		}
+		meta, err = normalizePlanPresentation(ctx, client, meta)
+		if err != nil {
+			return nil, err
+		}
+		u.SetDisplayTags(meta.DisplayTags).SetVisibilityScope(meta.VisibilityScope).
+			SetVisibilityUserIds(meta.VisibilityUserIDs).SetVisibilityGroupIds(meta.VisibilityGroupIDs)
+	}
+	result, err := u.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if current.Price != result.Price {
+		if err := ensureNoPendingPlanPrice(ctx, client, id); err != nil {
+			return nil, err
+		}
+		if _, err := insertPlanPriceChange(ctx, client, current, result.Price, strings.TrimSpace(req.PriceReason), req.ActorID, nil); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return result.Unwrap(), nil
 }
 
-func (s *PaymentConfigService) DeletePlan(ctx context.Context, id int64) error {
-	count, err := s.countPendingOrdersByPlan(ctx, id)
+func (s *PaymentConfigService) DeletePlan(ctx context.Context, id, actorID int64) error {
+	tx, err := s.entClient.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	client := tx.Client()
+	if _, err := lockPlan(ctx, client, id); err != nil {
+		return err
+	}
+	count, err := client.PaymentOrder.Query().
+		Where(paymentorder.PlanIDEQ(id), paymentorder.StatusIn(pendingOrderStatuses...)).Count(ctx)
 	if err != nil {
 		return fmt.Errorf("check pending orders: %w", err)
 	}
@@ -215,7 +327,21 @@ func (s *PaymentConfigService) DeletePlan(ctx context.Context, id int64) error {
 		return infraerrors.Conflict("PENDING_ORDERS",
 			fmt.Sprintf("this plan has %d in-progress orders and cannot be deleted — wait for orders to complete first", count))
 	}
-	return s.entClient.SubscriptionPlan.DeleteOneID(id).Exec(ctx)
+	if _, err := client.ExecContext(ctx, "UPDATE subscription_plan_price_changes SET status='cancelled', cancelled_by=$2, resolved_at=now() WHERE plan_id=$1 AND status='pending'", id, actorID); err != nil {
+		return err
+	}
+	if err := client.SubscriptionPlan.DeleteOneID(id).Exec(ctx); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func validatePlanGroup(ctx context.Context, client *dbent.Client, id int64) error {
+	exists, err := client.Group.Query().Where(group.IDEQ(id), group.SubscriptionTypeEQ(SubscriptionTypeSubscription)).Exist(ctx)
+	if err == nil && !exists {
+		return infraerrors.BadRequest("GROUP_TYPE_MISMATCH", "a subscription group is required")
+	}
+	return err
 }
 
 // GetPlan returns a subscription plan by ID.

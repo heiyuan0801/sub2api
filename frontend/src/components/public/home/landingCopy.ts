@@ -1,0 +1,73 @@
+import { isLocaleCode, type LocaleCode } from '@/i18n/localeConfig'
+
+const copy = {
+  en: {
+    title: ['One API', 'for your models and providers,', 'with routing, usage, and billing'],
+    description: 'Connect to AI models through a unified gateway. Manage API keys, track usage and costs, and switch models from the same integration.',
+    guide: 'Explore the unified API',
+    getKey: 'Get My API Key',
+    billingModes: 'Billing modes',
+    stats: 'Models and groups available to you.',
+    products: 'Products',
+    resources: 'Resources',
+    pricing: 'Pricing',
+    faq: 'Common questions',
+    systemTheme: 'System theme',
+  },
+  zh: {
+    title: ['一个 API', '接入多家模型厂商', '统一管理调用、密钥和用量'],
+    description: '通过一个网关接入不同厂商的 AI 模型，集中管理 API 密钥，查看每次请求的用量与费用，并按需切换模型。',
+    guide: '了解统一 API 接入',
+    getKey: '获取我的 API 密钥',
+    billingModes: '计费方式',
+    stats: '当前可用的模型和分组。',
+    products: '产品',
+    resources: '资源',
+    pricing: '定价',
+    faq: '常见问题',
+    systemTheme: '跟随系统主题',
+  },
+  'zh-TW': {
+    title: ['一個 API', '串接多家模型供應商', '統一管理呼叫、金鑰和用量'],
+    description: '透過同一個閘道串接不同供應商的 AI 模型，集中管理 API 金鑰，查看每次請求的用量與費用，並按需切換模型。',
+    guide: '了解統一 API 串接',
+    getKey: '取得我的 API 金鑰',
+    billingModes: '計費方式',
+    stats: '目前可用的模型與群組。',
+    products: '產品',
+    resources: '資源',
+    pricing: '定價',
+    faq: '常見問題',
+    systemTheme: '跟隨系統主題',
+  },
+  ja: {
+    title: ['ひとつの API で', '複数の AI モデルに接続', 'リクエスト、キー、使用量を一元管理'],
+    description: 'ひとつのゲートウェイで複数のプロバイダーの AI モデルに接続し、API キー、リクエストの使用量、コストをまとめて管理できます。',
+    guide: '統合 API の使い方',
+    getKey: 'API キーを取得',
+    billingModes: '課金方式',
+    stats: '現在利用できるモデルとグループ。',
+    products: '製品',
+    resources: 'リソース',
+    pricing: '料金',
+    faq: 'よくある質問',
+    systemTheme: 'システム設定に合わせる',
+  },
+  ko: {
+    title: ['하나의 API로', '여러 AI 모델에 연결하고', '요청, 키 및 사용량을 한곳에서 관리'],
+    description: '단일 게이트웨이에서 여러 제공자의 AI 모델을 연결하고 API 키를 관리하세요. 요청별 사용량과 비용을 확인하고 필요에 따라 모델을 전환할 수 있습니다.',
+    guide: '통합 API 알아보기',
+    getKey: '내 API 키 받기',
+    billingModes: '과금 방식',
+    stats: '현재 사용할 수 있는 모델과 그룹입니다.',
+    products: '제품',
+    resources: '리소스',
+    pricing: '요금',
+    faq: '자주 묻는 질문',
+    systemTheme: '시스템 테마 사용',
+  },
+} satisfies Record<LocaleCode, Record<string, string | string[]>>
+
+export function landingCopy(locale: string) {
+  return copy[isLocaleCode(locale) ? locale : 'en']
+}

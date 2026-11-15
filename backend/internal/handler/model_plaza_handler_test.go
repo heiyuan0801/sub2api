@@ -19,8 +19,8 @@ import (
 
 func plazaGroups() []service.PlazaGroup {
 	return []service.PlazaGroup{
-		{ID: 1, Name: "public-standard", Platform: "anthropic", SubscriptionType: "standard", RateMultiplier: 1},
-		{ID: 2, Name: "exclusive-a", Platform: "anthropic", IsExclusive: true, RateMultiplier: 0.5},
+		{ID: 1, Name: "public-standard", Platform: "anthropic", SubscriptionType: "standard", RateMultiplier: 1, DisplayTags: []string{"recommended"}},
+		{ID: 2, Name: "exclusive-a", Platform: "anthropic", IsExclusive: true, RateMultiplier: 0.5, DisplayTags: []string{"popular"}},
 		{ID: 3, Name: "public-subscription", Platform: "openai", SubscriptionType: "subscription", RateMultiplier: 1},
 		{ID: 4, Name: "exclusive-b", Platform: "openai", IsExclusive: true, RateMultiplier: 0.8},
 	}
@@ -32,6 +32,9 @@ func TestFilterPlazaVisibleGroups_AnonymousSeesOnlyNonExclusive(t *testing.T) {
 	require.Len(t, visible, 2)
 	ids := []int64{visible[0].ID, visible[1].ID}
 	require.ElementsMatch(t, []int64{1, 3}, ids)
+	projected := toLocalizedModelPlazaGroups(visible, nil, "")
+	require.Equal(t, []string{"recommended"}, projected[0].DisplayTags)
+	require.Equal(t, []string{}, projected[1].DisplayTags)
 }
 
 func TestFilterPlazaVisibleGroups_AuthedSeesGrantedExclusive(t *testing.T) {
@@ -266,10 +269,17 @@ func TestFilterPlazaVisibleGroups_SubscribedExclusiveGroup(t *testing.T) {
 	}
 }
 
-type plazaVarySettingRepo struct{ service.SettingRepository }
+type plazaVarySettingRepo struct {
+	service.SettingRepository
+	requireAuth bool
+}
 
-func (plazaVarySettingRepo) GetMultiple(context.Context, []string) (map[string]string, error) {
-	return map[string]string{service.SettingKeyModelPlazaEnabled: "true"}, nil
+func (r plazaVarySettingRepo) GetMultiple(context.Context, []string) (map[string]string, error) {
+	settings := map[string]string{service.SettingKeyModelPlazaEnabled: "true"}
+	if r.requireAuth {
+		settings[service.SettingKeyModelPlazaRequireAuth] = "true"
+	}
+	return settings, nil
 }
 
 type plazaVaryChannelRepo struct{ service.ChannelRepository }
@@ -286,6 +296,7 @@ func TestModelPlazaHandler_VaryKeepsCORSOrigin(t *testing.T) {
 		service.NewModelPlazaService(plazaVaryChannelRepo{}, plazaVaryGroupRepo{}, nil, nil, nil),
 		nil,
 		service.NewSettingService(plazaVarySettingRepo{}, &config.Config{}),
+		nil,
 	)
 	r := gin.New()
 	r.Use(middleware.CORS(config.CORSConfig{AllowedOrigins: []string{"https://a.example", "https://b.example"}}))
@@ -303,5 +314,38 @@ func TestModelPlazaHandler_VaryKeepsCORSOrigin(t *testing.T) {
 		require.Equal(t, origin, w.Header().Get("Access-Control-Allow-Origin"))
 		// 共享缓存需同时按来源与语言区分，否则 A 来源的响应可能被复用给 B。
 		require.Equal(t, []string{"Origin", "Accept-Language"}, w.Header().Values("Vary"))
+	}
+}
+
+func TestModelPlazaPerformanceAccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	tests := []struct {
+		name     string
+		settings *service.SettingService
+		query    string
+		want     int
+	}{
+		{"disabled", nil, "?model=test&platform=openai", http.StatusNotFound},
+		{"authentication required", service.NewSettingService(plazaVarySettingRepo{requireAuth: true}, &config.Config{}), "?model=test&platform=openai", http.StatusUnauthorized},
+		{"missing platform", service.NewSettingService(plazaVarySettingRepo{}, &config.Config{}), "?model=test", http.StatusBadRequest},
+		{"invalid range", service.NewSettingService(plazaVarySettingRepo{}, &config.Config{}), "?model=test&platform=openai&range=90d", http.StatusBadRequest},
+		{"invalid group", service.NewSettingService(plazaVarySettingRepo{}, &config.Config{}), "?model=test&platform=openai&group_id=-1", http.StatusBadRequest},
+		{"model not listed", service.NewSettingService(plazaVarySettingRepo{}, &config.Config{}), "?model=test&platform=openai", http.StatusNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			h := NewModelPlazaHandler(
+				service.NewModelPlazaService(plazaVaryChannelRepo{}, plazaVaryGroupRepo{}, nil, nil, nil),
+				nil,
+				tc.settings,
+				service.NewChannelMonitorV2Service(nil),
+			)
+			router := gin.New()
+			router.GET("/api/v1/model-plaza/performance", h.Performance)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/model-plaza/performance"+tc.query, nil))
+			require.Equal(t, tc.want, w.Code, w.Body.String())
+			require.Equal(t, "private, no-store", w.Header().Get("Cache-Control"))
+		})
 	}
 }

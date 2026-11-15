@@ -12,10 +12,18 @@ import publicSite from './publicSite'
 import publicHome from './publicHome'
 import rewards from './rewards'
 import docs from './docs'
+import operations from './operations'
+import planOps from './planOps'
 
 import cluster from './cluster'
 
 export default {
+  ...planOps,
+  seo: {
+    home: { title: 'AI 模型 API 网关', description: '通过统一 API 接入 AI 模型，查看模型定价和接入指南。' },
+    market: { title: '模型市场', description: '按分组比较 AI 模型的输入、输出和缓存价格。' },
+    docs: { title: 'API 文档', description: '查看 AI API 接入、客户端配置和 API 密钥管理指南。' },
+  },
   ...design,
   ...cluster,
   adminAccessKeys,
@@ -31,4 +39,5 @@ export default {
   ...publicHome,
   rewards,
   docs,
+  operations,
 }

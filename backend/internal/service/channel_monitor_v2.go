@@ -83,9 +83,12 @@ type ChannelMonitorV2Filter struct {
 	AllowedGroupIDs []int64
 	RestrictGroups  bool
 	Models          []string
-	Start           time.Time
-	End             time.Time
-	Bucket          time.Duration
+	// ExactModel opts a model-specific query into SQL filtering by the same
+	// case-insensitive identity as Models.
+	ExactModel string
+	Start      time.Time
+	End        time.Time
+	Bucket     time.Duration
 	// Catalog is the server-scoped group directory used to seed models without
 	// traffic. Nil means no catalog reader was installed (standalone callers).
 	Catalog []PlazaGroup
@@ -347,6 +350,7 @@ type ChannelMonitorV2Repository interface {
 	GetSnapshot(ctx context.Context, filter ChannelMonitorV2Filter, config ChannelMonitorV2Config, includeAdmin bool) (*ChannelMonitorV2Snapshot, error)
 	GetModels(ctx context.Context, filter ChannelMonitorV2Filter, config ChannelMonitorV2Config, includeAdmin bool) (*ChannelMonitorV2List[ChannelMonitorV2ModelRow], error)
 	GetMatrix(ctx context.Context, filter ChannelMonitorV2Filter, config ChannelMonitorV2Config, groupBy ChannelMonitorV2GroupBy, includeAdmin bool) (*ChannelMonitorV2Matrix, error)
+	GetModelPerformance(ctx context.Context, filter ChannelMonitorV2Filter, config ChannelMonitorV2Config) (PlazaPerformanceFacts, error)
 	// GetErrors loads category rates. When includeAdmin is false, implementations
 	// must omit error Details (no ops_error_logs sample scan) for privacy.
 	GetErrors(ctx context.Context, filter ChannelMonitorV2Filter, config ChannelMonitorV2Config, includeAdmin bool) (*ChannelMonitorV2List[ChannelMonitorV2ErrorRow], error)

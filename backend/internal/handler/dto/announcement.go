@@ -13,7 +13,13 @@ type Announcement struct {
 	Status     string `json:"status"`
 	NotifyMode string `json:"notify_mode"`
 
-	Targeting service.AnnouncementTargeting `json:"targeting"`
+	Targeting      service.AnnouncementTargeting `json:"targeting"`
+	Kind           string                        `json:"kind,omitempty"`
+	PlanID         *int64                        `json:"plan_id,omitempty"`
+	GroupID        *int64                        `json:"group_id,omitempty"`
+	GroupName      string                        `json:"group_name,omitempty"`
+	Audience       *service.AnnouncementAudience `json:"audience,omitempty"`
+	DeliveryStatus string                        `json:"delivery_status,omitempty"`
 
 	StartsAt *time.Time `json:"starts_at,omitempty"`
 	EndsAt   *time.Time `json:"ends_at,omitempty"`
@@ -30,6 +36,11 @@ type UserAnnouncement struct {
 	Title      string `json:"title"`
 	Content    string `json:"content"`
 	NotifyMode string `json:"notify_mode"`
+	Kind       string `json:"kind,omitempty"`
+	PlanID     *int64 `json:"plan_id,omitempty"`
+	GroupID    *int64 `json:"group_id,omitempty"`
+	GroupName  string `json:"group_name,omitempty"`
+	ActionURL  string `json:"action_url,omitempty"`
 
 	StartsAt *time.Time `json:"starts_at,omitempty"`
 	EndsAt   *time.Time `json:"ends_at,omitempty"`
@@ -60,15 +71,34 @@ func AnnouncementFromService(a *service.Announcement) *Announcement {
 	}
 }
 
+func (a *Announcement) ApplyPublication(p service.AnnouncementPublication) {
+	a.Kind = p.Kind
+	a.PlanID = p.PlanID
+	a.GroupID = p.GroupID
+	a.GroupName = p.GroupName
+	a.Audience = &p.Audience
+	a.DeliveryStatus = p.DeliveryStatus
+	a.Targeting = service.AnnouncementTargeting{}
+}
+
 func UserAnnouncementFromService(a *service.UserAnnouncement) *UserAnnouncement {
 	if a == nil {
 		return nil
+	}
+	var actionGroupID *int64
+	if a.GroupActionAvailable {
+		actionGroupID = a.GroupID
 	}
 	return &UserAnnouncement{
 		ID:         a.Announcement.ID,
 		Title:      a.Announcement.Title,
 		Content:    a.Announcement.Content,
 		NotifyMode: a.Announcement.NotifyMode,
+		Kind:       a.Kind,
+		PlanID:     a.PlanID,
+		GroupID:    a.GroupID,
+		GroupName:  a.GroupName,
+		ActionURL:  service.AnnouncementActionURL(a.PlanID, actionGroupID),
 		StartsAt:   a.Announcement.StartsAt,
 		EndsAt:     a.Announcement.EndsAt,
 		ReadAt:     a.ReadAt,

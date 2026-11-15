@@ -2,6 +2,7 @@
  * Admin Announcements API endpoints
  */
 
+import type { NotificationDelivery, NotificationStats } from '@/types/operations'
 import { apiClient } from '../client'
 import type {
   Announcement,
@@ -74,13 +75,43 @@ export async function getReadStatus(
   return data
 }
 
+export async function publish(id: number, startsAt?: number): Promise<Announcement> {
+  const { data } = await apiClient.post<Announcement>(`/admin/announcements/${id}/publish`, { starts_at: startsAt })
+  return data
+}
+
+async function withdraw(id: number): Promise<void> {
+  await apiClient.post(`/admin/announcements/${id}/withdraw`)
+}
+
+async function retry(id: number): Promise<void> {
+  await apiClient.post(`/admin/announcements/${id}/retry`)
+}
+
+async function stats(id: number, signal?: AbortSignal): Promise<NotificationStats> {
+  const { data } = await apiClient.get<NotificationStats>(`/admin/announcements/${id}/stats`, { signal })
+  return data
+}
+
+async function deliveries(id: number, page: number, pageSize: number, signal?: AbortSignal) {
+  const { data } = await apiClient.get<BasePaginationResponse<NotificationDelivery>>(`/admin/announcements/${id}/deliveries`, {
+    params: { page, page_size: pageSize }, signal,
+  })
+  return data
+}
+
 const announcementsAPI = {
   list,
   getById,
   create,
   update,
   delete: deleteAnnouncement,
-  getReadStatus
+  getReadStatus,
+  publish,
+  withdraw,
+  retry,
+  stats,
+  deliveries
 }
 
 export default announcementsAPI

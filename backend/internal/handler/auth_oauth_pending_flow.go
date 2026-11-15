@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -66,16 +67,17 @@ type bindPendingOAuthLoginRequest struct {
 }
 
 type createPendingOAuthAccountRequest struct {
-	Email                 string `json:"email" binding:"required,email"`
-	VerifyCode            string `json:"verify_code,omitempty"`
-	Password              string `json:"password" binding:"required,min=6"`
-	TurnstileToken        string `json:"turnstile_token,omitempty"`
-	TencentCaptchaTicket  string `json:"tencent_captcha_ticket,omitempty"`
-	TencentCaptchaRandstr string `json:"tencent_captcha_randstr,omitempty"`
-	InvitationCode        string `json:"invitation_code,omitempty"`
-	AffCode               string `json:"aff_code,omitempty"`
-	AdoptDisplayName      *bool  `json:"adopt_display_name,omitempty"`
-	AdoptAvatar           *bool  `json:"adopt_avatar,omitempty"`
+	Email                   string          `json:"email" binding:"required,email"`
+	VerifyCode              string          `json:"verify_code,omitempty"`
+	Password                string          `json:"password" binding:"required,min=6"`
+	TurnstileToken          string          `json:"turnstile_token,omitempty"`
+	TencentCaptchaTicket    string          `json:"tencent_captcha_ticket,omitempty"`
+	TencentCaptchaRandstr   string          `json:"tencent_captcha_randstr,omitempty"`
+	InvitationCode          string          `json:"invitation_code,omitempty"`
+	AffCode                 string          `json:"aff_code,omitempty"`
+	RegistrationAttribution json.RawMessage `json:"registration_attribution,omitempty"`
+	AdoptDisplayName        *bool           `json:"adopt_display_name,omitempty"`
+	AdoptAvatar             *bool           `json:"adopt_avatar,omitempty"`
 }
 
 type sendPendingOAuthVerifyCodeRequest struct {
@@ -242,6 +244,12 @@ func (h *AuthHandler) createOAuthPendingSession(c *gin.Context, payload oauthPen
 	}
 	if promoCode := readOAuthPromoCode(c); promoCode != "" {
 		localFlowState[oauthPromoCodeStateKey] = promoCode
+	}
+	if raw := readOAuthRegistrationAttribution(c); raw != "" {
+		attribution := service.ParseRegistrationAttribution([]byte(raw))
+		if attribution != (service.RegistrationAttribution{}) {
+			localFlowState[oauthRegistrationAttributionKey] = raw
+		}
 	}
 
 	session, err := svc.CreatePendingSession(c.Request.Context(), service.CreatePendingAuthSessionInput{
@@ -1767,7 +1775,7 @@ func (h *AuthHandler) createPendingOAuthAccount(c *gin.Context, provider string)
 	}
 
 	tokenPair, user, err := h.authService.RegisterOAuthEmailAccount(
-		c.Request.Context(),
+		oauthRegistrationContext(c, session, req.RegistrationAttribution),
 		email,
 		req.Password,
 		strings.TrimSpace(req.VerifyCode),

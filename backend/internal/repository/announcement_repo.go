@@ -203,6 +203,11 @@ func (r *announcementRepository) ListActive(ctx context.Context, now time.Time) 
 			announcement.StatusEQ(service.AnnouncementStatusActive),
 			announcement.Or(announcement.StartsAtIsNil(), announcement.StartsAtLTE(now)),
 			announcement.Or(announcement.EndsAtIsNil(), announcement.EndsAtGT(now)),
+			func(s *entsql.Selector) {
+				publications := entsql.Table("announcement_publications")
+				s.Where(entsql.NotExists(entsql.Select(publications.C("announcement_id")).From(publications).
+					Where(entsql.ColumnsEQ(publications.C("announcement_id"), s.C(announcement.FieldID)))))
+			},
 		).
 		Order(dbent.Desc(announcement.FieldID)).
 		Limit(200)

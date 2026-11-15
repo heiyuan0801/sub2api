@@ -147,6 +147,7 @@ func (h *AuthHandler) OIDCOAuthStart(c *gin.Context) {
 	intent := normalizeOAuthIntent(c.Query("intent"))
 	oidcSetCookie(c, oidcOAuthIntentCookieName, encodeCookieValue(intent), oidcOAuthCookieMaxAgeSec, secureCookie)
 	captureOAuthPromoCode(c, secureCookie)
+	captureOAuthRegistrationAttribution(c, secureCookie)
 	setOAuthPendingBrowserCookie(c, browserSessionKey, secureCookie)
 	clearOAuthPendingSessionCookie(c, secureCookie)
 	if intent == oauthIntentBindCurrentUser {
@@ -231,6 +232,7 @@ func (h *AuthHandler) OIDCOAuthCallback(c *gin.Context) {
 		oidcClearCookie(c, oidcOAuthIntentCookieName, secureCookie)
 		oidcClearCookie(c, oidcOAuthBindUserCookieName, secureCookie)
 		clearOAuthPromoCodeCookie(c, secureCookie)
+		clearOAuthRegistrationAttribution(c, secureCookie)
 	}()
 
 	expectedState, err := readCookieDecoded(c, oidcOAuthStateCookieName)
@@ -691,7 +693,7 @@ func (h *AuthHandler) CompleteOIDCOAuthRegistration(c *gin.Context) {
 		return
 	}
 	tokenPair, user, err := h.authService.LoginOrRegisterOAuthWithTokenPairAndPromoCode(
-		c.Request.Context(),
+		oauthRegistrationContext(c, session, nil),
 		email,
 		username,
 		req.InvitationCode,
@@ -1272,7 +1274,7 @@ func (h *AuthHandler) tryOIDCVerifiedEmailFastPath(
 		UpstreamMetadata: upstreamMetadata,
 	}
 	tokenPair, _, err := h.authService.LoginOrRegisterVerifiedEmailOAuthWithSignupCodes(
-		ctx,
+		oauthRegistrationContext(c, nil, nil),
 		input,
 		"",
 		"",

@@ -7,6 +7,7 @@ import (
 	"testing/fstest"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
+	"github.com/Wei-Shaw/sub2api/migrations"
 	"github.com/stretchr/testify/require"
 )
 
@@ -345,6 +346,37 @@ CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS idx_scheduler_outbox_pending_dedu
 
 	err = applyMigrationsFS(context.Background(), db, fsys)
 	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestApplyMigrationsFS_UsersRegistrationReportIndexMigration_DropsInvalidIndexBeforeRetry(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	content, err := migrations.FS.ReadFile(usersRegistrationReportIndexMigration)
+	require.NoError(t, err)
+
+	prepareMigrationsBootstrapExpectations(mock)
+	mock.ExpectQuery("SELECT checksum FROM schema_migrations WHERE filename = \\$1").
+		WithArgs(usersRegistrationReportIndexMigration).
+		WillReturnError(sql.ErrNoRows)
+	mock.ExpectQuery("SELECT EXISTS \\(").
+		WithArgs(usersRegistrationReportIndex).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	mock.ExpectExec("DROP INDEX CONCURRENTLY IF EXISTS idx_users_registration_report").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_registration_report").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("INSERT INTO schema_migrations \\(filename, checksum\\) VALUES \\(\\$1, \\$2\\)").
+		WithArgs(usersRegistrationReportIndexMigration, sqlmock.AnyArg()).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectExec("SELECT pg_advisory_unlock\\(\\$1\\)").
+		WithArgs(migrationsAdvisoryLockID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	fsys := fstest.MapFS{usersRegistrationReportIndexMigration: {Data: content}}
+	require.NoError(t, applyMigrationsFS(context.Background(), db, fsys))
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 

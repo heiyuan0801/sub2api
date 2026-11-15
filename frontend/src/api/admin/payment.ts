@@ -9,6 +9,8 @@ import type {
   PaymentOrder,
   PaymentChannel,
   SubscriptionPlan,
+  PlanPriceChange,
+  PlanPriceChangeRequest,
   ProviderInstance
 } from '@/types/payment'
 import type { BasePaginationResponse } from '@/types'
@@ -167,6 +169,24 @@ export const adminPaymentAPI = {
   /** Delete a subscription plan */
   deletePlan(id: number) {
     return apiClient.delete(`/admin/payment/plans/${id}`)
+  },
+
+  reorderPlans(ids: number[]) {
+    return apiClient.put('/admin/payment/plans/sort', { ids })
+  },
+
+  changePlanPrice(id: number, data: PlanPriceChangeRequest) {
+    return apiClient.post<PlanPriceChange>(`/admin/payment/plans/${id}/price-changes`, data)
+  },
+
+  listPlanPriceChanges(planId?: number, beforeId?: number) {
+    return apiClient.get<PlanPriceChange[]>('/admin/payment/plans/price-changes', {
+      params: { plan_id: planId, before_id: beforeId },
+    })
+  },
+
+  cancelPlanPriceChange(id: number) {
+    return apiClient.post(`/admin/payment/plans/price-changes/${id}/cancel`)
   },
 
   // ==================== Provider Instances ====================

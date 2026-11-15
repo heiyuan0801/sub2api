@@ -6,6 +6,7 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
+	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 	"github.com/Wei-Shaw/sub2api/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -290,6 +291,7 @@ func (h *PaymentHandler) ListPlans(c *gin.Context) {
 }
 
 type AdminSubscriptionPlanResult struct {
+	service.PlanPresentation
 	ID              int64     `json:"id"`
 	GroupID         int64     `json:"group_id"`
 	GroupPlatform   string    `json:"group_platform,omitempty"`
@@ -322,28 +324,29 @@ func adminSubscriptionPlansForResponse(plans []*dbent.SubscriptionPlan, groupInf
 		}
 		gi := groupInfo[p.GroupID]
 		result = append(result, AdminSubscriptionPlanResult{
-			ID:              int64(p.ID),
-			GroupID:         p.GroupID,
-			GroupPlatform:   gi.Platform,
-			GroupName:       gi.Name,
-			RateMultiplier:  gi.RateMultiplier,
-			DailyLimitUSD:   gi.DailyLimitUSD,
-			WeeklyLimitUSD:  gi.WeeklyLimitUSD,
-			MonthlyLimitUSD: gi.MonthlyLimitUSD,
-			ModelScopes:     gi.ModelScopes,
-			Name:            p.Name,
-			Description:     p.Description,
-			Price:           p.Price,
-			OriginalPrice:   p.OriginalPrice,
-			Currency:        p.Currency,
-			ValidityDays:    p.ValidityDays,
-			ValidityUnit:    p.ValidityUnit,
-			Features:        p.Features,
-			ProductName:     p.ProductName,
-			ForSale:         p.ForSale,
-			SortOrder:       p.SortOrder,
-			CreatedAt:       p.CreatedAt,
-			UpdatedAt:       p.UpdatedAt,
+			PlanPresentation: service.PlanPresentationFromPlan(p),
+			ID:               int64(p.ID),
+			GroupID:          p.GroupID,
+			GroupPlatform:    gi.Platform,
+			GroupName:        gi.Name,
+			RateMultiplier:   gi.RateMultiplier,
+			DailyLimitUSD:    gi.DailyLimitUSD,
+			WeeklyLimitUSD:   gi.WeeklyLimitUSD,
+			MonthlyLimitUSD:  gi.MonthlyLimitUSD,
+			ModelScopes:      gi.ModelScopes,
+			Name:             p.Name,
+			Description:      p.Description,
+			Price:            p.Price,
+			OriginalPrice:    p.OriginalPrice,
+			Currency:         p.Currency,
+			ValidityDays:     p.ValidityDays,
+			ValidityUnit:     p.ValidityUnit,
+			Features:         p.Features,
+			ProductName:      p.ProductName,
+			ForSale:          p.ForSale,
+			SortOrder:        p.SortOrder,
+			CreatedAt:        p.CreatedAt,
+			UpdatedAt:        p.UpdatedAt,
 		})
 	}
 	return result
@@ -377,6 +380,8 @@ func (h *PaymentHandler) UpdatePlan(c *gin.Context) {
 		response.BadRequest(c, "Invalid request: "+err.Error())
 		return
 	}
+	actor, _ := middleware.GetAuthSubjectFromContext(c)
+	req.ActorID = actor.UserID
 	plan, err := h.configService.UpdatePlan(c.Request.Context(), id, req)
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -392,7 +397,8 @@ func (h *PaymentHandler) DeletePlan(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := h.configService.DeletePlan(c.Request.Context(), id); err != nil {
+	actor, _ := middleware.GetAuthSubjectFromContext(c)
+	if err := h.configService.DeletePlan(c.Request.Context(), id, actor.UserID); err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}

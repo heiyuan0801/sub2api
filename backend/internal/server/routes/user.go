@@ -130,7 +130,13 @@ func RegisterUserRoutes(
 		announcements := authenticated.Group("/announcements")
 		{
 			announcements.GET("", h.Announcement.List)
+			announcements.GET("/history", h.Announcement.History)
+			announcements.GET("/preferences", h.Announcement.Preferences)
+			announcements.PUT("/preferences/:group_id", h.Announcement.UpdatePreference)
+			announcements.GET("/:id", h.Announcement.GetByID)
+			announcements.POST("/read-all", h.Announcement.MarkAllRead)
 			announcements.POST("/:id/read", h.Announcement.MarkRead)
+			announcements.POST("/:id/click", h.Announcement.Click)
 		}
 
 		// 卡密兑换

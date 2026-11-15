@@ -58,10 +58,18 @@
                 <span class="text-gray-300 dark:text-dark-700">·</span>
                 <span>{{ formatDateTime(row.created_at) }}</span>
               </div>
+              <div v-if="row.group_id && !row.plan_id" class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <Icon name="creditCard" size="xs" aria-hidden="true" />
+                <span class="truncate">{{ row.group_name || `${t('operations.standardBalanceGroup')} #${row.group_id}` }}</span>
+              </div>
             </div>
           </template>
 
-          <template #cell-status="{ value }">
+          <template #cell-kind="{ row }">
+            <NotificationKindBadge :kind="row.kind" />
+          </template>
+
+          <template #cell-status="{ value, row }">
             <span
               :class="[
                 'badge',
@@ -72,7 +80,7 @@
                     : 'badge-warning'
               ]"
             >
-              {{ statusLabel(value) }}
+              {{ row.delivery_status ? t(`operations.deliveryStates.${row.delivery_status}`, row.delivery_status) : statusLabel(value) }}
             </span>
           </template>
 
@@ -91,7 +99,7 @@
 
           <template #cell-targeting="{ row }">
             <span class="text-sm text-gray-600 dark:text-gray-300">
-              {{ targetingSummary(row.targeting) }}
+              {{ row.audience ? t(`operations.audienceModes.${row.audience.mode}`) : targetingSummary(row.targeting) }}
             </span>
           </template>
 
@@ -129,6 +137,28 @@
                 <Icon name="chartBar" size="sm" />
               </button>
               <button
+                v-if="row.kind && row.delivery_status === 'draft'"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="actionBusy"
+                @click="openPublish(row)"
+              >{{ t('operations.publish') }}</button>
+              <button
+                v-if="row.kind && ['queued', 'published', 'failed'].includes(row.delivery_status)"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="actionBusy"
+                @click="withdrawingNotice = row"
+              >{{ t('operations.withdraw') }}</button>
+              <button
+                v-if="row.kind && row.delivery_status === 'failed'"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="actionBusy"
+                @click="retryDelivery(row)"
+              >{{ t('operations.retryDelivery') }}</button>
+              <button
+                v-if="row.delivery_status !== 'withdrawn'"
                 @click="openEditDialog(row)"
                 class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-dark-600 dark:hover:text-gray-300"
                 :title="t('common.edit')"
@@ -187,7 +217,13 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
+          <div v-if="form.kind">
+            <label for="notice-kind" class="input-label">{{ t('operations.notificationKind') }}</label>
+            <select id="notice-kind" v-model="form.kind" class="input" :disabled="publishedFieldsLocked" @change="resetIrrelevantTarget">
+              <option v-for="kind in kinds" :key="kind" :value="kind">{{ t(`operations.kind.${kind}`) }}</option>
+            </select>
+          </div>
+          <div v-else>
             <label class="input-label">{{ t('admin.announcements.form.status') }}</label>
             <Select v-model="form.status" :options="statusOptions" />
           </div>
@@ -199,7 +235,7 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
+          <div v-if="!form.kind">
             <label class="input-label">{{ t('admin.announcements.form.startsAt') }}</label>
             <input v-model="form.starts_at_str" type="datetime-local" max="9999-12-31T23:59" class="input" />
             <p class="input-hint">{{ t('admin.announcements.form.startsAtHint') }}</p>
@@ -211,10 +247,49 @@
           </div>
         </div>
 
-        <AnnouncementTargetingEditor
-          v-model="form.targeting"
-          :groups="subscriptionGroups"
-        />
+        <template v-if="form.kind">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label for="notice-target" class="input-label">{{ t('operations.linkedTarget') }}</label>
+              <select id="notice-target" v-model="linkedTarget" class="input" :required="requiresStandardGroup" :disabled="publishedFieldsLocked">
+                <option value="" :disabled="requiresStandardGroup">{{ t(requiresStandardGroup ? 'operations.selectStandardGroup' : 'operations.noLinkedTarget') }}</option>
+                <optgroup v-if="canLinkStandardGroup && standardGroups.length" :label="t('operations.standardBalanceGroup')">
+                  <option v-for="group in standardGroups" :key="group.id" :value="`group:${group.id}`">{{ group.name }} · #{{ group.id }}</option>
+                </optgroup>
+                <optgroup v-if="!requiresStandardGroup && plans.length" :label="t('operations.linkedPlan')">
+                  <option v-for="plan in plans" :key="plan.id" :value="`plan:${plan.id}`">{{ plan.name }} · #{{ plan.id }}</option>
+                </optgroup>
+                <option v-if="missingLinkedTarget" :value="linkedTarget">{{ missingLinkedTarget }}</option>
+              </select>
+            </div>
+            <div>
+              <label for="notice-audience" class="input-label">{{ t('operations.audience') }}</label>
+              <select id="notice-audience" v-model="form.audience_mode" class="input" :disabled="publishedFieldsLocked">
+                <option value="all">{{ t('operations.audienceModes.all') }}</option>
+                <option value="groups">{{ t('operations.audienceModes.groups') }}</option>
+                <option value="users">{{ t('operations.audienceModes.users') }}</option>
+              </select>
+            </div>
+          </div>
+          <fieldset v-if="form.audience_mode === 'groups'" :disabled="publishedFieldsLocked" class="rounded-lg border border-border p-3">
+            <legend class="px-1 text-sm font-medium">{{ t('operations.selectGroups') }}</legend>
+            <div class="grid max-h-36 gap-2 overflow-y-auto sm:grid-cols-2">
+              <label v-for="group in audienceGroups" :key="group.id" class="flex items-start gap-2 text-sm">
+                <input v-model="form.group_ids" type="checkbox" :value="group.id" class="mt-0.5 shrink-0" />
+                <span class="min-w-0 break-words">
+                  {{ group.name }}
+                  <span class="ml-1 text-xs text-muted-foreground">{{ t(group.subscription_type === 'standard' ? 'operations.standardBalanceGroup' : 'operations.subscriptionGroup') }}</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
+          <div v-else-if="form.audience_mode === 'users'">
+            <label for="notice-user-ids" class="input-label">{{ t('operations.userIDs') }}</label>
+            <textarea id="notice-user-ids" v-model="form.user_ids" rows="2" class="input" :disabled="publishedFieldsLocked" aria-describedby="notice-user-ids-hint" required />
+            <p id="notice-user-ids-hint" class="input-hint">{{ t('operations.userIDsHint') }}</p>
+          </div>
+        </template>
+        <AnnouncementTargetingEditor v-else v-model="form.targeting" :groups="subscriptionGroups" />
       </form>
 
       <template #footer>
@@ -223,11 +298,41 @@
             {{ t('common.cancel') }}
           </button>
           <button type="submit" form="announcement-form" :disabled="saving" class="btn btn-primary">
-            {{ saving ? t('common.saving') : t('common.save') }}
+            {{ saving ? t('common.saving') : t(form.kind && form.status === 'draft' ? 'operations.saveDraft' : 'common.save') }}
           </button>
         </div>
       </template>
     </BaseDialog>
+
+    <BaseDialog :show="Boolean(publishingNotice)" :title="t('operations.publishNotice')" @close="publishingNotice = null">
+      <form id="publish-notice" class="space-y-4" @submit.prevent="publishNotice">
+        <p v-if="publishingNotice" class="break-words font-medium">{{ publishingNotice.title }}</p>
+        <fieldset class="flex flex-wrap gap-4">
+          <label class="flex items-center gap-2 text-sm"><input v-model="publishTiming" type="radio" value="now" />{{ t('operations.publishNow') }}</label>
+          <label class="flex items-center gap-2 text-sm"><input v-model="publishTiming" type="radio" value="later" />{{ t('operations.publishLater') }}</label>
+        </fieldset>
+        <div v-if="publishTiming === 'later'">
+          <label for="notice-publish-at" class="input-label">{{ t('operations.publishAt') }}</label>
+          <input id="notice-publish-at" v-model="publishAt" type="datetime-local" max="9999-12-31T23:59" class="input" required />
+        </div>
+      </form>
+      <template #footer>
+        <div class="flex justify-end gap-3">
+          <button type="button" class="btn btn-secondary" :disabled="actionBusy" @click="publishingNotice = null">{{ t('common.cancel') }}</button>
+          <button type="submit" form="publish-notice" class="btn btn-primary" :disabled="actionBusy">{{ t('operations.publish') }}</button>
+        </div>
+      </template>
+    </BaseDialog>
+
+    <ConfirmDialog
+      :show="Boolean(withdrawingNotice)"
+      :title="t('operations.withdraw')"
+      :message="t('operations.withdrawConfirm')"
+      :confirm-text="t('operations.withdraw')"
+      danger
+      @confirm="withdrawNotice"
+      @cancel="withdrawingNotice = null"
+    />
 
     <!-- Delete Confirmation -->
     <ConfirmDialog
@@ -248,6 +353,8 @@
       @close="showReadStatusDialog = false"
     />
 
+    <NotificationDeliveryDialog :notification="deliveryNotice" @close="deliveryNotice = null" />
+
     <AnnouncementPopup
       :announcement="previewAnnouncement"
       preview
@@ -257,13 +364,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { adminAPI } from '@/api/admin'
 import { formatDateTime, formatDateTimeLocalInput, parseDateTimeLocalInput } from '@/utils/format'
-import type { AdminGroup, Announcement, AnnouncementTargeting } from '@/types'
+import type { AdminGroup, Announcement, AnnouncementTargeting, CreateAnnouncementRequest, UpdateAnnouncementRequest } from '@/types'
+import type { NotificationAudience, NotificationAudienceMode, NotificationKind } from '@/types/operations'
+import type { SubscriptionPlan } from '@/types/payment'
+import { adminPaymentAPI } from '@/api/admin/payment'
+import { formatPaymentAmount } from '@/components/payment/currency'
+import { extractApiErrorMessage } from '@/utils/apiError'
 import type { Column } from '@/components/common/types'
 
 import AppLayout from '@/components/layout/AppLayout.vue'
@@ -279,9 +392,13 @@ import Icon from '@/components/icons/Icon.vue'
 import AnnouncementTargetingEditor from '@/components/admin/announcements/AnnouncementTargetingEditor.vue'
 import AnnouncementReadStatusDialog from '@/components/admin/announcements/AnnouncementReadStatusDialog.vue'
 import AnnouncementPopup from '@/components/common/AnnouncementPopup.vue'
+import NotificationKindBadge from '@/components/common/NotificationKindBadge.vue'
+import NotificationDeliveryDialog from '@/components/admin/announcements/NotificationDeliveryDialog.vue'
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const route = useRoute()
+const router = useRouter()
 
 const announcements = ref<Announcement[]>([])
 const loading = ref(false)
@@ -323,6 +440,7 @@ const notifyModeOptions = computed(() => [
 
 const columns = computed<Column[]>(() => [
   { key: 'title', label: t('admin.announcements.columns.title'), sortable: true },
+  { key: 'kind', label: t('operations.notificationKind') },
   { key: 'status', label: t('admin.announcements.columns.status'), sortable: true },
   { key: 'notify_mode', label: t('admin.announcements.columns.notifyMode'), sortable: true },
   { key: 'targeting', label: t('admin.announcements.columns.targeting') },
@@ -430,6 +548,12 @@ const isEditing = computed(() => !!editingAnnouncement.value)
 const form = reactive({
   title: '',
   content: '',
+  kind: 'system' as NotificationKind | '',
+  audience_mode: 'all' as NotificationAudienceMode,
+  group_ids: [] as number[],
+  user_ids: '',
+  plan_id: 0,
+  group_id: 0,
   status: 'draft',
   notify_mode: 'silent',
   starts_at_str: '',
@@ -437,21 +561,70 @@ const form = reactive({
   targeting: { any_of: [] } as AnnouncementTargeting
 })
 
-const subscriptionGroups = ref<AdminGroup[]>([])
+const kinds: NotificationKind[] = ['system', 'activity', 'new_plan', 'plan_unlisted', 'new_group', 'group_unlisted', 'price_increase', 'price_decrease']
+const publishedFieldsLocked = computed(() => editingAnnouncement.value?.delivery_status === 'published')
+const requiresStandardGroup = computed(() => form.kind === 'new_group' || form.kind === 'group_unlisted')
+const canLinkStandardGroup = computed(() => requiresStandardGroup.value || form.kind === 'price_increase' || form.kind === 'price_decrease')
+const audienceGroups = ref<AdminGroup[]>([])
+const subscriptionGroups = computed(() => audienceGroups.value.filter(group => group.subscription_type === 'subscription' && group.status === 'active'))
+const standardGroups = computed(() => audienceGroups.value.filter(group => group.subscription_type === 'standard'))
+const plans = ref<SubscriptionPlan[]>([])
+const publishSuggestion = ref<number>()
+let planRequest: Promise<void> | undefined
+let groupRequest: Promise<void> | undefined
 
-async function loadSubscriptionGroups() {
-  try {
-    const all = await adminAPI.groups.getAll()
-    subscriptionGroups.value = (all || []).filter((g) => g.subscription_type === 'subscription')
-  } catch (error: any) {
-    console.error('Error loading groups:', error)
-    // not fatal
+const linkedTarget = computed({
+  get: () => form.plan_id ? `plan:${form.plan_id}` : form.group_id ? `group:${form.group_id}` : '',
+  set: (value: string) => {
+    const [type, id] = value.split(':')
+    form.plan_id = type === 'plan' ? Number(id) : 0
+    form.group_id = type === 'group' ? Number(id) : 0
+  },
+})
+
+const missingLinkedTarget = computed(() => {
+  if (form.group_id && !standardGroups.value.some(group => group.id === form.group_id)) {
+    return editingAnnouncement.value?.group_name || `${t('operations.standardBalanceGroup')} #${form.group_id}`
   }
+  if (form.plan_id && !plans.value.some(plan => plan.id === form.plan_id)) {
+    return `${t('operations.linkedPlan')} #${form.plan_id}`
+  }
+  return ''
+})
+
+function resetIrrelevantTarget() {
+  if (requiresStandardGroup.value) form.plan_id = 0
+  if (!canLinkStandardGroup.value) form.group_id = 0
+}
+
+function loadPlans() {
+  if (planRequest) return planRequest
+  planRequest = adminPaymentAPI.getPlans()
+    .then(({ data }) => { plans.value = data })
+    .catch(error => { appStore.showError(extractApiErrorMessage(error, t('common.error'))) })
+    .finally(() => { planRequest = undefined })
+  return planRequest
+}
+
+function loadGroups() {
+  if (groupRequest) return groupRequest
+  groupRequest = adminAPI.groups.getAllIncludingInactive()
+    .then(groups => { audienceGroups.value = groups })
+    .catch(error => { appStore.showError(extractApiErrorMessage(error, t('common.error'))) })
+    .finally(() => { groupRequest = undefined })
+  return groupRequest
 }
 
 function resetForm() {
   form.title = ''
   form.content = ''
+  form.kind = 'system'
+  form.audience_mode = 'all'
+  form.group_ids = []
+  form.user_ids = ''
+  form.plan_id = 0
+  form.group_id = 0
+  publishSuggestion.value = undefined
   form.status = 'draft'
   form.notify_mode = 'silent'
   form.starts_at_str = ''
@@ -462,6 +635,13 @@ function resetForm() {
 function fillFormFromAnnouncement(a: Announcement) {
   form.title = a.title
   form.content = a.content
+  form.kind = a.kind || ''
+  form.audience_mode = a.audience?.mode ?? 'all'
+  form.group_ids = [...(a.audience?.group_ids ?? [])]
+  form.user_ids = (a.audience?.user_ids ?? []).join(', ')
+  form.plan_id = a.plan_id ?? 0
+  form.group_id = a.plan_id ? 0 : a.group_id ?? 0
+  publishSuggestion.value = undefined
   form.status = a.status
   form.notify_mode = a.notify_mode || 'silent'
 
@@ -476,12 +656,14 @@ function openCreateDialog() {
   editingAnnouncement.value = null
   resetForm()
   showEditDialog.value = true
+  void loadPlans()
 }
 
 function openEditDialog(row: Announcement) {
   editingAnnouncement.value = row
   fillFormFromAnnouncement(row)
   showEditDialog.value = true
+  if (row.kind) void loadPlans()
 }
 
 function closeEdit() {
@@ -489,28 +671,45 @@ function closeEdit() {
   editingAnnouncement.value = null
 }
 
-function buildCreatePayload() {
+function noticeAudience(): NotificationAudience | undefined {
+  if (form.audience_mode === 'all') return { mode: 'all' }
+  if (form.audience_mode === 'groups') {
+    return form.group_ids.length ? { mode: 'groups', group_ids: form.group_ids } : undefined
+  }
+  const tokens = form.user_ids.trim().split(/[\s,，]+/u)
+  if (!tokens.every(token => /^[1-9][0-9]*$/.test(token) && Number.isSafeInteger(Number(token)))) return
+  return { mode: 'users', user_ids: [...new Set(tokens.map(Number))] }
+}
+
+function buildCreatePayload(audience: NotificationAudience | undefined): CreateAnnouncementRequest {
   const startsAt = parseDateTimeLocalInput(form.starts_at_str)
   const endsAt = parseDateTimeLocalInput(form.ends_at_str)
 
   return {
     title: form.title,
     content: form.content,
-    status: form.status as any,
-    notify_mode: form.notify_mode as any,
+    status: form.kind ? 'draft' : form.status as Announcement['status'],
+    notify_mode: form.notify_mode as Announcement['notify_mode'],
     targeting: form.targeting,
-    starts_at: startsAt ?? undefined,
-    ends_at: endsAt ?? undefined
+    starts_at: !form.kind && startsAt != null ? startsAt : undefined,
+    ends_at: endsAt ?? undefined,
+    ...(form.kind ? { kind: form.kind, audience, plan_id: form.plan_id || undefined, group_id: form.group_id || undefined } : {}),
   }
 }
 
-function buildUpdatePayload(original: Announcement) {
-  const payload: any = {}
+function buildUpdatePayload(original: Announcement, audience: NotificationAudience | undefined): UpdateAnnouncementRequest {
+  const payload: UpdateAnnouncementRequest = {}
 
   if (form.title !== original.title) payload.title = form.title
   if (form.content !== original.content) payload.content = form.content
-  if (form.status !== original.status) payload.status = form.status
-  if (form.notify_mode !== (original.notify_mode || 'silent')) payload.notify_mode = form.notify_mode
+  if (!form.kind && form.status !== original.status) payload.status = form.status as Announcement['status']
+  if (form.notify_mode !== (original.notify_mode || 'silent')) payload.notify_mode = form.notify_mode as Announcement['notify_mode']
+  if (form.kind && !publishedFieldsLocked.value) {
+    if (form.kind !== original.kind) payload.kind = form.kind
+    if (form.plan_id !== (original.plan_id ?? 0)) payload.plan_id = form.plan_id
+    if (form.group_id !== (original.plan_id ? 0 : original.group_id ?? 0)) payload.group_id = form.group_id
+    if (JSON.stringify(audience) !== JSON.stringify(original.audience)) payload.audience = audience
+  }
 
   // starts_at / ends_at: distinguish unchanged vs clear(0) vs set
   const originalStarts = original.starts_at ? Math.floor(new Date(original.starts_at).getTime() / 1000) : null
@@ -519,7 +718,7 @@ function buildUpdatePayload(original: Announcement) {
   const newStarts = parseDateTimeLocalInput(form.starts_at_str)
   const newEnds = parseDateTimeLocalInput(form.ends_at_str)
 
-  if (newStarts !== originalStarts) {
+  if (!form.kind && newStarts !== originalStarts) {
     payload.starts_at = newStarts === null ? 0 : newStarts
   }
   if (newEnds !== originalEnds) {
@@ -527,7 +726,7 @@ function buildUpdatePayload(original: Announcement) {
   }
 
   // targeting: do shallow compare by JSON
-  if (JSON.stringify(form.targeting ?? {}) !== JSON.stringify(original.targeting ?? {})) {
+  if (!form.kind && JSON.stringify(form.targeting ?? {}) !== JSON.stringify(original.targeting ?? {})) {
     payload.targeting = form.targeting
   }
 
@@ -535,6 +734,11 @@ function buildUpdatePayload(original: Announcement) {
 }
 
 async function handleSave() {
+  const audience = form.kind && !publishedFieldsLocked.value ? noticeAudience() : undefined
+  if (form.kind && !publishedFieldsLocked.value && !audience) {
+    appStore.showError(t('operations.invalidAudience'))
+    return
+  }
   // Frontend validation for targeting (to avoid ANNOUNCEMENT_INVALID_TARGET)
   const anyOf = form.targeting?.any_of ?? []
   if (anyOf.length > 50) {
@@ -552,8 +756,10 @@ async function handleSave() {
   saving.value = true
   try {
     if (!editingAnnouncement.value) {
-      const payload = buildCreatePayload()
-      await adminAPI.announcements.create(payload)
+      const payload = buildCreatePayload(audience)
+      const draft = await adminAPI.announcements.create(payload)
+      const suggestedTime = publishSuggestion.value
+      if (draft.kind) openPublish(draft, suggestedTime)
       appStore.showSuccess(t('common.success'))
       showEditDialog.value = false
       await loadAnnouncements()
@@ -561,7 +767,7 @@ async function handleSave() {
     }
 
     const original = editingAnnouncement.value
-    const payload = buildUpdatePayload(original)
+    const payload = buildUpdatePayload(original, audience)
     await adminAPI.announcements.update(original.id, payload)
     appStore.showSuccess(t('common.success'))
     showEditDialog.value = false
@@ -603,19 +809,158 @@ async function confirmDelete() {
 const showReadStatusDialog = ref(false)
 const readStatusAnnouncementId = ref<number | null>(null)
 const previewAnnouncement = ref<Announcement | null>(null)
+const deliveryNotice = ref<Announcement | null>(null)
 
 function openPreview(row: Announcement) {
   previewAnnouncement.value = row
 }
 
 function openReadStatus(row: Announcement) {
+  if (row.kind) {
+    deliveryNotice.value = row
+    return
+  }
   readStatusAnnouncementId.value = row.id
   showReadStatusDialog.value = true
 }
 
-onMounted(async () => {
-  await loadSubscriptionGroups()
-  await loadAnnouncements()
+const publishingNotice = ref<Announcement | null>(null)
+const withdrawingNotice = ref<Announcement | null>(null)
+const publishTiming = ref<'now' | 'later'>('now')
+const publishAt = ref('')
+const actionBusy = ref(false)
+function openPublish(notice: Announcement, suggestedTime?: number) {
+  publishingNotice.value = notice
+  publishTiming.value = suggestedTime ? 'later' : 'now'
+  publishAt.value = suggestedTime ? formatDateTimeLocalInput(suggestedTime) : ''
+}
+async function publishNotice() {
+  if (!publishingNotice.value || actionBusy.value) return
+  const startsAt = publishTiming.value === 'later' ? parseDateTimeLocalInput(publishAt.value) : undefined
+  if (publishTiming.value === 'later' && (!startsAt || startsAt * 1000 <= Date.now())) {
+    appStore.showError(t('operations.scheduleInvalid'))
+    return
+  }
+  actionBusy.value = true
+  try {
+    await adminAPI.announcements.publish(publishingNotice.value.id, startsAt ?? undefined)
+    publishingNotice.value = null
+    appStore.showSuccess(t('common.success'))
+    await loadAnnouncements()
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('common.error')))
+  } finally {
+    actionBusy.value = false
+  }
+}
+async function withdrawNotice() {
+  if (!withdrawingNotice.value || actionBusy.value) return
+  actionBusy.value = true
+  try {
+    await adminAPI.announcements.withdraw(withdrawingNotice.value.id)
+    withdrawingNotice.value = null
+    appStore.showSuccess(t('common.success'))
+    await loadAnnouncements()
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('common.error')))
+  } finally {
+    actionBusy.value = false
+  }
+}
+async function retryDelivery(notice: Announcement) {
+  if (actionBusy.value) return
+  actionBusy.value = true
+  try {
+    await adminAPI.announcements.retry(notice.id)
+    appStore.showSuccess(t('common.success'))
+    await loadAnnouncements()
+  } catch (error) {
+    appStore.showError(extractApiErrorMessage(error, t('common.error')))
+  } finally {
+    actionBusy.value = false
+  }
+}
+
+function queryPrice(value: unknown) {
+  if (typeof value !== 'string' || !/^\d+(\.\d+)?(e[+-]?\d+)?$/i.test(value)) return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function queryID(value: unknown) {
+  if (typeof value !== 'string' || !/^[1-9][0-9]*$/.test(value)) return 0
+  const id = Number(value)
+  return Number.isSafeInteger(id) ? id : 0
+}
+
+watch(() => route.query.compose, async compose => {
+  if (compose !== '1') return
+  const { compose: _compose, kind, plan_id, group_id, old_price, new_price, old_rate, new_rate, effective_at, ...query } = route.query
+  const planID = queryID(plan_id)
+  const groupID = queryID(group_id)
+  const noticeKind = kinds.find(value => value === kind)
+  void router.replace({ query })
+  if (Boolean(planID) === Boolean(groupID) || !noticeKind) return
+
+  if (groupID) {
+    await loadGroups()
+    const group = standardGroups.value.find(item => item.id === groupID)
+    if (!group) {
+      appStore.showError(t('operations.groupUnavailable'))
+      return
+    }
+    openCreateDialog()
+    form.kind = noticeKind
+    form.group_id = groupID
+    if (noticeKind !== 'new_group' || group.is_exclusive) {
+      form.audience_mode = 'groups'
+      form.group_ids = [groupID]
+    }
+    form.title = `${t(`operations.kind.${noticeKind}`)} · ${group.name}`
+    const oldRate = queryPrice(old_rate)
+    const newRate = queryPrice(new_rate)
+    const rateText = oldRate !== undefined && newRate !== undefined
+      ? `${oldRate}× → ${newRate}×`
+      : `${group.rate_multiplier}×`
+    form.content = [group.description, `${t('operations.standardRateMultiplier')} · ${rateText}`].filter(Boolean).join('\n\n')
+    return
+  }
+
+  await loadPlans()
+  const plan = plans.value.find(item => item.id === planID)
+  if (!plan) {
+    appStore.showError(t('operations.planUnavailable'))
+    return
+  }
+  openCreateDialog()
+  form.kind = noticeKind
+  form.plan_id = planID
+  form.title = `${t(`operations.kind.${noticeKind}`)} · ${plan.name}`
+  const oldPrice = queryPrice(old_price)
+  const newPrice = queryPrice(new_price)
+  const currency = plan.currency || 'USD'
+  const money = (price: number) => formatPaymentAmount(price, currency)
+  const priceText = oldPrice !== undefined && newPrice !== undefined
+    ? `${money(oldPrice)} → ${money(newPrice)}`
+    : money(plan.price)
+  const features = Array.isArray(plan.features) ? plan.features : String(plan.features || '').split('\n')
+  const time = typeof effective_at === 'string'
+    ? (/^[0-9]+$/.test(effective_at) ? Number(effective_at) : Date.parse(effective_at) / 1000)
+    : NaN
+  const effective = new Date(time * 1000)
+  const effectiveText = Number.isFinite(effective.valueOf()) ? `${t('operations.effectiveAt')} · ${formatDateTime(effective)}` : ''
+  form.content = [
+    plan.description,
+    `${t('payment.admin.price')} · ${priceText}`,
+    effectiveText,
+    features.filter(Boolean).map(feature => `- ${feature}`).join('\n'),
+  ].filter(Boolean).join('\n\n')
+  if (effective.valueOf() > Date.now()) publishSuggestion.value = Math.floor(time)
+}, { immediate: true })
+
+onMounted(() => {
+  void loadGroups()
+  void loadAnnouncements()
 })
 
 onUnmounted(() => {

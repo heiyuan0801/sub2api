@@ -104,6 +104,8 @@ describe('RegisterView', () => {
     verifyActionMock.mockReset()
     appStoreMock.cachedPublicSettings = null
     sessionStorage.removeItem('register_data')
+    sessionStorage.removeItem('sub2api_registration_utm')
+    window.history.replaceState(null, '', '/')
     verifyActionMock.mockResolvedValue({ token: 'ticket', randstr: 'randstr' })
     getPublicSettingsMock.mockResolvedValue(publicSettings)
     registerMock.mockResolvedValue({})
@@ -206,6 +208,31 @@ describe('RegisterView', () => {
     })
     expect(pushMock).toHaveBeenCalledWith('/email-verify')
     expect(registerMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps manually selected and campaign sources separate through the verification step', async () => {
+    window.history.replaceState(null, '', '/register?utm_source=launch&utm_campaign=november')
+    getPublicSettingsMock.mockResolvedValueOnce({
+      ...publicSettings,
+      turnstile_enabled: false,
+      email_verify_enabled: true
+    })
+    const wrapper = mountRegister()
+    await flushPromises()
+    await wrapper.get('#registration-source').setValue('other')
+    await wrapper.get('#registration-source-note').setValue('Developer meetup')
+    await wrapper.get('#email').setValue('user@example.com')
+    await wrapper.get('#password').setValue('secret-123')
+    await wrapper.get('#confirmPassword').setValue('secret-123')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+    expect(JSON.parse(sessionStorage.getItem('register_data')!).registration_attribution).toEqual({
+      selected_source: 'other',
+      source_note: 'Developer meetup',
+      utm_source: 'launch',
+      utm_campaign: 'november',
+    })
+    expect(pushMock).toHaveBeenCalledWith('/email-verify')
   })
 
   it('keeps the optional affiliate invitation field before Turnstile', async () => {

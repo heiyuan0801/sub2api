@@ -1,99 +1,68 @@
 import { createI18n } from 'vue-i18n'
+import { availableLocales, DEFAULT_LOCALE, isLocaleCode, localeHasPublicUrl, matchBrowserLocale, type LocaleCode } from './localeConfig'
 
-type LocaleCode = 'en' | 'zh'
+export { availableLocales } from './localeConfig'
 
 type LocaleMessages = Record<string, any>
-
 const LOCALE_KEY = 'sub2api_locale'
-const DEFAULT_LOCALE: LocaleCode = 'en'
 
 const localeLoaders: Record<LocaleCode, () => Promise<{ default: LocaleMessages }>> = {
   en: () => import('./locales/en'),
-  zh: () => import('./locales/zh')
-}
-
-function isLocaleCode(value: string): value is LocaleCode {
-  return value === 'en' || value === 'zh'
+  zh: () => import('./locales/zh'),
+  'zh-TW': () => import('./locales/zh-TW'),
+  ja: () => import('./locales/ja'),
+  ko: () => import('./locales/ko')
 }
 
 function getDefaultLocale(): LocaleCode {
+  const requested = new URLSearchParams(window.location.search).get('lang')
+  if (localeHasPublicUrl(window.location.pathname) && isLocaleCode(requested)) return requested
+
   const saved = localStorage.getItem(LOCALE_KEY)
-  if (saved && isLocaleCode(saved)) {
-    return saved
-  }
+  if (isLocaleCode(saved)) return saved
 
-  const browserLang = navigator.language.toLowerCase()
-  if (browserLang.startsWith('zh')) {
-    return 'zh'
+  for (const language of navigator.languages?.length ? navigator.languages : [navigator.language]) {
+    const match = matchBrowserLocale(language)
+    if (match) return match
   }
-
   return DEFAULT_LOCALE
 }
 
 export const i18n = createI18n({
   legacy: false,
   locale: getDefaultLocale(),
-  fallbackLocale: DEFAULT_LOCALE,
+  fallbackLocale: { 'zh-TW': [DEFAULT_LOCALE], default: [DEFAULT_LOCALE] },
   messages: {},
-  // 禁用 HTML 消息警告 - 引导步骤使用富文本内容（driver.js 支持 HTML）
-  // 这些内容是内部定义的，不存在 XSS 风险
+  // Additional languages cover the public site. Untranslated console strings fall back to English.
+  missingWarn: false,
+  fallbackWarn: false,
   warnHtmlMessage: false
 })
 
 const loadedLocales = new Set<LocaleCode>()
 
 export async function loadLocaleMessages(locale: LocaleCode): Promise<void> {
-  if (loadedLocales.has(locale)) {
-    return
-  }
-
-  const loader = localeLoaders[locale]
-  const module = await loader()
+  if (loadedLocales.has(locale)) return
+  const module = await localeLoaders[locale]()
   i18n.global.setLocaleMessage(locale, module.default)
   loadedLocales.add(locale)
 }
 
 export async function initI18n(): Promise<void> {
-  const current = getLocale()
-  await loadLocaleMessages(current)
-  document.documentElement.setAttribute('lang', current)
+  await setLocale(getLocale(), { persist: false })
 }
 
-export async function setLocale(locale: string): Promise<void> {
-  if (!isLocaleCode(locale)) {
-    return
-  }
-
-  await loadLocaleMessages(locale)
+export async function setLocale(locale: string, options: { persist?: boolean } = {}): Promise<void> {
+  if (!isLocaleCode(locale)) return
+  await Promise.all([loadLocaleMessages(locale), loadLocaleMessages(DEFAULT_LOCALE)])
   i18n.global.locale.value = locale
-  localStorage.setItem(LOCALE_KEY, locale)
-  document.documentElement.setAttribute('lang', locale)
-
-  // 同步更新浏览器页签标题，使其跟随语言切换
-  const { resolveRouteDocumentTitle } = await import('@/router/title')
-  const { default: router } = await import('@/router')
-  const { useAppStore } = await import('@/stores/app')
-  const { useAuthStore } = await import('@/stores/auth')
-  const { useAdminSettingsStore } = await import('@/stores/adminSettings')
-  const route = router.currentRoute.value
-  const appStore = useAppStore()
-  const authStore = useAuthStore()
-  const adminSettingsStore = useAdminSettingsStore()
-  const customMenuItems = [
-    ...(appStore.cachedPublicSettings?.custom_menu_items ?? []),
-    ...(authStore.isAdmin ? adminSettingsStore.customMenuItems : []),
-  ]
-  document.title = resolveRouteDocumentTitle(route, appStore.siteName, customMenuItems)
+  if (options.persist !== false) localStorage.setItem(LOCALE_KEY, locale)
+  document.documentElement.lang = availableLocales.find(item => item.code === locale)?.tag ?? locale
 }
 
 export function getLocale(): LocaleCode {
   const current = i18n.global.locale.value
   return isLocaleCode(current) ? current : DEFAULT_LOCALE
 }
-
-export const availableLocales = [
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' }
-] as const
 
 export default i18n

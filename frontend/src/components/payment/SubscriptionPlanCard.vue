@@ -20,6 +20,9 @@
           >
             {{ plan.name }}
           </h3>
+          <div v-if="plan.display_tags?.length" class="mb-1 flex flex-wrap gap-1">
+            <span v-for="tag in plan.display_tags" :key="tag" class="badge" :class="planTagStyles[tag]">{{ t('planOps.tags.' + tag) }}</span>
+          </div>
           <p v-if="plan.description" class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-dark-400 line-clamp-2">
             {{ plan.description }}
           </p>
@@ -127,6 +130,7 @@ import {
 const props = defineProps<{ plan: SubscriptionPlan; activeSubscriptions?: UserSubscription[] }>()
 const emit = defineEmits<{ select: [plan: SubscriptionPlan] }>()
 const { t } = useI18n()
+const planTagStyles = { recommended: 'badge-success', popular: 'badge-warning', new: 'badge-info' }
 
 const platform = computed(() => props.plan.group_platform || '')
 const isRenewal = computed(() =>

@@ -191,7 +191,13 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	subscriptionHandler := handler.NewSubscriptionHandler(subscriptionService)
 	announcementRepository := repository.NewAnnouncementRepository(client)
 	announcementReadRepository := repository.NewAnnouncementReadRepository(client)
-	announcementService := service.NewAnnouncementService(announcementRepository, announcementReadRepository, userRepository, userSubscriptionRepository)
+	announcementDeliveryRepository := repository.NewAnnouncementDeliveryRepository(db)
+	encryptionKey, err := payment.ProvideEncryptionKey(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	paymentConfigService := service.ProvidePaymentConfigService(client, settingRepository, encryptionKey)
+	announcementService := service.ProvideAnnouncementService(announcementRepository, announcementReadRepository, userRepository, userSubscriptionRepository, announcementDeliveryRepository, paymentConfigService)
 	announcementHandler := handler.NewAnnouncementHandler(announcementService)
 	channelMonitorRepository := repository.NewChannelMonitorRepository(client, db)
 	channelMonitorService := service.ProvideChannelMonitorService(channelMonitorRepository, secretEncryptor, settingService)
@@ -243,11 +249,6 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	proxyHandler := admin.NewProxyHandler(adminService)
 	adminRedeemHandler := admin.NewRedeemHandler(adminService, redeemService)
 	promoHandler := admin.NewPromoHandler(promoService)
-	encryptionKey, err := payment.ProvideEncryptionKey(configConfig)
-	if err != nil {
-		return nil, err
-	}
-	paymentConfigService := service.ProvidePaymentConfigService(client, settingRepository, encryptionKey)
 	registry := payment.ProvideRegistry()
 	defaultLoadBalancer := payment.ProvideDefaultLoadBalancer(client, encryptionKey)
 	paymentService := service.ProvidePaymentService(client, registry, defaultLoadBalancer, redeemService, subscriptionService, paymentConfigService, userRepository, groupRepository, affiliateService, notificationEmailService)
@@ -325,7 +326,7 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	paymentWebhookHandler := handler.NewPaymentWebhookHandler(paymentService, registry)
 	availableChannelHandler := handler.NewAvailableChannelHandler(channelService, apiKeyService, settingService)
 	modelPlazaService := service.NewModelPlazaService(channelRepository, groupRepository, pricingService, billingService, modelPricingResolver)
-	modelPlazaHandler := handler.NewModelPlazaHandler(modelPlazaService, apiKeyService, settingService)
+	modelPlazaHandler := handler.NewModelPlazaHandler(modelPlazaService, apiKeyService, settingService, channelMonitorV2Service)
 	imageTaskStore := repository.ProvideImageTaskStore(redisClient, db, configConfig, manager)
 	imageTaskService := service.ProvideImageTaskService(imageTaskStore, imageStorageSettingService)
 	asyncImageHandler := handler.NewAsyncImageHandler(imageTaskService, openAIGatewayHandler)
@@ -364,11 +365,13 @@ func initializeApplication(buildInfo handler.BuildInfo) (*Application, error) {
 	batchImageWorkerRuntime := service.ProvideBatchImageWorkerRuntime(batchImageRepository, accountRepository, batchImageQueue, usageBillingRepository, usageLogRepository, batchImageModelPricingResolver, apiKeyAuthCacheInvalidator, configConfig)
 	scheduledTestRunnerService := service.ProvideScheduledTestRunnerService(scheduledTestPlanRepository, scheduledTestService, accountTestService, rateLimitService, configConfig)
 	paymentOrderExpiryService := service.ProvidePaymentOrderExpiryService(paymentService, leaderLockCache, db, configConfig)
+	planPriceWorker := service.ProvidePlanPriceWorker(paymentConfigService)
+	announcementDeliveryWorker := service.ProvideAnnouncementDeliveryWorker(announcementDeliveryRepository)
 	channelMonitorQuotaFetcher := service.NewChannelMonitorQuotaFetcher(accountUsageService, cnProviderQuotaService, cnProviderBalanceService, accountRepository, configConfig)
 	channelMonitorRunner := service.ProvideChannelMonitorRunner(channelMonitorService, settingService, channelMonitorQuotaFetcher, configConfig)
 	channelMonitorV2Aggregator := service.ProvideChannelMonitorV2Aggregator(channelMonitorV2Repository, db, settingService, configConfig)
 	userPlatformQuotaUsageFlusher := service.ProvideUserPlatformQuotaUsageFlusher(configConfig, billingCache, serviceUserPlatformQuotaRepository, timingWheelService)
-	v := provideCleanup(manager, client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, geminiCachedContentService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, balanceNotifyService, digestSessionStore, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, openCodeGoUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager)
+	v := provideCleanup(manager, client, redisClient, opsMetricsCollector, opsAggregationService, opsAlertEvaluatorService, opsCleanupService, opsScheduledReportService, opsSystemLogSink, opsService, opsIngressRejectAggregator, apiKeyService, authCacheInvalidationWorker, schedulerSnapshotService, tokenRefreshService, accountExpiryService, cnProviderBalanceCheckService, openAICodexVersionSyncService, claudeCodeVersionSyncService, proxyExpiryService, subscriptionExpiryService, usageCleanupService, idempotencyCleanupService, geminiCachedContentService, batchImageCleanupService, batchImageWorkerRuntime, pricingService, emailQueueService, billingCacheService, usageRecordWorkerPool, balanceNotifyService, digestSessionStore, subscriptionService, oAuthService, openAIOAuthService, geminiOAuthService, antigravityOAuthService, grokOAuthService, openAIGatewayService, scheduledTestRunnerService, backupService, paymentOrderExpiryService, planPriceWorker, announcementDeliveryWorker, channelMonitorRunner, channelMonitorV2Aggregator, userPlatformQuotaUsageFlusher, upstreamBillingProbeService, ollamaCloudUsageService, openCodeGoUsageService, auditLogService, openAIQuotaAutoResetService, promptService, pluginManager)
 	application := &Application{
 		Server:        httpServer,
 		PromptAudit:   promptService,
@@ -452,6 +455,8 @@ func provideCleanup(
 	scheduledTestRunner *service.ScheduledTestRunnerService,
 	backupSvc *service.BackupService,
 	paymentOrderExpiry *service.PaymentOrderExpiryService,
+	planPriceWorker *service.PlanPriceWorker,
+	announcementDeliveryWorker *service.AnnouncementDeliveryWorker,
 	channelMonitorRunner *service.ChannelMonitorRunner,
 	channelMonitorV2Aggregator *service.ChannelMonitorV2Aggregator,
 	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
@@ -703,6 +708,18 @@ func provideCleanup(
 			{"PaymentOrderExpiryService", func() error {
 				if paymentOrderExpiry != nil {
 					paymentOrderExpiry.Stop()
+				}
+				return nil
+			}},
+			{"PlanPriceWorker", func() error {
+				if planPriceWorker != nil {
+					planPriceWorker.Stop()
+				}
+				return nil
+			}},
+			{"AnnouncementDeliveryWorker", func() error {
+				if announcementDeliveryWorker != nil {
+					announcementDeliveryWorker.Stop()
 				}
 				return nil
 			}},

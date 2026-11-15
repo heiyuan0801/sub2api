@@ -1,11 +1,13 @@
 <template>
-  <div class="relative" ref="dropdownRef">
+  <div class="relative" ref="dropdownRef" @keydown.esc.stop="closeOnEscape">
     <button
+      ref="trigger"
+      type="button"
       @click="toggleDropdown"
       :disabled="switching"
       class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
       :title="currentLocale?.name"
-      :aria-label="compact ? t('publicSite.nav.switchLanguage', { language: currentLocale?.name || currentLocaleCode }) : undefined"
+      :aria-label="t('publicSite.nav.switchLanguage', { language: currentLocale?.name || currentLocaleCode })"
       :aria-expanded="isOpen"
     >
       <Icon v-if="compact" name="globe" size="sm" />
@@ -25,11 +27,14 @@
     <transition name="dropdown">
       <div
         v-if="isOpen"
-        class="absolute right-0 z-50 mt-1 w-32 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-800"
+        class="absolute right-0 z-50 mt-1 w-40 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-dark-700 dark:bg-dark-800"
       >
         <button
           v-for="locale in availableLocales"
           :key="locale.code"
+          type="button"
+          :lang="locale.tag"
+          :aria-pressed="locale.code === currentLocaleCode"
           :disabled="switching"
           @click="selectLocale(locale.code)"
           class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-dark-700"
@@ -52,6 +57,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import { setLocale, availableLocales } from '@/i18n'
+import { localeHasPublicUrl, localizedPublicPath } from '@/i18n/localeConfig'
 
 withDefaults(defineProps<{ compact?: boolean }>(), { compact: false })
 
@@ -60,6 +66,7 @@ const { locale, t } = useI18n()
 const isOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const switching = ref(false)
+const trigger = ref<HTMLButtonElement | null>(null)
 
 const currentLocaleCode = computed(() => locale.value)
 const currentLocale = computed(() => availableLocales.find((l) => l.code === locale.value))
@@ -68,8 +75,17 @@ function toggleDropdown() {
   isOpen.value = !isOpen.value
 }
 
+function closeOnEscape() {
+  if (!isOpen.value) return
+  isOpen.value = false
+  trigger.value?.focus()
+}
+
 async function selectLocale(code: string) {
-  if (switching.value || code === currentLocaleCode.value) {
+  if (switching.value) return
+  const currentPath = window.location.pathname + window.location.search + window.location.hash
+  const target = localeHasPublicUrl(window.location.pathname) ? localizedPublicPath(currentPath, code) : currentPath
+  if (code === currentLocaleCode.value && target === currentPath) {
     isOpen.value = false
     return
   }
@@ -77,8 +93,9 @@ async function selectLocale(code: string) {
   try {
     await setLocale(code)
     isOpen.value = false
-    // 分组名称等内容由后端按请求语言返回，整页刷新让已加载的数据换成新语言
-    window.location.reload()
+    // Reload the data so group names use the new Accept-Language header.
+    if (target !== currentPath) window.location.assign(target)
+    else window.location.reload()
   } finally {
     switching.value = false
   }

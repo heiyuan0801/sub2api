@@ -1,3 +1,6 @@
+import type { CustomGroupDisplayTag, GroupDisplayTag } from '@/constants/groupDisplayTags'
+import type { NotificationAudience, NotificationKind, RegistrationAttribution } from './operations'
+
 /**
  * Core Type Definitions for Sub2API Frontend
  */
@@ -143,6 +146,7 @@ export interface RegisterRequest {
   promo_code?: string
   invitation_code?: string
   aff_code?: string
+  registration_attribution?: RegistrationAttribution
 }
 
 export interface AffiliateInvitee {
@@ -365,6 +369,12 @@ export interface Announcement {
   status: AnnouncementStatus
   notify_mode: AnnouncementNotifyMode
   targeting: AnnouncementTargeting
+  kind?: NotificationKind
+  audience?: NotificationAudience
+  plan_id?: number
+  group_id?: number
+  group_name?: string
+  delivery_status?: string
   starts_at?: string
   ends_at?: string
   created_by?: number
@@ -378,6 +388,11 @@ export interface UserAnnouncement {
   title: string
   content: string
   notify_mode: AnnouncementNotifyMode
+  kind?: NotificationKind
+  plan_id?: number
+  group_id?: number
+  group_name?: string
+  action_url?: string
   starts_at?: string
   ends_at?: string
   read_at?: string
@@ -390,6 +405,10 @@ export interface CreateAnnouncementRequest {
   content: string
   status?: AnnouncementStatus
   notify_mode?: AnnouncementNotifyMode
+  kind?: NotificationKind
+  audience?: NotificationAudience
+  plan_id?: number
+  group_id?: number
   targeting: AnnouncementTargeting
   starts_at?: number
   ends_at?: number
@@ -400,6 +419,10 @@ export interface UpdateAnnouncementRequest {
   content?: string
   status?: AnnouncementStatus
   notify_mode?: AnnouncementNotifyMode
+  kind?: NotificationKind
+  audience?: NotificationAudience
+  plan_id?: number
+  group_id?: number
   targeting?: AnnouncementTargeting
   starts_at?: number
   ends_at?: number
@@ -577,6 +600,8 @@ export type GroupI18n = Record<string, GroupLocaleText>
 
 // 用户侧接口返回的 name / description 已由后端按请求语言（Accept-Language）选好
 export interface Group {
+  display_tags?: GroupDisplayTag[] | null
+  custom_display_tags?: CustomGroupDisplayTag[] | null
   id: number
   name: string
   description: string | null
@@ -811,6 +836,8 @@ export interface UpdateApiKeyRequest {
 }
 
 export interface CreateGroupRequest {
+  display_tags?: GroupDisplayTag[]
+  custom_display_tags?: CustomGroupDisplayTag[]
   name: string
   description?: string | null
   i18n?: GroupI18n
@@ -878,6 +905,8 @@ export interface CreateGroupRequest {
 }
 
 export interface UpdateGroupRequest {
+  display_tags?: GroupDisplayTag[]
+  custom_display_tags?: CustomGroupDisplayTag[]
   name?: string
   description?: string | null
   i18n?: GroupI18n

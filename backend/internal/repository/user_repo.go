@@ -165,6 +165,11 @@ func (r *userRepository) create(ctx context.Context, userIn *service.User, guard
 	if err := ensureEmailAuthIdentityWithClient(txCtx, txClient, created.ID, created.Email, "user_repo_create"); err != nil {
 		return err
 	}
+	if attribution, ok := service.RegistrationAttributionFromContext(txCtx); ok {
+		if err := insertRegistrationAttribution(txCtx, txClient, created.ID, attribution); err != nil {
+			return err
+		}
+	}
 
 	if ownedTx != nil {
 		if err := ownedTx.Commit(); err != nil {

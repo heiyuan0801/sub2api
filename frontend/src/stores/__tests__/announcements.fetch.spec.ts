@@ -4,7 +4,14 @@ import { useAnnouncementStore } from '../announcements'
 import type { UserAnnouncement } from '@/types'
 
 const list = vi.hoisted(() => vi.fn())
-vi.mock('@/api', () => ({ announcementsAPI: { list } }))
+vi.mock('@/api', () => ({
+  announcementsAPI: {
+    history: async () => {
+      const items = await list() as UserAnnouncement[]
+      return { items, unread_count: items.length }
+    },
+  },
+}))
 
 const notice = (id: number): UserAnnouncement => ({
   id, title: `Notice ${id}`, content: 'Content', notify_mode: 'popup',

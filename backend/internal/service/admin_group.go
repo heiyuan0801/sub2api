@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -379,7 +380,7 @@ func normalizeCreateGroupInputForSimpleMode(input *CreateGroupInput) {
 		return
 	}
 	*input = CreateGroupInput{
-		Name: input.Name, Description: input.Description, I18n: input.I18n, Platform: input.Platform,
+		Name: input.Name, Description: input.Description, I18n: input.I18n, DisplayTags: input.DisplayTags, CustomDisplayTags: input.CustomDisplayTags, Platform: input.Platform,
 		RateMultiplier: 1, SubscriptionType: SubscriptionTypeStandard,
 	}
 }
@@ -388,7 +389,22 @@ func normalizeUpdateGroupInputForSimpleMode(input *UpdateGroupInput) {
 	if input == nil {
 		return
 	}
-	*input = UpdateGroupInput{Name: input.Name, Description: input.Description, I18n: input.I18n}
+	*input = UpdateGroupInput{Name: input.Name, Description: input.Description, I18n: input.I18n, DisplayTags: input.DisplayTags, CustomDisplayTags: input.CustomDisplayTags}
+}
+
+func normalizeGroupDisplayTags(input []string) ([]string, error) {
+	tags := make([]string, 0, 3)
+	for _, tag := range input {
+		switch tag {
+		case "recommended", "popular", "new":
+			if !slices.Contains(tags, tag) {
+				tags = append(tags, tag)
+			}
+		default:
+			return nil, infraerrors.BadRequest("INVALID_GROUP_DISPLAY_TAGS", "group display tags must be recommended, popular, or new")
+		}
+	}
+	return tags, nil
 }
 
 func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupInput) (*Group, error) {
@@ -402,6 +418,14 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		return nil, errors.New("rate_multiplier must be > 0")
 	}
 	i18n, err := normalizeGroupI18n(input.I18n)
+	if err != nil {
+		return nil, err
+	}
+	displayTags, err := normalizeGroupDisplayTags(input.DisplayTags)
+	if err != nil {
+		return nil, err
+	}
+	customDisplayTags, err := normalizeGroupCustomDisplayTags(input.CustomDisplayTags)
 	if err != nil {
 		return nil, err
 	}
@@ -579,6 +603,8 @@ func (s *adminServiceImpl) CreateGroup(ctx context.Context, input *CreateGroupIn
 		Name:                            input.Name,
 		Description:                     input.Description,
 		I18n:                            i18n,
+		DisplayTags:                     displayTags,
+		CustomDisplayTags:               customDisplayTags,
 		Platform:                        platform,
 		RateMultiplier:                  input.RateMultiplier,
 		IsExclusive:                     input.IsExclusive,
@@ -797,6 +823,20 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 			return nil, err
 		}
 		group.I18n = i18n
+	}
+	if input.DisplayTags != nil {
+		displayTags, err := normalizeGroupDisplayTags(*input.DisplayTags)
+		if err != nil {
+			return nil, err
+		}
+		group.DisplayTags = displayTags
+	}
+	if input.CustomDisplayTags != nil {
+		tags, err := normalizeGroupCustomDisplayTags(*input.CustomDisplayTags)
+		if err != nil {
+			return nil, err
+		}
+		group.CustomDisplayTags = tags
 	}
 	if input.Platform != "" {
 		group.Platform = input.Platform
@@ -1084,7 +1124,7 @@ func (s *adminServiceImpl) UpdateGroup(ctx context.Context, id int64, input *Upd
 		}
 	}
 
-	if err := s.groupRepo.Update(ctx, group); err != nil {
+	if err := updateGroupRecord(ctx, s.groupRepo, group, input.CustomDisplayTags != nil); err != nil {
 		return nil, err
 	}
 

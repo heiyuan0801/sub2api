@@ -49,6 +49,14 @@ func (Group) Fields() []ent.Field {
 			Default(domain.GroupI18n{}).
 			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
 			Comment("名称与描述的界面语言译文：语言代码 -> {name, description}；缺失的语言沿用 name/description"),
+		field.JSON("display_tags", []string{}).
+			Default([]string{}).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			Comment("分组展示标签：recommended、popular、new；不影响分组权限和计费"),
+		field.JSON("custom_display_tags", []domain.GroupDisplayTag{}).
+			Default([]domain.GroupDisplayTag{}).
+			SchemaType(map[string]string{dialect.Postgres: "jsonb"}).
+			Comment("自定义分组展示标签，包含名称、颜色和图标"),
 		field.Float("rate_multiplier").
 			SchemaType(map[string]string{dialect.Postgres: "decimal(10,4)"}).
 			Default(1.0),

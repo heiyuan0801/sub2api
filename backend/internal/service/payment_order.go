@@ -13,6 +13,7 @@ import (
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
 	"github.com/Wei-Shaw/sub2api/ent/paymentorder"
+	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
 	"github.com/Wei-Shaw/sub2api/internal/payment"
 	"github.com/Wei-Shaw/sub2api/internal/payment/provider"
 	infraerrors "github.com/Wei-Shaw/sub2api/internal/pkg/errors"
@@ -149,8 +150,11 @@ func (s *PaymentService) validateSubOrder(ctx context.Context, req CreateOrderRe
 		return nil, infraerrors.BadRequest("INVALID_INPUT", "subscription order requires a plan")
 	}
 	plan, err := s.configService.GetPlan(ctx, req.PlanID)
-	if err != nil || !plan.ForSale {
+	if err != nil {
 		return nil, infraerrors.NotFound("PLAN_NOT_AVAILABLE", "plan not found or not for sale")
+	}
+	if err := checkPaymentPlanAccess(ctx, s.entClient, plan, req.UserID); err != nil {
+		return nil, err
 	}
 	group, err := s.groupRepo.GetByID(ctx, plan.GroupID)
 	if err != nil || group.Status != payment.EntityStatusActive {
@@ -168,6 +172,23 @@ func (s *PaymentService) createOrderInTx(ctx context.Context, req CreateOrderReq
 		return nil, fmt.Errorf("begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if plan != nil {
+		current, err := tx.SubscriptionPlan.Query().Where(subscriptionplan.IDEQ(plan.ID)).ForShare().Only(ctx)
+		if dbent.IsNotFound(err) {
+			return nil, infraerrors.NotFound("PLAN_NOT_AVAILABLE", "plan is no longer for sale")
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err := checkPaymentPlanAccess(ctx, tx.Client(), current, req.UserID); err != nil {
+			return nil, err
+		}
+		if current.Price != plan.Price || current.GroupID != plan.GroupID ||
+			current.ValidityDays != plan.ValidityDays || current.ValidityUnit != plan.ValidityUnit ||
+			current.Currency != plan.Currency {
+			return nil, infraerrors.Conflict("PLAN_CHANGED", "reload the current subscription plan before ordering")
+		}
+	}
 	if err := s.checkPendingLimit(ctx, tx, req.UserID, cfg.MaxPendingOrders); err != nil {
 		return nil, err
 	}

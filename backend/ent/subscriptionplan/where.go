@@ -114,6 +114,11 @@ func SortOrder(v int) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldEQ(FieldSortOrder, v))
 }
 
+// VisibilityScope applies equality check predicate on the "visibility_scope" field. It's identical to VisibilityScopeEQ.
+func VisibilityScope(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldVisibilityScope, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldEQ(FieldCreatedAt, v))
@@ -732,6 +737,71 @@ func SortOrderLT(v int) predicate.SubscriptionPlan {
 // SortOrderLTE applies the LTE predicate on the "sort_order" field.
 func SortOrderLTE(v int) predicate.SubscriptionPlan {
 	return predicate.SubscriptionPlan(sql.FieldLTE(FieldSortOrder, v))
+}
+
+// VisibilityScopeEQ applies the EQ predicate on the "visibility_scope" field.
+func VisibilityScopeEQ(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEQ(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeNEQ applies the NEQ predicate on the "visibility_scope" field.
+func VisibilityScopeNEQ(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNEQ(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeIn applies the In predicate on the "visibility_scope" field.
+func VisibilityScopeIn(vs ...string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldIn(FieldVisibilityScope, vs...))
+}
+
+// VisibilityScopeNotIn applies the NotIn predicate on the "visibility_scope" field.
+func VisibilityScopeNotIn(vs ...string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldNotIn(FieldVisibilityScope, vs...))
+}
+
+// VisibilityScopeGT applies the GT predicate on the "visibility_scope" field.
+func VisibilityScopeGT(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGT(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeGTE applies the GTE predicate on the "visibility_scope" field.
+func VisibilityScopeGTE(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldGTE(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeLT applies the LT predicate on the "visibility_scope" field.
+func VisibilityScopeLT(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLT(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeLTE applies the LTE predicate on the "visibility_scope" field.
+func VisibilityScopeLTE(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldLTE(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeContains applies the Contains predicate on the "visibility_scope" field.
+func VisibilityScopeContains(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldContains(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeHasPrefix applies the HasPrefix predicate on the "visibility_scope" field.
+func VisibilityScopeHasPrefix(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldHasPrefix(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeHasSuffix applies the HasSuffix predicate on the "visibility_scope" field.
+func VisibilityScopeHasSuffix(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldHasSuffix(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeEqualFold applies the EqualFold predicate on the "visibility_scope" field.
+func VisibilityScopeEqualFold(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldEqualFold(FieldVisibilityScope, v))
+}
+
+// VisibilityScopeContainsFold applies the ContainsFold predicate on the "visibility_scope" field.
+func VisibilityScopeContainsFold(v string) predicate.SubscriptionPlan {
+	return predicate.SubscriptionPlan(sql.FieldContainsFold(FieldVisibilityScope, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

@@ -13,6 +13,14 @@ export function groupRate(group: GroupRate) {
   return group.user_rate_multiplier ?? group.rate_multiplier
 }
 
+export function groupsForPlazaModel(groups: ModelPlazaGroup[], model: PlazaModel | null): ModelPlazaGroup[] {
+  if (!model) return []
+  return groups.flatMap(group => {
+    const models = group.models.filter(item => item.platform === model.platform && item.name === model.name)
+    return models.length ? [{ ...group, models }] : []
+  })
+}
+
 export function modelRate(model: PlazaModel, group: GroupRate) {
   if (model.pricing?.billing_mode === BILLING_MODE_IMAGE && group.image_rate_independent) return group.image_rate_multiplier ?? 1
   if (model.pricing?.billing_mode === BILLING_MODE_VIDEO && group.video_rate_independent) return Math.max(0, group.video_rate_multiplier ?? 1)

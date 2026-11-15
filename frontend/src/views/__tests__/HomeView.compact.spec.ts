@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount, RouterLinkStub } from '@vue/test-utils'
+import { ref } from 'vue'
 
 import HomeView from '../HomeView.vue'
 
@@ -37,7 +38,7 @@ vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()
   return {
     ...actual,
-    useI18n: () => ({ t: (key: string) => key }),
+    useI18n: () => ({ t: (key: string) => key, locale: ref('en') }),
   }
 })
 
@@ -78,7 +79,11 @@ describe('HomeView compact mode', () => {
     authStore.checkAuth.mockClear()
     appStore.fetchPublicSettings.mockClear()
     localStorage.clear()
-    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: false } as MediaQueryList)
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList)
   })
 
   it('renders custom HTML ahead of compact mode', () => {

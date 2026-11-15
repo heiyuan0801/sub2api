@@ -130,6 +130,7 @@ var auditBodySensitiveExactKeys = func() map[string]struct{} {
 		"code", "codes", "pin", "cvv",
 		"authorization", "cookie", "x-api-key",
 		"key",
+		"registration_attribution",
 		// 字符串值内嵌完整凭证的字段：
 		// proxy_key 为 protocol|host|port|username|password 拼接，
 		// custom_key 为用户自设的平台 API Key 明文，
@@ -256,5 +257,5 @@ func RedactAuditQuery(rawQuery string) string {
 	if rawQuery == "" {
 		return ""
 	}
-	return logredact.RedactText(rawQuery, "api_key", "apikey", "token", "secret", "key")
+	return logredact.RedactText(rawQuery, "api_key", "apikey", "token", "secret", "key", "registration_attribution")
 }

@@ -44,7 +44,12 @@ func (h *PaymentHandler) GetPaymentConfig(c *gin.Context) {
 // GetPlans returns subscription plans available for sale.
 // GET /api/v1/payment/plans
 func (h *PaymentHandler) GetPlans(c *gin.Context) {
-	plans, err := h.configService.ListPlansForSale(c.Request.Context())
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
+	plans, err := h.configService.ListPlansForSale(c.Request.Context(), subject.UserID)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
@@ -71,6 +76,7 @@ func (h *PaymentHandler) GetPlans(c *gin.Context) {
 		ProductName        string   `json:"product_name"`
 		ForSale            bool     `json:"for_sale"`
 		SortOrder          int      `json:"sort_order"`
+		DisplayTags        []string `json:"display_tags"`
 	}
 	groupInfo := h.configService.GetGroupInfoMap(c.Request.Context(), plans)
 	result := make([]planWithPlatform, 0, len(plans))
@@ -84,7 +90,7 @@ func (h *PaymentHandler) GetPlans(c *gin.Context) {
 			Name: p.Name, Description: p.Description, Price: p.Price, OriginalPrice: p.OriginalPrice,
 			Currency:     p.Currency,
 			ValidityDays: p.ValidityDays, ValidityUnit: p.ValidityUnit, Features: p.Features,
-			ProductName: p.ProductName, ForSale: p.ForSale, SortOrder: p.SortOrder,
+			ProductName: p.ProductName, ForSale: p.ForSale, SortOrder: p.SortOrder, DisplayTags: p.DisplayTags,
 		})
 	}
 	response.Success(c, result)
@@ -95,6 +101,11 @@ func (h *PaymentHandler) GetPlans(c *gin.Context) {
 // GET /api/v1/payment/checkout-info
 func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 	ctx := c.Request.Context()
+	subject, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "Unauthorized")
+		return
+	}
 
 	// Fetch limits (methods + global range)
 	limitsResp, err := h.configService.GetAvailableMethodLimits(ctx)
@@ -119,7 +130,11 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 	}
 
 	// Fetch plans with group info
-	plans, _ := h.configService.ListPlansForSale(ctx)
+	plans, err := h.configService.ListPlansForSale(ctx, subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	groupInfo := h.configService.GetGroupInfoMap(ctx, plans)
 	planList := make([]checkoutPlan, 0, len(plans))
 	for _, p := range plans {
@@ -136,7 +151,7 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 			Name:        p.Name, Description: p.Description, Price: p.Price, OriginalPrice: p.OriginalPrice,
 			Currency:     p.Currency,
 			ValidityDays: p.ValidityDays, ValidityUnit: p.ValidityUnit, Features: parseFeatures(p.Features),
-			ProductName: p.ProductName,
+			ProductName: p.ProductName, DisplayTags: p.DisplayTags,
 		})
 	}
 
@@ -180,6 +195,7 @@ type checkoutInfoResponse struct {
 }
 
 type checkoutPlan struct {
+	DisplayTags        []string `json:"display_tags"`
 	ID                 int64    `json:"id"`
 	GroupID            int64    `json:"group_id"`
 	GroupPlatform      string   `json:"group_platform"`

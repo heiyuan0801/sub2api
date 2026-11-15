@@ -77,6 +77,9 @@ func (r *affiliateRepository) GetAffiliateByCode(ctx context.Context, code strin
 }
 
 func (r *affiliateRepository) BindInviter(ctx context.Context, userID, inviterID int64) (bool, error) {
+	if userID == inviterID {
+		return false, service.ErrAffiliateCodeInvalid
+	}
 	var bound bool
 	err := r.withTx(ctx, func(txCtx context.Context, txClient *dbent.Client) error {
 		if _, err := ensureUserAffiliateWithClient(txCtx, txClient, userID); err != nil {

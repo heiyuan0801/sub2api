@@ -171,6 +171,12 @@ func createGroupRecord(ctx context.Context, client *dbent.Client, groupIn *servi
 	if groupIn.I18n != nil {
 		builder = builder.SetI18n(groupIn.I18n)
 	}
+	if groupIn.DisplayTags != nil {
+		builder = builder.SetDisplayTags(groupIn.DisplayTags)
+	}
+	if groupIn.CustomDisplayTags != nil {
+		builder = builder.SetCustomDisplayTags(groupIn.CustomDisplayTags)
+	}
 
 	created, err := builder.Save(ctx)
 	if err != nil {
@@ -442,12 +448,19 @@ func (r *groupRepository) Update(ctx context.Context, groupIn *service.Group) er
 		i18n = service.GroupI18n{}
 	}
 	builder = builder.SetI18n(i18n)
+	if groupIn.DisplayTags != nil {
+		builder = builder.SetDisplayTags(groupIn.DisplayTags)
+	}
+	if groupIn.CustomDisplayTags != nil {
+		builder = builder.SetCustomDisplayTags(groupIn.CustomDisplayTags)
+	}
 
 	updated, err := builder.Save(ctx)
 	if err != nil {
 		return translatePersistenceError(err, service.ErrGroupNotFound, service.ErrGroupExists)
 	}
 	groupIn.UpdatedAt = updated.UpdatedAt
+	groupIn.CustomDisplayTags = updated.CustomDisplayTags
 	if err := enqueueSchedulerOutbox(ctx, r.sql, service.SchedulerOutboxEventGroupChanged, nil, &groupIn.ID, nil); err != nil {
 		logger.LegacyPrintf("repository.group", "[SchedulerOutbox] enqueue group update failed: group=%d err=%v", groupIn.ID, err)
 	}

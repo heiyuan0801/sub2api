@@ -51,13 +51,17 @@ onMounted(async () => {
 
 <style scoped>
 .public-model-plaza {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  background: #fff;
-  color: #18181b;
+  background: #f5f5f7;
+  color: #1d1d1f;
 }
+
+.public-model-plaza > main { flex: 1; }
 
 .dark .public-model-plaza {
   background: #101011;
-  color: #f4f4f5;
+  color: #f5f5f7;
 }
 </style>

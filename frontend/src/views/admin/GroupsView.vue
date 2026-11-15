@@ -124,10 +124,11 @@
           default-sort-order="asc"
           @sort="handleSort"
         >
-          <template #cell-name="{ value }">
-            <span class="font-medium text-gray-900 dark:text-white">{{
-              value
-            }}</span>
+          <template #cell-name="{ value, row }">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <GroupDisplayTags :tags="row.display_tags" :custom-tags="row.custom_display_tags" />
+            </div>
           </template>
 
           <template #cell-id="{ value }">
@@ -498,6 +499,10 @@
             data-tour="group-form-name"
           />
         </div>
+        <GroupDisplayTagPicker
+          v-model="createForm.display_tags"
+          v-model:custom-tags="createForm.custom_display_tags"
+        />
         <div>
           <GroupI18nField
             v-model="createForm.description"
@@ -2083,6 +2088,10 @@
           </button>
         </div>
         </template>
+        <label v-if="createForm.subscription_type === 'standard'" class="flex cursor-pointer items-center gap-2 text-sm">
+          <input v-model="notifyOnGroupCreate" type="checkbox" class="h-4 w-4 rounded" />
+          {{ t('planOps.newGroupNoticeDraft') }}
+        </label>
       </form>
 
       <template #footer>
@@ -2150,6 +2159,10 @@
             data-tour="edit-group-form-name"
           />
         </div>
+        <GroupDisplayTagPicker
+          v-model="editForm.display_tags"
+          v-model:custom-tags="editForm.custom_display_tags"
+        />
         <div>
           <GroupI18nField
             v-model="editForm.description"
@@ -2277,6 +2290,18 @@
             class="input"
             data-tour="group-form-multiplier"
           />
+          <div
+            v-if="groupEditNoticeKind === 'price_increase' || groupEditNoticeKind === 'price_decrease'"
+            class="mt-2 rounded-lg border border-gray-200 p-3 dark:border-dark-600"
+          >
+            <p class="mb-2 text-sm font-medium">
+              {{ t('planOps.standardRateChange', { old: editingGroup.rate_multiplier, next: editForm.rate_multiplier }) }}
+            </p>
+            <label class="flex cursor-pointer items-center gap-2 text-sm">
+              <input v-model="notifyOnGroupEdit" type="checkbox" class="h-4 w-4 rounded" />
+              {{ t('planOps.rateNoticeDraft') }}
+            </label>
+          </div>
         </div>
         <div>
           <label class="input-label">{{ t("admin.groups.form.rpmLimit") }}</label>
@@ -2357,6 +2382,13 @@
         <div>
           <label class="input-label">{{ t("admin.groups.form.status") }}</label>
           <Select v-model="editForm.status" :options="editStatusOptions" />
+          <label
+            v-if="groupEditNoticeKind === 'group_unlisted'"
+            class="mt-2 flex cursor-pointer items-center gap-2 text-sm"
+          >
+            <input v-model="notifyOnGroupEdit" type="checkbox" class="h-4 w-4 rounded" />
+            {{ t('planOps.unlistedGroupNoticeDraft') }}
+          </label>
         </div>
 
         <!-- Subscription Configuration -->
@@ -4295,6 +4327,13 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import {
+  customGroupDisplayTagLabelError,
+  customGroupDisplayTagLabelLimit,
+  type CustomGroupDisplayTag,
+  type GroupDisplayTag,
+} from "@/constants/groupDisplayTags";
 import { useAppStore } from "@/stores/app";
 import { useAuthStore } from "@/stores/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
@@ -4329,6 +4368,8 @@ import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import { platformLabel } from "@/utils/platformColors";
 import Icon from "@/components/icons/Icon.vue";
 import GroupI18nField from "@/components/admin/group/GroupI18nField.vue";
+import GroupDisplayTagPicker from "@/components/admin/group/GroupDisplayTagPicker.vue";
+import GroupDisplayTags from "@/components/common/GroupDisplayTags.vue";
 import GroupRateMultipliersModal from "@/components/admin/group/GroupRateMultipliersModal.vue";
 import GroupRPMOverridesModal from "@/components/admin/group/GroupRPMOverridesModal.vue";
 import GroupCapacityBadge from "@/components/common/GroupCapacityBadge.vue";
@@ -4856,6 +4897,24 @@ const sortState = reactive({
 let abortController: AbortController | null = null;
 
 const showCreateModal = ref(false);
+const router = useRouter();
+const notifyOnGroupCreate = ref(false);
+const notifyOnGroupEdit = ref(false);
+
+type GroupNoticeKind = "new_group" | "group_unlisted" | "price_increase" | "price_decrease";
+
+function openGroupNoticeDraft(groupId: number, kind: GroupNoticeKind, rates?: { old: number; next: number }) {
+  void router.push({
+    path: "/admin/announcements",
+    query: {
+      compose: "1",
+      group_id: groupId,
+      kind,
+      old_rate: rates?.old,
+      new_rate: rates?.next,
+    },
+  });
+}
 const showEditModal = ref(false);
 const showDeleteDialog = ref(false);
 const pendingLiveForm = ref<"create" | "edit" | null>(null);
@@ -4974,6 +5033,8 @@ const submitEditAllowlistCustomEntry = () => {
 
 const createForm = reactive({
   name: "",
+  display_tags: [] as GroupDisplayTag[],
+  custom_display_tags: [] as CustomGroupDisplayTag[],
   description: "",
   i18n: {} as GroupI18n,
   platform: "anthropic" as GroupPlatform,
@@ -5340,6 +5401,8 @@ const convertApiFormatToRoutingRules = async (
 
 const editForm = reactive({
   name: "",
+  display_tags: [] as GroupDisplayTag[],
+  custom_display_tags: [] as CustomGroupDisplayTag[],
   description: "",
   i18n: {} as GroupI18n,
   platform: "anthropic" as GroupPlatform,
@@ -5817,6 +5880,9 @@ const closeCreateModal = () => {
   });
   clearAllAccountSearchState();
   createForm.name = "";
+  createForm.display_tags = [];
+  createForm.custom_display_tags = [];
+  notifyOnGroupCreate.value = false;
   createForm.description = "";
   createForm.i18n = {};
   createForm.platform = "anthropic";
@@ -5930,6 +5996,17 @@ const validateGroupReasoningMultipliers = (pricing: PricingFormEntry[]): boolean
   return true;
 };
 
+const validateCustomGroupTags = (tags: CustomGroupDisplayTag[]): boolean => {
+  for (const index of tags.keys()) {
+    const error = customGroupDisplayTagLabelError(tags, index);
+    if (error) {
+      appStore.showError(t(`planOps.customTags.errors.${error}`, { limit: customGroupDisplayTagLabelLimit }));
+      return false;
+    }
+  }
+  return true;
+};
+
 const handleCreateGroup = async () => {
   if (!createForm.name.trim()) {
     appStore.showError(t("admin.groups.nameRequired"));
@@ -5945,6 +6022,7 @@ const handleCreateGroup = async () => {
   if (!validateProfitControlForm(createForm)) {
     return;
   }
+  if (!validateCustomGroupTags(createForm.custom_display_tags)) return;
   if (!validateGroupReasoningMultipliers(createForm.model_pricing)) return;
   // 模型白名单：开启且没有任何条目时阻止提交，与后端 400 对齐。
   if (
@@ -6076,13 +6154,19 @@ const handleCreateGroup = async () => {
           name: createForm.name,
           description: createForm.description,
           i18n: createForm.i18n,
+          display_tags: createForm.display_tags,
+          custom_display_tags: createForm.custom_display_tags,
           platform: createForm.platform,
         }
       : requestData;
-    await adminAPI.groups.create(payload);
+    const openNotice = notifyOnGroupCreate.value;
+    const created = await adminAPI.groups.create(payload);
     appStore.showSuccess(t("admin.groups.groupCreated"));
     closeCreateModal();
     loadGroups();
+    if (openNotice && created.subscription_type === "standard") {
+      openGroupNoticeDraft(created.id, "new_group");
+    }
     // Only advance tour if active, on submit step, and creation succeeded
     if (onboardingStore.isCurrentStep('[data-tour="group-form-submit"]')) {
       onboardingStore.nextStep(500);
@@ -6101,6 +6185,9 @@ const handleCreateGroup = async () => {
 const handleEdit = async (group: AdminGroup) => {
   editingGroup.value = group;
   editForm.name = group.name;
+  editForm.display_tags = [...(group.display_tags ?? [])];
+  editForm.custom_display_tags = (group.custom_display_tags ?? []).map(tag => ({ ...tag }));
+  notifyOnGroupEdit.value = false;
   editForm.description = group.description || "";
   editForm.i18n = Object.fromEntries(
     Object.entries(group.i18n ?? {}).map(([locale, text]) => [
@@ -6226,6 +6313,18 @@ const handleEdit = async (group: AdminGroup) => {
   showEditModal.value = true;
 };
 
+const groupEditNoticeKind = computed<GroupNoticeKind | null>(() => {
+  const group = editingGroup.value;
+  if (authStore.isSimpleMode || group?.subscription_type !== "standard") return null;
+  if (group.status === "active" && editForm.status === "inactive") return "group_unlisted";
+  const rate = editForm.rate_multiplier;
+  if (!Number.isFinite(rate) || rate <= 0 || rate === group.rate_multiplier) return null;
+  return rate > group.rate_multiplier ? "price_increase" : "price_decrease";
+});
+watch(groupEditNoticeKind, () => {
+  notifyOnGroupEdit.value = false;
+});
+
 const closeEditModal = () => {
   editModelRoutingRules.value.forEach((rule) => {
     accountSearchRunner.clearKey(getEditRuleSearchKey(rule));
@@ -6270,7 +6369,8 @@ const closeEditModal = () => {
 };
 
 const handleUpdateGroup = async () => {
-  if (!editingGroup.value) return;
+  const original = editingGroup.value;
+  if (!original) return;
   if (!editForm.name.trim()) {
     appStore.showError(t("admin.groups.nameRequired"));
     return;
@@ -6285,6 +6385,7 @@ const handleUpdateGroup = async () => {
   if (!validateProfitControlForm(editForm)) {
     return;
   }
+  if (!validateCustomGroupTags(editForm.custom_display_tags)) return;
   if (!validateGroupReasoningMultipliers(editForm.model_pricing)) return;
   // 模型白名单：开启且没有任何条目时阻止提交，与后端 400 对齐。
   if (
@@ -6307,9 +6408,17 @@ const handleUpdateGroup = async () => {
 
   submitting.value = true;
   try {
+    const savedTags = original.custom_display_tags ?? [];
+    const editedTags = editForm.custom_display_tags;
+    const customTagsChanged = editedTags.length !== savedTags.length || editedTags.some((tag, index) => {
+      const savedTag = savedTags[index];
+      return !savedTag || tag.label.trim() !== savedTag.label || tag.color !== savedTag.color || tag.icon !== savedTag.icon;
+    });
+    const customDisplayTags = customTagsChanged ? editedTags : undefined;
     // 转换 fallback_group_id: null -> 0 (后端使用 0 表示清除)
     const payload = {
       ...editForm,
+      custom_display_tags: customDisplayTags,
       force_openai_fast: normalizeGroupOpenAIFast(
         editForm.platform,
         editForm.force_openai_fast,
@@ -6435,12 +6544,27 @@ const handleUpdateGroup = async () => {
           name: editForm.name,
           description: editForm.description,
           i18n: editForm.i18n,
+          display_tags: editForm.display_tags,
+          custom_display_tags: customDisplayTags,
         }
       : payload;
-    await adminAPI.groups.update(editingGroup.value.id, requestData);
+    const draftKind = notifyOnGroupEdit.value ? groupEditNoticeKind.value : null;
+    const saved = await adminAPI.groups.update(original.id, requestData);
     appStore.showSuccess(t("admin.groups.groupUpdated"));
     closeEditModal();
     loadGroups();
+    if (draftKind === "group_unlisted" && saved.status === "inactive") {
+      openGroupNoticeDraft(saved.id, draftKind);
+    } else if (
+      (draftKind === "price_increase" || draftKind === "price_decrease") &&
+      original.rate_multiplier !== saved.rate_multiplier
+    ) {
+      openGroupNoticeDraft(
+        saved.id,
+        saved.rate_multiplier > original.rate_multiplier ? "price_increase" : "price_decrease",
+        { old: original.rate_multiplier, next: saved.rate_multiplier },
+      );
+    }
   } catch (error: any) {
     appStore.showError(
       extractApiErrorMessage(error, t("admin.groups.failedToUpdate")),

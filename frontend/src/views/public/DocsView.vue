@@ -14,6 +14,7 @@
             <span class="hidden text-muted-foreground sm:inline">{{ t('docs.search') }}</span>
             <kbd class="ml-auto hidden rounded border px-1.5 text-[10px] text-muted-foreground sm:inline">⌘/Ctrl K</kbd>
           </Button>
+          <LocaleSwitcher compact />
           <Button variant="ghost" size="icon-sm" :aria-label="t(isDark ? 'nav.lightMode' : 'nav.darkMode')" @click="toggleTheme">
             <Sun v-if="isDark" /><Moon v-else />
           </Button>
@@ -106,6 +107,8 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
+import { indexablePublicQuery, writePageHead } from '@/utils/publicSeo'
 import { docsAPI, type DocNavigation, type DocPublication } from '@/api/docs'
 import { sanitizeUrl } from '@/utils/url'
 import DocsMarkdown from '@/components/docs/DocsMarkdown.vue'
@@ -207,25 +210,20 @@ function toggleTheme() {
   localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
 }
 
-function setMeta(name: string, value: string) {
-  let tag = document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)
-  if (!value) { tag?.remove(); return }
-  if (!tag) {
-    tag = document.createElement('meta')
-    tag.name = name
-    document.head.append(tag)
-  }
-  tag.content = value
-}
-
-watch([article, loading, locale, () => app.siteName, () => route.fullPath], ([item, busy]) => {
-  if (route.name !== 'DocsIndex' && route.name !== 'DocsArticle') return
-  if (busy && !item) return
-  const isPublic = item?.visibility === 'public'
-  document.title = slug.value && isPublic ? (item.seo_title || `${item.title} · ${app.siteName}`) : `${item?.title || t('docs.title')} · ${app.siteName}`
-  setMeta('description', slug.value && isPublic ? item.seo_description || item.description : '')
-  setMeta('robots', slug.value && !isPublic ? 'noindex' : '')
-}, { immediate: true })
+watch([article, loading, locale, () => app.siteName, () => app.siteLogo, () => app.backendModeEnabled, () => route.fullPath], ([item, busy]) => {
+  if (route.name !== 'DocsArticle' || busy) return
+  const isPublic = item?.visibility === 'public' && !app.backendModeEnabled && indexablePublicQuery(route.query)
+  const siteName = app.siteName.trim() || 'Sub2API'
+  writePageHead({
+    title: `${(isPublic && item.seo_title) || item?.title || t('docs.title')} · ${siteName}`,
+    description: isPublic ? item.seo_description || item.description : undefined,
+    siteName,
+    siteLogo: app.siteLogo,
+    path: `/docs/${slug.value}`,
+    type: 'TechArticle',
+    noIndex: !isPublic,
+  })
+}, { immediate: true, flush: 'post' })
 
 function onKey(event: KeyboardEvent) {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
@@ -242,8 +240,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('scroll', trackHeading)
-  setMeta('description', '')
-  setMeta('robots', '')
 })
 </script>
 

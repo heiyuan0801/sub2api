@@ -42,6 +42,10 @@ func RegisterAdminRoutes(
 
 		// 用户管理
 		registerUserManagementRoutes(admin, h)
+		registrationSources := admin.Group("/registration-sources")
+		registrationSources.GET("/summary", h.Admin.User.RegistrationSourceSummary)
+		registrationSources.GET("/users", h.Admin.User.ListRegistrationSourceUsers)
+		registrationSources.GET("/export", h.Admin.User.ExportRegistrationSourceUsers)
 
 		// 分组管理
 		registerGroupRoutes(admin, h)
@@ -462,6 +466,11 @@ func registerAnnouncementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		announcements.PUT("/:id", h.Admin.Announcement.Update)
 		announcements.DELETE("/:id", h.Admin.Announcement.Delete)
 		announcements.GET("/:id/read-status", h.Admin.Announcement.ListReadStatus)
+		announcements.POST("/:id/publish", h.Admin.Announcement.Publish)
+		announcements.POST("/:id/withdraw", h.Admin.Announcement.Withdraw)
+		announcements.POST("/:id/retry", h.Admin.Announcement.Retry)
+		announcements.GET("/:id/stats", h.Admin.Announcement.Stats)
+		announcements.GET("/:id/deliveries", h.Admin.Announcement.Deliveries)
 	}
 }
 

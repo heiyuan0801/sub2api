@@ -216,6 +216,8 @@
           </div>
         </div>
 
+        <RegistrationSourceField v-model="source" v-model:note="sourceNote" :disabled="registrationActionDisabled" />
+
         <!-- Promo Code Input (Optional) -->
         <div v-if="promoCodeEnabled">
           <label for="promo_code" class="input-label">
@@ -342,6 +344,10 @@
 </template>
 
 <script setup lang="ts">
+import RegistrationSourceField from '@/components/auth/RegistrationSourceField.vue'
+import { buildRegistrationAttribution, clearRegistrationCampaign, storeOAuthRegistrationAttribution } from '@/utils/registrationAttribution'
+import type { RegistrationSource } from '@/types/operations'
+
 import { KeyRound, Mail } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input as UiInput } from '@/components/ui/input'
@@ -478,6 +484,9 @@ const invitationValidation = reactive({
   message: ''
 })
 let invitationValidateTimeout: ReturnType<typeof setTimeout> | null = null
+
+const source = ref<RegistrationSource | ''>('')
+const sourceNote = ref('')
 
 const formData = reactive({
   email: '',
@@ -852,25 +861,30 @@ async function acquireActionProof(): Promise<boolean> {
 async function handleOAuthStart(request: OAuthLoginStart): Promise<void> {
   if (registrationActionDisabled.value) return
 
-  if (!actionCaptchaEnabled.value) {
+  const attribution = buildRegistrationAttribution(source.value, sourceNote.value)
+  if (attribution) {
+    const { source_note: _note, ...queryAttribution } = attribution
+    request = { ...request, params: { ...request.params, registration_attribution: JSON.stringify(queryAttribution) } }
+  }
+
+  if (!actionCaptchaEnabled.value && !attribution?.source_note) {
+    storeOAuthRegistrationAttribution(attribution)
     window.location.href = buildOAuthLoginStartURL(request)
     return
   }
 
   isLoading.value = true
   try {
-    const proof = await turnstileRef.value?.verifyAction()
-    if (!proof) return
+    const proof = actionCaptchaEnabled.value ? await turnstileRef.value?.verifyAction() : undefined
+    if (actionCaptchaEnabled.value && !proof) return
 
-    const result = await startOAuthLogin(
-      request,
-      tencentCaptchaEnabled.value
-        ? {
-            tencent_captcha_ticket: proof.token,
-            tencent_captcha_randstr: proof.randstr
-          }
-        : { turnstile_token: proof.token }
-    )
+    const result = await startOAuthLogin(request, {
+      ...(proof && (tencentCaptchaEnabled.value
+        ? { tencent_captcha_ticket: proof.token, tencent_captcha_randstr: proof.randstr }
+        : { turnstile_token: proof.token })),
+      ...(attribution && { registration_attribution: attribution }),
+    })
+    storeOAuthRegistrationAttribution(attribution)
     window.location.href = result.authorize_url
   } catch (error: unknown) {
     errorMessage.value = extractI18nErrorMessage(
@@ -1034,6 +1048,7 @@ async function handleRegister(): Promise<void> {
   isLoading.value = true
 
   try {
+    const registrationAttribution = buildRegistrationAttribution(source.value, sourceNote.value)
     const affCode = formData.aff_code.trim() || loadAffiliateReferralCode()
     if (affCode) {
       formData.aff_code = affCode
@@ -1052,6 +1067,7 @@ async function handleRegister(): Promise<void> {
           tencent_captcha_ticket: tencentCaptchaEnabled.value ? turnstileToken.value : undefined,
           tencent_captcha_randstr: tencentCaptchaEnabled.value ? tencentCaptchaRandstr.value : undefined,
           promo_code: formData.promo_code || undefined,
+          ...(registrationAttribution ? { registration_attribution: registrationAttribution } : {}),
           invitation_code: formData.invitation_code || undefined,
           ...(affCode ? { aff_code: affCode } : {})
         })
@@ -1071,10 +1087,12 @@ async function handleRegister(): Promise<void> {
       tencent_captcha_ticket: tencentCaptchaEnabled.value ? turnstileToken.value : undefined,
       tencent_captcha_randstr: tencentCaptchaEnabled.value ? tencentCaptchaRandstr.value : undefined,
       promo_code: formData.promo_code || undefined,
+      ...(registrationAttribution ? { registration_attribution: registrationAttribution } : {}),
       invitation_code: formData.invitation_code || undefined,
       ...(affCode ? { aff_code: affCode } : {})
     })
     clearAffiliateReferralCode()
+    clearRegistrationCampaign()
 
     // Show success toast
     appStore.showSuccess(t('auth.accountCreatedSuccess', { siteName: siteName.value }))

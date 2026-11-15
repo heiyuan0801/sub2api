@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/Wei-Shaw/sub2api/ent/predicate"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
@@ -237,6 +238,56 @@ func (_u *SubscriptionPlanUpdate) AddSortOrder(v int) *SubscriptionPlanUpdate {
 	return _u
 }
 
+// SetDisplayTags sets the "display_tags" field.
+func (_u *SubscriptionPlanUpdate) SetDisplayTags(v []string) *SubscriptionPlanUpdate {
+	_u.mutation.SetDisplayTags(v)
+	return _u
+}
+
+// AppendDisplayTags appends value to the "display_tags" field.
+func (_u *SubscriptionPlanUpdate) AppendDisplayTags(v []string) *SubscriptionPlanUpdate {
+	_u.mutation.AppendDisplayTags(v)
+	return _u
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (_u *SubscriptionPlanUpdate) SetVisibilityScope(v string) *SubscriptionPlanUpdate {
+	_u.mutation.SetVisibilityScope(v)
+	return _u
+}
+
+// SetNillableVisibilityScope sets the "visibility_scope" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdate) SetNillableVisibilityScope(v *string) *SubscriptionPlanUpdate {
+	if v != nil {
+		_u.SetVisibilityScope(*v)
+	}
+	return _u
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (_u *SubscriptionPlanUpdate) SetVisibilityUserIds(v []int64) *SubscriptionPlanUpdate {
+	_u.mutation.SetVisibilityUserIds(v)
+	return _u
+}
+
+// AppendVisibilityUserIds appends value to the "visibility_user_ids" field.
+func (_u *SubscriptionPlanUpdate) AppendVisibilityUserIds(v []int64) *SubscriptionPlanUpdate {
+	_u.mutation.AppendVisibilityUserIds(v)
+	return _u
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (_u *SubscriptionPlanUpdate) SetVisibilityGroupIds(v []int64) *SubscriptionPlanUpdate {
+	_u.mutation.SetVisibilityGroupIds(v)
+	return _u
+}
+
+// AppendVisibilityGroupIds appends value to the "visibility_group_ids" field.
+func (_u *SubscriptionPlanUpdate) AppendVisibilityGroupIds(v []int64) *SubscriptionPlanUpdate {
+	_u.mutation.AppendVisibilityGroupIds(v)
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *SubscriptionPlanUpdate) SetUpdatedAt(v time.Time) *SubscriptionPlanUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -304,6 +355,11 @@ func (_u *SubscriptionPlanUpdate) check() error {
 	if v, ok := _u.mutation.ProductName(); ok {
 		if err := subscriptionplan.ProductNameValidator(v); err != nil {
 			return &ValidationError{Name: "product_name", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.product_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.VisibilityScope(); ok {
+		if err := subscriptionplan.VisibilityScopeValidator(v); err != nil {
+			return &ValidationError{Name: "visibility_scope", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.visibility_scope": %w`, err)}
 		}
 	}
 	return nil
@@ -374,6 +430,33 @@ func (_u *SubscriptionPlanUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.AddedSortOrder(); ok {
 		_spec.AddField(subscriptionplan.FieldSortOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DisplayTags(); ok {
+		_spec.SetField(subscriptionplan.FieldDisplayTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDisplayTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldDisplayTags, value)
+		})
+	}
+	if value, ok := _u.mutation.VisibilityScope(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityScope, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.VisibilityUserIds(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityUserIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedVisibilityUserIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldVisibilityUserIds, value)
+		})
+	}
+	if value, ok := _u.mutation.VisibilityGroupIds(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityGroupIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedVisibilityGroupIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldVisibilityGroupIds, value)
+		})
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionplan.FieldUpdatedAt, field.TypeTime, value)
@@ -607,6 +690,56 @@ func (_u *SubscriptionPlanUpdateOne) AddSortOrder(v int) *SubscriptionPlanUpdate
 	return _u
 }
 
+// SetDisplayTags sets the "display_tags" field.
+func (_u *SubscriptionPlanUpdateOne) SetDisplayTags(v []string) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetDisplayTags(v)
+	return _u
+}
+
+// AppendDisplayTags appends value to the "display_tags" field.
+func (_u *SubscriptionPlanUpdateOne) AppendDisplayTags(v []string) *SubscriptionPlanUpdateOne {
+	_u.mutation.AppendDisplayTags(v)
+	return _u
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (_u *SubscriptionPlanUpdateOne) SetVisibilityScope(v string) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetVisibilityScope(v)
+	return _u
+}
+
+// SetNillableVisibilityScope sets the "visibility_scope" field if the given value is not nil.
+func (_u *SubscriptionPlanUpdateOne) SetNillableVisibilityScope(v *string) *SubscriptionPlanUpdateOne {
+	if v != nil {
+		_u.SetVisibilityScope(*v)
+	}
+	return _u
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (_u *SubscriptionPlanUpdateOne) SetVisibilityUserIds(v []int64) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetVisibilityUserIds(v)
+	return _u
+}
+
+// AppendVisibilityUserIds appends value to the "visibility_user_ids" field.
+func (_u *SubscriptionPlanUpdateOne) AppendVisibilityUserIds(v []int64) *SubscriptionPlanUpdateOne {
+	_u.mutation.AppendVisibilityUserIds(v)
+	return _u
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (_u *SubscriptionPlanUpdateOne) SetVisibilityGroupIds(v []int64) *SubscriptionPlanUpdateOne {
+	_u.mutation.SetVisibilityGroupIds(v)
+	return _u
+}
+
+// AppendVisibilityGroupIds appends value to the "visibility_group_ids" field.
+func (_u *SubscriptionPlanUpdateOne) AppendVisibilityGroupIds(v []int64) *SubscriptionPlanUpdateOne {
+	_u.mutation.AppendVisibilityGroupIds(v)
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *SubscriptionPlanUpdateOne) SetUpdatedAt(v time.Time) *SubscriptionPlanUpdateOne {
 	_u.mutation.SetUpdatedAt(v)
@@ -687,6 +820,11 @@ func (_u *SubscriptionPlanUpdateOne) check() error {
 	if v, ok := _u.mutation.ProductName(); ok {
 		if err := subscriptionplan.ProductNameValidator(v); err != nil {
 			return &ValidationError{Name: "product_name", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.product_name": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.VisibilityScope(); ok {
+		if err := subscriptionplan.VisibilityScopeValidator(v); err != nil {
+			return &ValidationError{Name: "visibility_scope", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.visibility_scope": %w`, err)}
 		}
 	}
 	return nil
@@ -774,6 +912,33 @@ func (_u *SubscriptionPlanUpdateOne) sqlSave(ctx context.Context) (_node *Subscr
 	}
 	if value, ok := _u.mutation.AddedSortOrder(); ok {
 		_spec.AddField(subscriptionplan.FieldSortOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.DisplayTags(); ok {
+		_spec.SetField(subscriptionplan.FieldDisplayTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDisplayTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldDisplayTags, value)
+		})
+	}
+	if value, ok := _u.mutation.VisibilityScope(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityScope, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.VisibilityUserIds(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityUserIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedVisibilityUserIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldVisibilityUserIds, value)
+		})
+	}
+	if value, ok := _u.mutation.VisibilityGroupIds(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityGroupIds, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedVisibilityGroupIds(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, subscriptionplan.FieldVisibilityGroupIds, value)
+		})
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(subscriptionplan.FieldUpdatedAt, field.TypeTime, value)

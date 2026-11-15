@@ -6,13 +6,13 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
-import { useAdminSettingsStore } from '@/stores/adminSettings'
 import { useAdminComplianceStore } from '@/stores/adminCompliance'
 import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { getSetupStatus } from '@/api/setup'
 import { resolveCompletedSetupRedirectPath } from './setupRedirect'
-import { resolveRouteDocumentTitle } from './title'
+import { getLocale, setLocale } from '@/i18n'
+import { isLocaleCode, localeHasPublicUrl } from '@/i18n/localeConfig'
 
 /**
  * Route definitions with lazy loading
@@ -228,6 +228,12 @@ const routes: RouteRecordRaw[] = [
       titleKey: 'dashboard.title',
       descriptionKey: 'dashboard.welcomeMessage'
     }
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/views/user/NotificationsView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: false, title: 'Notification center', titleKey: 'operations.notifications' }
   },
   {
     path: '/keys',
@@ -517,6 +523,12 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/registration-sources',
+    name: 'AdminRegistrationSources',
+    component: () => import('@/views/admin/RegistrationSourcesView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Registration sources', titleKey: 'operations.registrationSources' }
+  },
+  {
     path: '/admin/groups',
     name: 'AdminGroups',
     component: () => import('@/views/admin/GroupsView.vue'),
@@ -611,7 +623,7 @@ const routes: RouteRecordRaw[] = [
       requiresAuth: true,
       requiresAdmin: true,
       title: 'Announcements',
-      titleKey: 'admin.announcements.title',
+      titleKey: 'operations.notifications',
       descriptionKey: 'admin.announcements.description'
     }
   },
@@ -797,6 +809,18 @@ const routes: RouteRecordRaw[] = [
       requiresPayment: true
     }
   },
+  {
+    path: '/admin/orders/plans/prices',
+    name: 'AdminPaymentPlanPrices',
+    component: () => import('@/views/admin/orders/PlanPriceHistoryView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Subscription Price History',
+      titleKey: 'planOps.title',
+      requiresPayment: true,
+    },
+  },
 
   // ==================== 404 Not Found ====================
   {
@@ -878,14 +902,12 @@ router.beforeEach(async (to, _from, next) => {
     authInitialized = true
   }
 
-  // Set page title
+  const requestedLocale = to.query.lang
+  if (localeHasPublicUrl(to.path) && isLocaleCode(requestedLocale) && requestedLocale !== getLocale()) {
+    await setLocale(requestedLocale, { persist: false })
+  }
+
   const appStore = useAppStore()
-  const adminSettingsStore = useAdminSettingsStore()
-  const customMenuItems = [
-    ...(appStore.cachedPublicSettings?.custom_menu_items ?? []),
-    ...(authStore.isAdmin ? adminSettingsStore.customMenuItems : []),
-  ]
-  document.title = resolveRouteDocumentTitle(to, appStore.siteName, customMenuItems)
 
   // Check if route requires authentication
   const requiresAuth = to.meta.requiresAuth !== false // Default to true

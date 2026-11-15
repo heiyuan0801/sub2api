@@ -97,6 +97,8 @@
                 >
                   <GroupBadge
                     :name="g.name"
+                    :display-tags="g.display_tags"
+                    :custom-display-tags="g.custom_display_tags"
                     :platform="g.platform as GroupPlatform"
                     :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                     :rate-multiplier="g.rate_multiplier"
@@ -131,6 +133,8 @@
                 >
                   <GroupBadge
                     :name="g.name"
+                    :display-tags="g.display_tags"
+                    :custom-display-tags="g.custom_display_tags"
                     :platform="g.platform as GroupPlatform"
                     :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                     :rate-multiplier="g.rate_multiplier"
@@ -236,6 +240,8 @@
                       <GroupBadge
                         class="max-w-full"
                         :name="g.name"
+                        :display-tags="g.display_tags"
+                        :custom-display-tags="g.custom_display_tags"
                         :platform="g.platform as GroupPlatform"
                         :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                         :rate-multiplier="g.rate_multiplier"
@@ -271,6 +277,8 @@
                       <GroupBadge
                         class="max-w-full"
                         :name="g.name"
+                        :display-tags="g.display_tags"
+                        :custom-display-tags="g.custom_display_tags"
                         :platform="g.platform as GroupPlatform"
                         :subscription-type="(g.subscription_type || 'standard') as SubscriptionType"
                         :rate-multiplier="g.rate_multiplier"

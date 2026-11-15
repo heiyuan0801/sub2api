@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
+import { RouterLinkStub, enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import AnnouncementBell from '../AnnouncementBell.vue'
 import { useAnnouncementStore } from '@/stores/announcements'
@@ -21,7 +21,7 @@ afterEach(() => { vi.restoreAllMocks(); document.body.style.overflow = '' })
 describe('announcement read confirmation', () => {
   it('keeps a failed read confirmation open and only reports success after retry', async () => {
     markRead.mockRejectedValue(new Error('offline'))
-    const wrapper = mount(AnnouncementBell, { global: { stubs: { Teleport: true, Transition: true, Icon: true } } })
+    const wrapper = mount(AnnouncementBell, { global: { stubs: { Teleport: true, Transition: true, Icon: true, RouterLink: RouterLinkStub } } })
     await wrapper.get('button').trigger('click')
     await wrapper.get('.group.relative').trigger('click')
     await flushPromises()

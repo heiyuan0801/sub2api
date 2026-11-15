@@ -98,6 +98,18 @@ func (_c *GroupCreate) SetI18n(v domain.GroupI18n) *GroupCreate {
 	return _c
 }
 
+// SetDisplayTags sets the "display_tags" field.
+func (_c *GroupCreate) SetDisplayTags(v []string) *GroupCreate {
+	_c.mutation.SetDisplayTags(v)
+	return _c
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (_c *GroupCreate) SetCustomDisplayTags(v []domain.GroupDisplayTag) *GroupCreate {
+	_c.mutation.SetCustomDisplayTags(v)
+	return _c
+}
+
 // SetRateMultiplier sets the "rate_multiplier" field.
 func (_c *GroupCreate) SetRateMultiplier(v float64) *GroupCreate {
 	_c.mutation.SetRateMultiplier(v)
@@ -1071,6 +1083,14 @@ func (_c *GroupCreate) defaults() error {
 		v := group.DefaultI18n
 		_c.mutation.SetI18n(v)
 	}
+	if _, ok := _c.mutation.DisplayTags(); !ok {
+		v := group.DefaultDisplayTags
+		_c.mutation.SetDisplayTags(v)
+	}
+	if _, ok := _c.mutation.CustomDisplayTags(); !ok {
+		v := group.DefaultCustomDisplayTags
+		_c.mutation.SetCustomDisplayTags(v)
+	}
 	if _, ok := _c.mutation.RateMultiplier(); !ok {
 		v := group.DefaultRateMultiplier
 		_c.mutation.SetRateMultiplier(v)
@@ -1260,6 +1280,12 @@ func (_c *GroupCreate) check() error {
 	}
 	if _, ok := _c.mutation.I18n(); !ok {
 		return &ValidationError{Name: "i18n", err: errors.New(`ent: missing required field "Group.i18n"`)}
+	}
+	if _, ok := _c.mutation.DisplayTags(); !ok {
+		return &ValidationError{Name: "display_tags", err: errors.New(`ent: missing required field "Group.display_tags"`)}
+	}
+	if _, ok := _c.mutation.CustomDisplayTags(); !ok {
+		return &ValidationError{Name: "custom_display_tags", err: errors.New(`ent: missing required field "Group.custom_display_tags"`)}
 	}
 	if _, ok := _c.mutation.RateMultiplier(); !ok {
 		return &ValidationError{Name: "rate_multiplier", err: errors.New(`ent: missing required field "Group.rate_multiplier"`)}
@@ -1502,6 +1528,14 @@ func (_c *GroupCreate) createSpec() (*Group, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.I18n(); ok {
 		_spec.SetField(group.FieldI18n, field.TypeJSON, value)
 		_node.I18n = value
+	}
+	if value, ok := _c.mutation.DisplayTags(); ok {
+		_spec.SetField(group.FieldDisplayTags, field.TypeJSON, value)
+		_node.DisplayTags = value
+	}
+	if value, ok := _c.mutation.CustomDisplayTags(); ok {
+		_spec.SetField(group.FieldCustomDisplayTags, field.TypeJSON, value)
+		_node.CustomDisplayTags = value
 	}
 	if value, ok := _c.mutation.RateMultiplier(); ok {
 		_spec.SetField(group.FieldRateMultiplier, field.TypeFloat64, value)
@@ -1976,6 +2010,30 @@ func (u *GroupUpsert) SetI18n(v domain.GroupI18n) *GroupUpsert {
 // UpdateI18n sets the "i18n" field to the value that was provided on create.
 func (u *GroupUpsert) UpdateI18n() *GroupUpsert {
 	u.SetExcluded(group.FieldI18n)
+	return u
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (u *GroupUpsert) SetDisplayTags(v []string) *GroupUpsert {
+	u.Set(group.FieldDisplayTags, v)
+	return u
+}
+
+// UpdateDisplayTags sets the "display_tags" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateDisplayTags() *GroupUpsert {
+	u.SetExcluded(group.FieldDisplayTags)
+	return u
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (u *GroupUpsert) SetCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpsert {
+	u.Set(group.FieldCustomDisplayTags, v)
+	return u
+}
+
+// UpdateCustomDisplayTags sets the "custom_display_tags" field to the value that was provided on create.
+func (u *GroupUpsert) UpdateCustomDisplayTags() *GroupUpsert {
+	u.SetExcluded(group.FieldCustomDisplayTags)
 	return u
 }
 
@@ -3116,6 +3174,34 @@ func (u *GroupUpsertOne) SetI18n(v domain.GroupI18n) *GroupUpsertOne {
 func (u *GroupUpsertOne) UpdateI18n() *GroupUpsertOne {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateI18n()
+	})
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (u *GroupUpsertOne) SetDisplayTags(v []string) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDisplayTags(v)
+	})
+}
+
+// UpdateDisplayTags sets the "display_tags" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateDisplayTags() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDisplayTags()
+	})
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (u *GroupUpsertOne) SetCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetCustomDisplayTags(v)
+	})
+}
+
+// UpdateCustomDisplayTags sets the "custom_display_tags" field to the value that was provided on create.
+func (u *GroupUpsertOne) UpdateCustomDisplayTags() *GroupUpsertOne {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateCustomDisplayTags()
 	})
 }
 
@@ -4590,6 +4676,34 @@ func (u *GroupUpsertBulk) SetI18n(v domain.GroupI18n) *GroupUpsertBulk {
 func (u *GroupUpsertBulk) UpdateI18n() *GroupUpsertBulk {
 	return u.Update(func(s *GroupUpsert) {
 		s.UpdateI18n()
+	})
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (u *GroupUpsertBulk) SetDisplayTags(v []string) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetDisplayTags(v)
+	})
+}
+
+// UpdateDisplayTags sets the "display_tags" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateDisplayTags() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateDisplayTags()
+	})
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (u *GroupUpsertBulk) SetCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.SetCustomDisplayTags(v)
+	})
+}
+
+// UpdateCustomDisplayTags sets the "custom_display_tags" field to the value that was provided on create.
+func (u *GroupUpsertBulk) UpdateCustomDisplayTags() *GroupUpsertBulk {
+	return u.Update(func(s *GroupUpsert) {
+		s.UpdateCustomDisplayTags()
 	})
 }
 

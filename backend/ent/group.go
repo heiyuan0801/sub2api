@@ -32,6 +32,10 @@ type Group struct {
 	Description *string `json:"description,omitempty"`
 	// 名称与描述的界面语言译文：语言代码 -> {name, description}；缺失的语言沿用 name/description
 	I18n domain.GroupI18n `json:"i18n,omitempty"`
+	// 分组展示标签：recommended、popular、new；不影响分组权限和计费
+	DisplayTags []string `json:"display_tags,omitempty"`
+	// 自定义分组展示标签，包含名称、颜色和图标
+	CustomDisplayTags []domain.GroupDisplayTag `json:"custom_display_tags,omitempty"`
 	// RateMultiplier holds the value of the "rate_multiplier" field.
 	RateMultiplier float64 `json:"rate_multiplier,omitempty"`
 	// 是否启用高峰时段倍率
@@ -262,7 +266,7 @@ func (*Group) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case group.FieldI18n, group.FieldVideoModelPrices, group.FieldModelPricing, group.FieldModelRouting, group.FieldSupportedModelScopes, group.FieldMessagesDispatchModelConfig, group.FieldModelAllowlist, group.FieldCodexModelsManifestConfig, group.FieldReasoningEffortMappings:
+		case group.FieldI18n, group.FieldDisplayTags, group.FieldCustomDisplayTags, group.FieldVideoModelPrices, group.FieldModelPricing, group.FieldModelRouting, group.FieldSupportedModelScopes, group.FieldMessagesDispatchModelConfig, group.FieldModelAllowlist, group.FieldCodexModelsManifestConfig, group.FieldReasoningEffortMappings:
 			values[i] = new([]byte)
 		case group.FieldPeakRateEnabled, group.FieldIsExclusive, group.FieldAllowImageGeneration, group.FieldAllowBatchImageGeneration, group.FieldImageCountBilling, group.FieldImageRateIndependent, group.FieldVideoRateIndependent, group.FieldLongContextPricingEnabled, group.FieldClaudeCodeOnly, group.FieldModelRoutingEnabled, group.FieldMcpXMLInject, group.FieldAllowMessagesDispatch, group.FieldAllowLive, group.FieldForceOpenaiFast, group.FieldFreeOpenaiFast, group.FieldRequireOauthOnly, group.FieldRequirePrivacySet, group.FieldProfitControlEnabled:
 			values[i] = new(sql.NullBool)
@@ -333,6 +337,22 @@ func (_m *Group) assignValues(columns []string, values []any) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &_m.I18n); err != nil {
 					return fmt.Errorf("unmarshal field i18n: %w", err)
+				}
+			}
+		case group.FieldDisplayTags:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field display_tags", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.DisplayTags); err != nil {
+					return fmt.Errorf("unmarshal field display_tags: %w", err)
+				}
+			}
+		case group.FieldCustomDisplayTags:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field custom_display_tags", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.CustomDisplayTags); err != nil {
+					return fmt.Errorf("unmarshal field custom_display_tags: %w", err)
 				}
 			}
 		case group.FieldRateMultiplier:
@@ -837,6 +857,12 @@ func (_m *Group) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("i18n=")
 	builder.WriteString(fmt.Sprintf("%v", _m.I18n))
+	builder.WriteString(", ")
+	builder.WriteString("display_tags=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DisplayTags))
+	builder.WriteString(", ")
+	builder.WriteString("custom_display_tags=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CustomDisplayTags))
 	builder.WriteString(", ")
 	builder.WriteString("rate_multiplier=")
 	builder.WriteString(fmt.Sprintf("%v", _m.RateMultiplier))

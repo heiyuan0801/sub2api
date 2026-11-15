@@ -114,6 +114,7 @@ func (h *AuthHandler) LinuxDoOAuthStart(c *gin.Context) {
 	intent := normalizeOAuthIntent(c.Query("intent"))
 	setCookie(c, linuxDoOAuthIntentCookieName, encodeCookieValue(intent), linuxDoOAuthCookieMaxAgeSec, secureCookie)
 	captureOAuthPromoCode(c, secureCookie)
+	captureOAuthRegistrationAttribution(c, secureCookie)
 	setOAuthPendingBrowserCookie(c, browserSessionKey, secureCookie)
 	clearOAuthPendingSessionCookie(c, secureCookie)
 	if intent == oauthIntentBindCurrentUser {
@@ -187,6 +188,7 @@ func (h *AuthHandler) LinuxDoOAuthCallback(c *gin.Context) {
 		clearCookie(c, linuxDoOAuthIntentCookieName, secureCookie)
 		clearCookie(c, linuxDoOAuthBindUserCookieName, secureCookie)
 		clearOAuthPromoCodeCookie(c, secureCookie)
+		clearOAuthRegistrationAttribution(c, secureCookie)
 	}()
 
 	expectedState, err := readCookieDecoded(c, linuxDoOAuthStateCookieName)
@@ -335,7 +337,7 @@ func (h *AuthHandler) LinuxDoOAuthCallback(c *gin.Context) {
 			return
 		}
 		tokenPair, user, err := h.authService.LoginOrRegisterOAuthWithTokenPairAndPromoCode(
-			c.Request.Context(),
+			oauthRegistrationContext(c, nil, nil),
 			email,
 			username,
 			"",
@@ -588,7 +590,7 @@ func (h *AuthHandler) CompleteLinuxDoOAuthRegistration(c *gin.Context) {
 		return
 	}
 	tokenPair, user, err := h.authService.LoginOrRegisterOAuthWithTokenPairAndPromoCode(
-		c.Request.Context(),
+		oauthRegistrationContext(c, session, nil),
 		email,
 		username,
 		req.InvitationCode,

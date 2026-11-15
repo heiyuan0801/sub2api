@@ -1,79 +1,47 @@
 <template>
-  <div class="space-y-3">
-    <div class="flex items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
-        {{ t('modelPlaza.filters.platformLabel') }}
-      </span>
-      <div class="flex flex-wrap items-center gap-2">
+  <div class="plaza-filter">
+    <div class="plaza-filter-search">
+      <Icon name="search" size="sm" />
+      <input
+        :value="search"
+        type="search"
+        :aria-label="t('publicSite.models.searchLabel')"
+        :placeholder="t('modelPlaza.filters.searchPlaceholder')"
+        autocomplete="off"
+        @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
+      />
+    </div>
+
+    <div class="plaza-filter-row">
+      <span class="plaza-filter-label">{{ t('modelPlaza.filters.platformLabel') }}</span>
+      <div class="plaza-filter-chips" role="group" :aria-label="t('modelPlaza.filters.platformLabel')">
         <button
-          v-for="p in ['all', ...platforms]"
-          :key="`platform-${p}`"
+          v-for="item in ['all', ...platforms]"
+          :key="item"
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale"
-          :class="p === 'all' ? chipClass(platform === 'all') : platform === p ? 'chip-tinted-active' : 'chip-tinted'"
-          :style="p === 'all' ? undefined : { '--chip-accent': platformAccentColor(p) }"
-          :aria-pressed="platform === p"
-          @click="$emit('update:platform', p)"
+          :aria-pressed="platform === item"
+          @click="$emit('update:platform', item)"
         >
-          <PlatformIcon v-if="p !== 'all'" :platform="p as GroupPlatform" size="xs" />
-          {{ p === 'all' ? t('modelPlaza.filters.all') : platformLabel(p) }}
+          <PlatformIcon v-if="item !== 'all'" :platform="item as GroupPlatform" size="sm" />
+          {{ item === 'all' ? t('modelPlaza.filters.all') : platformLabel(item) }}
         </button>
       </div>
     </div>
 
-    <div class="flex items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
-        {{ t('modelPlaza.filters.groupLabel') }}
-      </span>
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          class="rounded-lg px-3 py-1.5 text-sm font-medium transition"
-          :class="chipClass(groupId === 'all')"
-          :aria-pressed="groupId === 'all'"
-          @click="$emit('update:groupId', 'all')"
-        >
+    <div class="plaza-filter-row">
+      <span class="plaza-filter-label">{{ t('modelPlaza.filters.groupLabel') }}</span>
+      <div class="plaza-filter-chips" role="group" :aria-label="t('modelPlaza.filters.groupLabel')">
+        <button type="button" :aria-pressed="groupId === 'all'" @click="$emit('update:groupId', 'all')">
           {{ t('modelPlaza.filters.all') }}
         </button>
         <button
-          v-for="g in groups"
-          :key="`group-${g.id}`"
+          v-for="group in groups"
+          :key="group.id"
           type="button"
-          class="rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale"
-          :class="groupId === g.id ? 'chip-tinted-active' : 'chip-tinted'"
-          :style="{ '--chip-accent': platformAccentColor(g.platform) }"
-          :aria-pressed="groupId === g.id"
-          @click="$emit('update:groupId', g.id)"
+          :aria-pressed="groupId === group.id"
+          @click="$emit('update:groupId', group.id)"
         >
-          {{ g.name }}
-        </button>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
-        {{ t('modelPlaza.filters.modelLabel') }}
-      </span>
-      <div class="relative w-full sm:w-72">
-        <Icon
-          name="search"
-          size="sm"
-          class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500"
-        />
-        <input
-          :value="search"
-          type="text"
-          :placeholder="t('modelPlaza.filters.searchPlaceholder')"
-          class="input rounded-lg py-1.5 pl-9 pr-9"
-          @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
-        />
-        <button
-          v-if="search"
-          type="button"
-          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:text-dark-500 dark:hover:text-gray-300"
-          @click="$emit('update:search', '')"
-        >
-          <Icon name="x" size="xs" class="h-3.5 w-3.5" />
+          {{ group.name }}
         </button>
       </div>
     </div>
@@ -84,16 +52,14 @@
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
-import { platformAccentColor, platformLabel } from '@/utils/platformColors'
+import { platformLabel } from '@/utils/platformColors'
 import type { GroupPlatform } from '@/types'
 
 defineProps<{
-  /** 数据中出现的平台(去重排序后)。 */
   platforms: string[]
   groups: Array<{ id: number; name: string; platform: string }>
   platform: string
   groupId: number | 'all'
-  /** 模型名搜索词(纯前端过滤)。 */
   search: string
 }>()
 
@@ -104,54 +70,94 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
-
-function chipClass(active: boolean): string {
-  return active
-    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-sm shadow-primary-500/30'
-    : 'bg-white text-gray-600 ring-1 ring-inset ring-gray-200 enabled:hover:bg-gray-50 enabled:hover:text-gray-900 enabled:hover:ring-gray-300 dark:bg-dark-800/60 dark:text-dark-300 dark:ring-dark-700 dark:enabled:hover:bg-dark-800 dark:enabled:hover:text-white'
-}
 </script>
 
 <style scoped>
-/* 平台/分组 chip 的配色统一从 --chip-accent(平台主色)派生,新增平台无需扩展样式。
-   激活态与非激活态在模板上互斥挂载,避免选择器优先级互相覆盖。 */
-.chip-tinted {
-  color: var(--chip-accent);
-  color: color-mix(in srgb, var(--chip-accent) 78%, black);
-  background-color: color-mix(in srgb, var(--chip-accent) 9%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-accent) 25%, transparent);
+.plaza-filter {
+  display: grid;
+  gap: 15px;
+  padding: clamp(16px, 2.2vw, 24px);
+  border-radius: 24px;
+  background: var(--market-soft);
 }
-
-.chip-tinted:not(:disabled):hover {
-  background-color: color-mix(in srgb, var(--chip-accent) 16%, transparent);
+.plaza-filter-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 480px);
+  min-height: 48px;
+  padding-inline: 16px;
+  border: 1px solid var(--market-line);
+  border-radius: 999px;
+  color: var(--market-muted);
+  background: var(--market-surface);
+  transition: box-shadow 220ms;
 }
-
-.dark .chip-tinted {
-  color: color-mix(in srgb, var(--chip-accent) 72%, white);
-  background-color: color-mix(in srgb, var(--chip-accent) 12%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chip-accent) 30%, transparent);
+.plaza-filter-search:focus-within {
+  box-shadow: 0 0 0 2px var(--market-ink);
 }
-
-.dark .chip-tinted:not(:disabled):hover {
-  background-color: color-mix(in srgb, var(--chip-accent) 18%, transparent);
+.plaza-filter-search :deep(svg) { flex: none; }
+.plaza-filter-search input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--market-ink);
+  box-shadow: none;
+  outline: none;
+  font-size: .88rem;
 }
-
-.chip-tinted-active {
-  color: #fff;
-  background-color: var(--chip-accent);
-  background-color: color-mix(in srgb, var(--chip-accent) 85%, black);
-  box-shadow: 0 1px 2px 0 color-mix(in srgb, var(--chip-accent) 35%, transparent);
+.plaza-filter-search input::placeholder { color: var(--market-muted); }
+.plaza-filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  min-width: 0;
 }
-
-.chip-tinted-active:not(:disabled):hover {
-  background-color: color-mix(in srgb, var(--chip-accent) 75%, black);
+.plaza-filter-label {
+  min-width: 3.2rem;
+  color: var(--market-muted);
+  font-size: .75rem;
 }
-
-.dark .chip-tinted-active {
-  background-color: color-mix(in srgb, var(--chip-accent) 80%, transparent);
+.plaza-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
 }
-
-.dark .chip-tinted-active:not(:disabled):hover {
-  background-color: var(--chip-accent);
+.plaza-filter-chips button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 37px;
+  max-width: 100%;
+  padding: 6px 13px;
+  border: 1px solid var(--market-line);
+  border-radius: 999px;
+  background: var(--market-surface);
+  color: var(--market-ink);
+  font-size: .8rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+  transition: background-color 200ms, color 200ms, transform 240ms cubic-bezier(.34, 1.38, .64, 1);
+}
+.plaza-filter-chips button :deep(svg) { flex: none; }
+.plaza-filter-chips button:hover { transform: translateY(-2px); }
+.plaza-filter-chips button:active { transform: scale(.96); }
+.plaza-filter-chips button[aria-pressed='true'] {
+  border-color: var(--market-ink);
+  color: var(--market-surface);
+  background: var(--market-ink);
+}
+.plaza-filter-chips button:focus-visible { outline: 2px solid var(--market-ink); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .plaza-filter-row { flex-direction: column; gap: 8px; }
+  .plaza-filter-search input { font-size: 1rem; }
+  .plaza-filter-chips button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plaza-filter-chips button, .plaza-filter-search { transition: none; }
+  .plaza-filter-chips button:is(:hover, :active) { transform: none; }
 }
 </style>

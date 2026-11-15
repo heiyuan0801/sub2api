@@ -9,6 +9,8 @@
             v-if="groupById(id)"
             class="max-w-full"
             :name="groupById(id)!.name"
+            :display-tags="groupById(id)?.display_tags"
+            :custom-display-tags="groupById(id)?.custom_display_tags"
             :platform="groupById(id)!.platform"
             :rate-multiplier="groupById(id)!.rate_multiplier"
             :user-rate-multiplier="userRates?.[id]"
@@ -40,7 +42,14 @@
       @update:model-value="add"
     >
       <template #option="{ option }">
-        <GroupBadge :name="option.label" :platform="groupById(Number(option.value))?.platform" :rate-multiplier="groupById(Number(option.value))?.rate_multiplier" :user-rate-multiplier="userRates?.[Number(option.value)]" />
+        <GroupBadge
+          :name="option.label"
+          :display-tags="groupById(Number(option.value))?.display_tags"
+          :custom-display-tags="groupById(Number(option.value))?.custom_display_tags"
+          :platform="groupById(Number(option.value))?.platform"
+          :rate-multiplier="groupById(Number(option.value))?.rate_multiplier"
+          :user-rate-multiplier="userRates?.[Number(option.value)]"
+        />
       </template>
     </Select>
   </div>
@@ -53,7 +62,7 @@ import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
 import type { Group } from '@/types'
 import { getKeyGroupProvider, type KeyGroupProvider } from '@/utils/keyGroupProviders'
-type GroupChoice = Pick<Group, 'id' | 'name' | 'platform' | 'rate_multiplier'> & Partial<Pick<Group, 'subscription_type' | 'peak_rate_enabled' | 'peak_start' | 'peak_end' | 'peak_rate_multiplier'>>
+type GroupChoice = Pick<Group, 'id' | 'name' | 'platform' | 'rate_multiplier'> & Partial<Pick<Group, 'display_tags' | 'custom_display_tags' | 'subscription_type' | 'peak_rate_enabled' | 'peak_start' | 'peak_end' | 'peak_rate_multiplier'>>
 const props = defineProps<{ modelValue: number[]; groups: GroupChoice[]; userRates?: Record<number, number>; provider?: KeyGroupProvider }>()
 const emit = defineEmits<{ 'update:modelValue': [ids: number[]] }>()
 const { t } = useI18n()

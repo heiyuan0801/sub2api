@@ -39,6 +39,8 @@
         />
         <GroupBadge
           :name="group.name"
+          :display-tags="group.display_tags"
+          :custom-display-tags="group.custom_display_tags"
           :platform="group.platform"
           :subscription-type="group.subscription_type || undefined"
           :rate-multiplier="group.rate_multiplier == null ? undefined : group.rate_multiplier"

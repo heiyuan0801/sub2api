@@ -103,6 +103,30 @@ func (_u *GroupUpdate) SetI18n(v domain.GroupI18n) *GroupUpdate {
 	return _u
 }
 
+// SetDisplayTags sets the "display_tags" field.
+func (_u *GroupUpdate) SetDisplayTags(v []string) *GroupUpdate {
+	_u.mutation.SetDisplayTags(v)
+	return _u
+}
+
+// AppendDisplayTags appends value to the "display_tags" field.
+func (_u *GroupUpdate) AppendDisplayTags(v []string) *GroupUpdate {
+	_u.mutation.AppendDisplayTags(v)
+	return _u
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (_u *GroupUpdate) SetCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpdate {
+	_u.mutation.SetCustomDisplayTags(v)
+	return _u
+}
+
+// AppendCustomDisplayTags appends value to the "custom_display_tags" field.
+func (_u *GroupUpdate) AppendCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpdate {
+	_u.mutation.AppendCustomDisplayTags(v)
+	return _u
+}
+
 // SetRateMultiplier sets the "rate_multiplier" field.
 func (_u *GroupUpdate) SetRateMultiplier(v float64) *GroupUpdate {
 	_u.mutation.ResetRateMultiplier()
@@ -1604,6 +1628,22 @@ func (_u *GroupUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.I18n(); ok {
 		_spec.SetField(group.FieldI18n, field.TypeJSON, value)
 	}
+	if value, ok := _u.mutation.DisplayTags(); ok {
+		_spec.SetField(group.FieldDisplayTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDisplayTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, group.FieldDisplayTags, value)
+		})
+	}
+	if value, ok := _u.mutation.CustomDisplayTags(); ok {
+		_spec.SetField(group.FieldCustomDisplayTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedCustomDisplayTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, group.FieldCustomDisplayTags, value)
+		})
+	}
 	if value, ok := _u.mutation.RateMultiplier(); ok {
 		_spec.SetField(group.FieldRateMultiplier, field.TypeFloat64, value)
 	}
@@ -2320,6 +2360,30 @@ func (_u *GroupUpdateOne) ClearDescription() *GroupUpdateOne {
 // SetI18n sets the "i18n" field.
 func (_u *GroupUpdateOne) SetI18n(v domain.GroupI18n) *GroupUpdateOne {
 	_u.mutation.SetI18n(v)
+	return _u
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (_u *GroupUpdateOne) SetDisplayTags(v []string) *GroupUpdateOne {
+	_u.mutation.SetDisplayTags(v)
+	return _u
+}
+
+// AppendDisplayTags appends value to the "display_tags" field.
+func (_u *GroupUpdateOne) AppendDisplayTags(v []string) *GroupUpdateOne {
+	_u.mutation.AppendDisplayTags(v)
+	return _u
+}
+
+// SetCustomDisplayTags sets the "custom_display_tags" field.
+func (_u *GroupUpdateOne) SetCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpdateOne {
+	_u.mutation.SetCustomDisplayTags(v)
+	return _u
+}
+
+// AppendCustomDisplayTags appends value to the "custom_display_tags" field.
+func (_u *GroupUpdateOne) AppendCustomDisplayTags(v []domain.GroupDisplayTag) *GroupUpdateOne {
+	_u.mutation.AppendCustomDisplayTags(v)
 	return _u
 }
 
@@ -3853,6 +3917,22 @@ func (_u *GroupUpdateOne) sqlSave(ctx context.Context) (_node *Group, err error)
 	}
 	if value, ok := _u.mutation.I18n(); ok {
 		_spec.SetField(group.FieldI18n, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.DisplayTags(); ok {
+		_spec.SetField(group.FieldDisplayTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedDisplayTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, group.FieldDisplayTags, value)
+		})
+	}
+	if value, ok := _u.mutation.CustomDisplayTags(); ok {
+		_spec.SetField(group.FieldCustomDisplayTags, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.AppendedCustomDisplayTags(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, group.FieldCustomDisplayTags, value)
+		})
 	}
 	if value, ok := _u.mutation.RateMultiplier(); ok {
 		_spec.SetField(group.FieldRateMultiplier, field.TypeFloat64, value)

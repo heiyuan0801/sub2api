@@ -142,7 +142,9 @@ type simpleModeGroupResponse struct {
 	Platform    string `json:"platform"`
 	Status      string `json:"status"`
 
-	I18n service.GroupI18n `json:"i18n,omitempty"`
+	I18n              service.GroupI18n         `json:"i18n,omitempty"`
+	DisplayTags       []string                  `json:"display_tags"`
+	CustomDisplayTags []service.GroupDisplayTag `json:"custom_display_tags"`
 
 	AccountCount            int64     `json:"account_count,omitempty"`
 	ActiveAccountCount      int64     `json:"active_account_count,omitempty"`
@@ -160,6 +162,8 @@ func groupForSimpleMode(group *service.Group) *simpleModeGroupResponse {
 		ID: group.ID, Name: group.Name, Description: group.Description, Platform: group.Platform,
 		Status:             group.Status,
 		I18n:               group.I18n,
+		DisplayTags:        append([]string{}, group.DisplayTags...),
+		CustomDisplayTags:  append([]service.GroupDisplayTag{}, group.CustomDisplayTags...),
 		AccountCount:       group.AccountCount,
 		ActiveAccountCount: group.ActiveAccountCount, RateLimitedAccountCount: group.RateLimitedAccountCount,
 		SortOrder: group.SortOrder, CreatedAt: group.CreatedAt, UpdatedAt: group.UpdatedAt,
@@ -170,7 +174,7 @@ func sanitizeCreateGroupRequestForSimpleMode(req *CreateGroupRequest) {
 	if req == nil {
 		return
 	}
-	allowed := CreateGroupRequest{Name: req.Name, Description: req.Description, I18n: req.I18n, Platform: req.Platform}
+	allowed := CreateGroupRequest{Name: req.Name, Description: req.Description, I18n: req.I18n, DisplayTags: req.DisplayTags, CustomDisplayTags: req.CustomDisplayTags, Platform: req.Platform}
 	allowed.RateMultiplier = 1
 	allowed.SubscriptionType = service.SubscriptionTypeStandard
 	*req = allowed
@@ -180,7 +184,7 @@ func sanitizeUpdateGroupRequestForSimpleMode(req *UpdateGroupRequest) {
 	if req == nil {
 		return
 	}
-	*req = UpdateGroupRequest{Name: req.Name, Description: req.Description, I18n: req.I18n}
+	*req = UpdateGroupRequest{Name: req.Name, Description: req.Description, I18n: req.I18n, DisplayTags: req.DisplayTags, CustomDisplayTags: req.CustomDisplayTags}
 }
 
 // CreateGroupRequest represents create group request
@@ -188,6 +192,8 @@ type CreateGroupRequest struct {
 	Name                      string                        `json:"name" binding:"required"`
 	Description               string                        `json:"description"`
 	I18n                      service.GroupI18n             `json:"i18n"` // 名称与描述的界面语言译文
+	DisplayTags               []string                      `json:"display_tags"`
+	CustomDisplayTags         []service.GroupDisplayTag     `json:"custom_display_tags"`
 	Platform                  string                        `json:"platform" binding:"omitempty,group_platform"`
 	RateMultiplier            float64                       `json:"rate_multiplier"`
 	IsExclusive               bool                          `json:"is_exclusive"`
@@ -264,6 +270,8 @@ type UpdateGroupRequest struct {
 	Name                      string                         `json:"name"`
 	Description               *string                        `json:"description"`
 	I18n                      *service.GroupI18n             `json:"i18n"` // 缺省不修改，传入则整体替换
+	DisplayTags               *[]string                      `json:"display_tags"`
+	CustomDisplayTags         *[]service.GroupDisplayTag     `json:"custom_display_tags"`
 	Platform                  string                         `json:"platform" binding:"omitempty,group_platform"`
 	RateMultiplier            *float64                       `json:"rate_multiplier"`
 	IsExclusive               *bool                          `json:"is_exclusive"`
@@ -672,6 +680,8 @@ func (h *GroupHandler) Create(c *gin.Context) {
 		Name:                            req.Name,
 		Description:                     req.Description,
 		I18n:                            req.I18n,
+		DisplayTags:                     req.DisplayTags,
+		CustomDisplayTags:               req.CustomDisplayTags,
 		Platform:                        req.Platform,
 		RateMultiplier:                  req.RateMultiplier,
 		IsExclusive:                     req.IsExclusive,
@@ -819,6 +829,8 @@ func (h *GroupHandler) Update(c *gin.Context) {
 		Name:                            req.Name,
 		Description:                     req.Description,
 		I18n:                            req.I18n,
+		DisplayTags:                     req.DisplayTags,
+		CustomDisplayTags:               req.CustomDisplayTags,
 		Platform:                        req.Platform,
 		RateMultiplier:                  req.RateMultiplier,
 		IsExclusive:                     req.IsExclusive,

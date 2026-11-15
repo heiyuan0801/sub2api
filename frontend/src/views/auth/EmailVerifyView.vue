@@ -178,6 +178,9 @@
 </template>
 
 <script setup lang="ts">
+import { clearRegistrationCampaign, oauthRegistrationAttributionPayload } from '@/utils/registrationAttribution'
+import type { RegistrationAttribution } from '@/types/operations'
+
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -247,6 +250,7 @@ const email = ref<string>('')
 const password = ref<string>('')
 const initialTurnstileToken = ref<string>('')
 const initialTencentCaptchaRandstr = ref<string>('')
+const registrationAttribution = ref<RegistrationAttribution>()
 const promoCode = ref<string>('')
 const invitationCode = ref<string>('')
 const affCode = ref<string>('')
@@ -337,6 +341,7 @@ onMounted(async () => {
         registerData.tencent_captcha_ticket || registerData.turnstile_token || ''
       initialTencentCaptchaRandstr.value = registerData.tencent_captcha_randstr || ''
       promoCode.value = registerData.promo_code || ''
+      registrationAttribution.value = registerData.registration_attribution
       invitationCode.value = registerData.invitation_code || ''
       affCode.value = registerData.aff_code || loadAffiliateReferralCode()
       pendingAuthToken.value = registerData.pending_auth_token || activePendingSession?.token || ''
@@ -675,6 +680,7 @@ async function handleVerify(): Promise<void> {
   try {
     if (isPendingOAuthFlow()) {
       const payload: Record<string, unknown> = {
+        ...oauthRegistrationAttributionPayload(),
         email: email.value,
         password: password.value,
         verify_code: verifyCode.value.trim(),
@@ -730,6 +736,7 @@ async function handleVerify(): Promise<void> {
         tencent_captcha_ticket: tencentCaptchaEnabled.value ? initialTurnstileToken.value || undefined : undefined,
         tencent_captcha_randstr: tencentCaptchaEnabled.value ? initialTencentCaptchaRandstr.value || undefined : undefined,
         promo_code: promoCode.value || undefined,
+        ...(registrationAttribution.value ? { registration_attribution: registrationAttribution.value } : {}),
         invitation_code: invitationCode.value || undefined,
         ...(affCode.value ? { aff_code: affCode.value } : {})
       })
@@ -738,6 +745,7 @@ async function handleVerify(): Promise<void> {
     // Clear session data
     sessionStorage.removeItem('register_data')
     clearAllAffiliateReferralCodes()
+    clearRegistrationCampaign()
 
     // Show success toast
     appStore.showSuccess(t('auth.accountCreatedSuccess', { siteName: siteName.value }))

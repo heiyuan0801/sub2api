@@ -1,30 +1,19 @@
 <template>
   <PlazaCatalog v-if="!embedded" :response="response" :loading="loading" :error="error" />
-  <div v-else class="space-y-5">
-    <!-- 全局价格说明(管理员配置,Markdown) -->
-    <div
-      v-if="descriptionHtml"
-      class="plaza-description rounded-2xl border border-gray-100 bg-white px-5 py-4 text-sm shadow-card dark:border-dark-700/50 dark:bg-dark-800/50"
-      v-html="descriptionHtml"
-    ></div>
+  <div v-else class="embedded-market">
+    <div v-if="descriptionHtml" class="plaza-description" v-html="descriptionHtml" />
 
-    <!-- 未登录提示 -->
-    <p
-      v-if="!isAuthenticated"
-      class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-dark-500"
-    >
-      <Icon name="infoCircle" size="xs" class="h-3.5 w-3.5" />
+    <p v-if="!isAuthenticated" class="embedded-market-note">
+      <Icon name="infoCircle" size="xs" />
       {{ t('modelPlaza.anonymousHint') }}
     </p>
 
-    <!-- 加载/错误/空 -->
-    <div v-if="loading" class="flex min-h-[240px] items-center justify-center">
-      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary-600/25 border-t-primary-600 dark:border-primary-400/25 dark:border-t-primary-400"></div>
+    <div v-if="loading" class="market-state" role="status">
+      <span class="market-spinner" aria-hidden="true" />
+      {{ t('modelPlaza.loading') }}
     </div>
-    <div
-      v-else-if="error"
-      class="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
-    >
+    <div v-else-if="error" class="market-state market-load-error" role="alert">
+      <Icon name="exclamationCircle" size="md" />
       {{ t('modelPlaza.loadFailed') }}
     </div>
     <template v-else>
@@ -39,23 +28,33 @@
         @update:search="searchQuery = $event"
       />
 
-      <div v-if="providerSections.length" class="space-y-7">
-        <section v-for="{ platform, groups } in providerSections" :key="platform" class="space-y-3">
-          <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
-            <PlatformIcon :platform="platform as GroupPlatform" size="sm" />
-            {{ platformLabel(platform) }}
-            <span class="text-xs font-normal text-gray-500 dark:text-dark-400">{{ t('publicSite.models.groupCount', { count: groups.length }) }}</span>
-          </h2>
-          <PlazaGroupSection v-for="group in groups" :key="group.id" :group="group" prices-only />
+      <div v-if="providerSections.length" class="market-provider-list">
+        <section v-for="{ platform, groups } in providerSections" :key="platform" class="market-provider">
+          <header class="provider-heading">
+            <span class="provider-icon"><PlatformIcon :platform="platform as GroupPlatform" size="md" /></span>
+            <h2>{{ platformLabel(platform) }}</h2>
+            <span class="provider-count">{{ t('publicSite.models.groupCount', { count: groups.length }) }}</span>
+          </header>
+          <PlazaGroupSection
+            v-for="group in groups"
+            :key="group.id"
+            :group="group"
+            market
+            prices-only
+            model-details
+            @select-model="selectedModel = $event"
+          />
         </section>
       </div>
-      <div
-        v-else
-        class="rounded-2xl border border-dashed border-gray-300 px-5 py-12 text-center text-sm text-gray-500 dark:border-dark-600 dark:text-dark-400"
-      >
-        {{ searchActive ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}
+      <div v-else class="market-state" role="status">
+        <Icon name="search" size="md" />
+        {{ t(filtersActive ? 'modelPlaza.noSearchResult' : 'modelPlaza.empty') }}
+        <button v-if="filtersActive" type="button" class="market-reset" @click="resetFilters">
+          {{ t('publicSite.models.clearFilters') }}
+        </button>
       </div>
     </template>
+    <PlazaModelDetail v-if="selectedModel" :model="selectedModel" :groups="detailGroups" @close="selectedModel = null" />
   </div>
 </template>
 
@@ -69,7 +68,9 @@ import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import PlazaFilterBar from './PlazaFilterBar.vue'
 import PlazaGroupSection from './PlazaGroupSection.vue'
 import PlazaCatalog from './PlazaCatalog.vue'
-import type { ModelPlazaGroup, ModelPlazaResponse } from '@/api/modelPlaza'
+import PlazaModelDetail from './PlazaModelDetail.vue'
+import { groupsForPlazaModel } from './catalogPricing'
+import type { ModelPlazaGroup, ModelPlazaResponse, PlazaModel } from '@/api/modelPlaza'
 import { useAuthStore } from '@/stores/auth'
 import { platformLabel } from '@/utils/platformColors'
 import type { GroupPlatform } from '@/types'
@@ -89,8 +90,15 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const selectedPlatform = ref<string>('all')
 const selectedGroupId = ref<number | 'all'>('all')
 const searchQuery = ref('')
+const selectedModel = ref<PlazaModel | null>(null)
 
-const searchActive = computed(() => searchQuery.value.trim() !== '')
+const filtersActive = computed(() => Boolean(searchQuery.value.trim()) || selectedPlatform.value !== 'all' || selectedGroupId.value !== 'all')
+
+function resetFilters() {
+  searchQuery.value = ''
+  selectedPlatform.value = 'all'
+  selectedGroupId.value = 'all'
+}
 
 const descriptionHtml = computed(() => {
   const md = props.response?.description?.trim()
@@ -99,6 +107,10 @@ const descriptionHtml = computed(() => {
 })
 
 const groups = computed(() => props.response?.groups ?? [])
+const detailGroups = computed(() => groupsForPlazaModel(groups.value, selectedModel.value))
+watch(detailGroups, visible => {
+  if (!visible.length) selectedModel.value = null
+})
 const platforms = computed(() =>
   [...new Set(groups.value.map(group => group.platform))].sort((a, b) =>
     platformLabel(a).localeCompare(platformLabel(b), locale.value)
@@ -140,7 +152,46 @@ const providerSections = computed(() => {
 </script>
 
 <style scoped>
+.embedded-market {
+  --market-surface: #fff;
+  --market-ink: #171717;
+  --market-muted: #676764;
+  --market-line: #e9e9e7;
+  --market-soft: #f6f6f4;
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+  color: var(--market-ink);
+}
+.dark .embedded-market {
+  --market-surface: #202020;
+  --market-ink: #f5f5f5;
+  --market-muted: #afafae;
+  --market-line: #373737;
+  --market-soft: #262626;
+}
+.embedded-market > * { min-width: 0; }
+.embedded-market-note { display: flex; align-items: center; gap: 8px; color: var(--market-muted); font-size: .78rem; }
+.market-provider-list { display: grid; gap: 30px; }
+.market-provider { display: grid; min-width: 0; gap: 12px; }
+.provider-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 2px; }
+.provider-heading h2 { font-size: 1.1rem; font-weight: 650; overflow-wrap: anywhere; }
+.provider-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 13px; background: var(--market-soft); }
+.provider-count { color: var(--market-muted); font-size: .76rem; }
+.market-state { display: grid; gap: 13px; place-content: center; justify-items: center; min-height: 215px; padding: 24px; border-radius: 24px; background: var(--market-soft); color: var(--market-muted); font-size: .88rem; text-align: center; }
+.market-load-error { color: #af2940; }
+.dark .market-load-error { color: #ff99a7; }
+.market-spinner { width: 24px; height: 24px; border: 2px solid var(--market-line); border-top-color: var(--market-ink); border-radius: 50%; animation: market-spin .75s linear infinite; }
+.market-reset { padding: 10px 15px; border-radius: 999px; color: var(--market-surface); background: var(--market-ink); }
+.market-reset:focus-visible { outline: 2px solid var(--market-ink); outline-offset: 3px; }
+@keyframes market-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .market-spinner { animation: none; } }
+
 .plaza-description {
+  padding: 18px 22px;
+  border-radius: 24px;
+  background: var(--market-soft);
+  font-size: .86rem;
   line-height: 1.7;
   overflow-wrap: anywhere;
 }

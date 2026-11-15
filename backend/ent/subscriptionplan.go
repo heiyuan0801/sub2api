@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -41,6 +42,14 @@ type SubscriptionPlan struct {
 	ForSale bool `json:"for_sale,omitempty"`
 	// SortOrder holds the value of the "sort_order" field.
 	SortOrder int `json:"sort_order,omitempty"`
+	// DisplayTags holds the value of the "display_tags" field.
+	DisplayTags []string `json:"display_tags,omitempty"`
+	// VisibilityScope holds the value of the "visibility_scope" field.
+	VisibilityScope string `json:"visibility_scope,omitempty"`
+	// VisibilityUserIds holds the value of the "visibility_user_ids" field.
+	VisibilityUserIds []int64 `json:"visibility_user_ids,omitempty"`
+	// VisibilityGroupIds holds the value of the "visibility_group_ids" field.
+	VisibilityGroupIds []int64 `json:"visibility_group_ids,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -53,13 +62,15 @@ func (*SubscriptionPlan) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case subscriptionplan.FieldDisplayTags, subscriptionplan.FieldVisibilityUserIds, subscriptionplan.FieldVisibilityGroupIds:
+			values[i] = new([]byte)
 		case subscriptionplan.FieldForSale:
 			values[i] = new(sql.NullBool)
 		case subscriptionplan.FieldPrice, subscriptionplan.FieldOriginalPrice:
 			values[i] = new(sql.NullFloat64)
 		case subscriptionplan.FieldID, subscriptionplan.FieldGroupID, subscriptionplan.FieldValidityDays, subscriptionplan.FieldSortOrder:
 			values[i] = new(sql.NullInt64)
-		case subscriptionplan.FieldName, subscriptionplan.FieldDescription, subscriptionplan.FieldCurrency, subscriptionplan.FieldValidityUnit, subscriptionplan.FieldFeatures, subscriptionplan.FieldProductName:
+		case subscriptionplan.FieldName, subscriptionplan.FieldDescription, subscriptionplan.FieldCurrency, subscriptionplan.FieldValidityUnit, subscriptionplan.FieldFeatures, subscriptionplan.FieldProductName, subscriptionplan.FieldVisibilityScope:
 			values[i] = new(sql.NullString)
 		case subscriptionplan.FieldCreatedAt, subscriptionplan.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -157,6 +168,36 @@ func (_m *SubscriptionPlan) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SortOrder = int(value.Int64)
 			}
+		case subscriptionplan.FieldDisplayTags:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field display_tags", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.DisplayTags); err != nil {
+					return fmt.Errorf("unmarshal field display_tags: %w", err)
+				}
+			}
+		case subscriptionplan.FieldVisibilityScope:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field visibility_scope", values[i])
+			} else if value.Valid {
+				_m.VisibilityScope = value.String
+			}
+		case subscriptionplan.FieldVisibilityUserIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field visibility_user_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.VisibilityUserIds); err != nil {
+					return fmt.Errorf("unmarshal field visibility_user_ids: %w", err)
+				}
+			}
+		case subscriptionplan.FieldVisibilityGroupIds:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field visibility_group_ids", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.VisibilityGroupIds); err != nil {
+					return fmt.Errorf("unmarshal field visibility_group_ids: %w", err)
+				}
+			}
 		case subscriptionplan.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -242,6 +283,18 @@ func (_m *SubscriptionPlan) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("sort_order=")
 	builder.WriteString(fmt.Sprintf("%v", _m.SortOrder))
+	builder.WriteString(", ")
+	builder.WriteString("display_tags=")
+	builder.WriteString(fmt.Sprintf("%v", _m.DisplayTags))
+	builder.WriteString(", ")
+	builder.WriteString("visibility_scope=")
+	builder.WriteString(_m.VisibilityScope)
+	builder.WriteString(", ")
+	builder.WriteString("visibility_user_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.VisibilityUserIds))
+	builder.WriteString(", ")
+	builder.WriteString("visibility_group_ids=")
+	builder.WriteString(fmt.Sprintf("%v", _m.VisibilityGroupIds))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

@@ -735,6 +735,7 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
     { path: '/batch-image', label: t('nav.batchImage'), icon: BatchImageIcon, hideInSimpleMode: true, featureFlag: flagBatchImageAccess },
     { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
+    { path: '/notifications', label: t('operations.notifications'), icon: BellIcon },
     { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
     { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
     { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
@@ -790,6 +791,7 @@ const adminNavItems = computed((): NavItem[] => {
     { path: '/admin/cluster', label: t('cluster.title'), icon: ChartIcon },
     { path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon, featureFlag: flagOpsMonitoring },
     { path: '/admin/users', label: t('nav.users'), icon: UsersIcon, hideInSimpleMode: true },
+    { path: '/admin/registration-sources', label: t('operations.registrationSources'), icon: ChartIcon, hideInSimpleMode: true },
     { path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon },
     {
       path: '/admin/channels',
@@ -806,7 +808,7 @@ const adminNavItems = computed((): NavItem[] => {
     { path: '/admin/subscriptions', label: t('nav.subscriptions'), icon: CreditCardIcon, hideInSimpleMode: true, featureFlag: flagSubscription },
     { path: '/admin/accounts', label: t('nav.accounts'), icon: GlobeIcon },
     { path: '/admin/plugins', label: t('nav.plugins'), icon: PluginIcon, featureFlag: flagPluginManagement },
-    { path: '/admin/announcements', label: t('nav.announcements'), icon: BellIcon },
+    { path: '/admin/announcements', label: t('operations.notifications'), icon: BellIcon },
     { path: '/admin/proxies', label: t('nav.proxies'), icon: ServerIcon },
     {
       path: '/admin/security-audit',

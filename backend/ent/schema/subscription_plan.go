@@ -61,6 +61,15 @@ func (SubscriptionPlan) Fields() []ent.Field {
 			Default(true),
 		field.Int("sort_order").
 			Default(0),
+		field.JSON("display_tags", []string{}).
+			Default([]string{}),
+		field.String("visibility_scope").
+			MaxLen(12).
+			Default("all"),
+		field.JSON("visibility_user_ids", []int64{}).
+			Default([]int64{}),
+		field.JSON("visibility_group_ids", []int64{}).
+			Default([]int64{}),
 		field.Time("created_at").
 			Immutable().
 			Default(time.Now).

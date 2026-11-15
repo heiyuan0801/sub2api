@@ -1,6 +1,8 @@
 package admin
 
 import (
+	"errors"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -34,6 +36,10 @@ type CreateAnnouncementRequest struct {
 	Targeting  service.AnnouncementTargeting `json:"targeting"`
 	StartsAt   *int64                        `json:"starts_at"` // Unix seconds, 0/empty = immediate
 	EndsAt     *int64                        `json:"ends_at"`   // Unix seconds, 0/empty = never
+	Kind       string                        `json:"kind"`
+	PlanID     *int64                        `json:"plan_id"`
+	GroupID    *int64                        `json:"group_id"`
+	Audience   *service.AnnouncementAudience `json:"audience"`
 }
 
 type UpdateAnnouncementRequest struct {
@@ -44,6 +50,10 @@ type UpdateAnnouncementRequest struct {
 	Targeting  *service.AnnouncementTargeting `json:"targeting"`
 	StartsAt   *int64                         `json:"starts_at"` // Unix seconds, 0 = clear
 	EndsAt     *int64                         `json:"ends_at"`   // Unix seconds, 0 = clear
+	Kind       *string                        `json:"kind"`
+	PlanID     *int64                         `json:"plan_id"`
+	GroupID    *int64                         `json:"group_id"`
+	Audience   *service.AnnouncementAudience  `json:"audience"`
 }
 
 // List handles listing announcements with filters
@@ -76,8 +86,21 @@ func (h *AnnouncementHandler) List(c *gin.Context) {
 	}
 
 	out := make([]dto.Announcement, 0, len(items))
+	ids := make([]int64, 0, len(items))
+	for _, item := range items {
+		ids = append(ids, item.ID)
+	}
+	publications, err := h.announcementService.Publications(c.Request.Context(), ids)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
 	for i := range items {
-		out = append(out, *dto.AnnouncementFromService(&items[i]))
+		item := dto.AnnouncementFromService(&items[i])
+		if publication, ok := publications[items[i].ID]; ok {
+			item.ApplyPublication(publication)
+		}
+		out = append(out, *item)
 	}
 	response.Paginated(c, out, paginationResult.Total, page, pageSize)
 }
@@ -97,7 +120,7 @@ func (h *AnnouncementHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, dto.AnnouncementFromService(item))
+	h.respondAnnouncement(c, item)
 }
 
 // Create handles creating a new announcement
@@ -123,6 +146,13 @@ func (h *AnnouncementHandler) Create(c *gin.Context) {
 		Targeting:  req.Targeting,
 		ActorID:    &subject.UserID,
 	}
+	if req.Kind != "" || req.PlanID != nil || req.GroupID != nil || req.Audience != nil {
+		if req.Audience == nil {
+			response.ErrorFrom(c, service.ErrAnnouncementInvalidPublication)
+			return
+		}
+		input.Publication = &service.AnnouncementPublication{Kind: req.Kind, PlanID: req.PlanID, GroupID: req.GroupID, Audience: *req.Audience}
+	}
 
 	if req.StartsAt != nil && *req.StartsAt > 0 {
 		t := time.Unix(*req.StartsAt, 0)
@@ -139,7 +169,7 @@ func (h *AnnouncementHandler) Create(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, dto.AnnouncementFromService(created))
+	h.respondAnnouncement(c, created)
 }
 
 // Update handles updating an announcement
@@ -170,6 +200,22 @@ func (h *AnnouncementHandler) Update(c *gin.Context) {
 		NotifyMode: req.NotifyMode,
 		Targeting:  req.Targeting,
 		ActorID:    &subject.UserID,
+		Kind:       req.Kind,
+		Audience:   req.Audience,
+	}
+	if req.PlanID != nil {
+		planID := req.PlanID
+		if *req.PlanID == 0 {
+			planID = nil
+		}
+		input.PlanID = &planID
+	}
+	if req.GroupID != nil {
+		groupID := req.GroupID
+		if *req.GroupID == 0 {
+			groupID = nil
+		}
+		input.GroupID = &groupID
 	}
 
 	if req.StartsAt != nil {
@@ -200,7 +246,126 @@ func (h *AnnouncementHandler) Update(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, dto.AnnouncementFromService(updated))
+	h.respondAnnouncement(c, updated)
+}
+
+func (h *AnnouncementHandler) respondAnnouncement(c *gin.Context, item *service.Announcement) {
+	publications, err := h.announcementService.Publications(c.Request.Context(), []int64{item.ID})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	out := dto.AnnouncementFromService(item)
+	if publication, ok := publications[item.ID]; ok {
+		out.ApplyPublication(publication)
+	}
+	response.Success(c, out)
+}
+
+func adminAnnouncementID(c *gin.Context) (int64, bool) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		response.BadRequest(c, "Invalid announcement ID")
+		return 0, false
+	}
+	return id, true
+}
+
+func (h *AnnouncementHandler) Publish(c *gin.Context) {
+	var req struct {
+		StartsAt int64 `json:"starts_at"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if req.StartsAt < 0 {
+		response.ErrorFrom(c, service.ErrAnnouncementInvalidSchedule)
+		return
+	}
+	var startsAt *time.Time
+	if req.StartsAt > 0 {
+		at := time.Unix(req.StartsAt, 0)
+		startsAt = &at
+	}
+	id, ok := adminAnnouncementID(c)
+	if !ok {
+		return
+	}
+	actor, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not found in context")
+		return
+	}
+	middleware2.SetAuditAction(c, "admin.announcements.publish")
+	if err := h.announcementService.Publish(c.Request.Context(), id, actor.UserID, startsAt); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	h.GetByID(c)
+}
+
+func (h *AnnouncementHandler) Withdraw(c *gin.Context) {
+	id, ok := adminAnnouncementID(c)
+	if !ok {
+		return
+	}
+	actor, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not found in context")
+		return
+	}
+	middleware2.SetAuditAction(c, "admin.announcements.withdraw")
+	if err := h.announcementService.Withdraw(c.Request.Context(), id, actor.UserID); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	h.GetByID(c)
+}
+
+func (h *AnnouncementHandler) Retry(c *gin.Context) {
+	id, ok := adminAnnouncementID(c)
+	if !ok {
+		return
+	}
+	actor, ok := middleware2.GetAuthSubjectFromContext(c)
+	if !ok {
+		response.Unauthorized(c, "User not found in context")
+		return
+	}
+	middleware2.SetAuditAction(c, "admin.announcements.retry")
+	if err := h.announcementService.RetryDelivery(c.Request.Context(), id, actor.UserID); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	h.GetByID(c)
+}
+
+func (h *AnnouncementHandler) Stats(c *gin.Context) {
+	id, ok := adminAnnouncementID(c)
+	if !ok {
+		return
+	}
+	stats, err := h.announcementService.DeliveryStats(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+func (h *AnnouncementHandler) Deliveries(c *gin.Context) {
+	id, ok := adminAnnouncementID(c)
+	if !ok {
+		return
+	}
+	page, size := response.ParsePagination(c)
+	items, total, err := h.announcementService.ListDeliveries(c.Request.Context(), id, pagination.PaginationParams{Page: page, PageSize: size})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Paginated(c, items, total, page, size)
 }
 
 // Delete handles deleting an announcement

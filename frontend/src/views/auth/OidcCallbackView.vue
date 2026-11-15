@@ -243,6 +243,7 @@
 </template>
 
 <script setup lang="ts">
+import { oauthRegistrationAttributionPayload } from '@/utils/registrationAttribution'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -702,6 +703,7 @@ async function handleCreateAccount(payload: PendingOAuthCreateAccountPayload) {
   isSubmitting.value = true
   try {
     const { data } = await apiClient.post<PendingOidcCompletion>('/auth/oauth/pending/create-account', {
+      ...oauthRegistrationAttributionPayload(),
       email: payload.email,
       password: payload.password,
       verify_code: payload.verifyCode || undefined,

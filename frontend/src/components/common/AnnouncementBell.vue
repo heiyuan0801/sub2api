@@ -8,14 +8,11 @@
       :aria-label="t('announcements.title')"
     >
       <Icon name="bell" size="md" />
-      <!-- 未读红点 -->
       <span
         v-if="unreadCount > 0"
-        class="absolute right-1 top-1 flex h-2 w-2"
-      >
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75"></span>
-        <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
-      </span>
+        class="absolute -right-1 -top-1 inline-flex min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-semibold leading-4 text-white"
+        :aria-label="`${unreadCount} ${t('announcements.unread')}`"
+      >{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
     </button>
 
     <!-- 公告列表 Modal -->
@@ -39,7 +36,7 @@
                       <Icon name="bell" size="sm" />
                     </div>
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                      {{ t('announcements.title') }}
+                      {{ t('operations.notifications') }}
                     </h2>
                   </div>
                   <p v-if="unreadCount > 0" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -171,6 +168,11 @@
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('announcements.emptyDescription') }}</p>
               </div>
             </div>
+            <div class="border-t border-border px-6 py-3 text-center">
+              <RouterLink to="/notifications" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400" @click="closeModal">
+                {{ t('operations.notificationHistory') }}
+              </RouterLink>
+            </div>
           </div>
         </div>
       </Transition>
@@ -201,9 +203,7 @@
                       </svg>
                     </div>
                     <div class="flex items-center gap-2">
-                      <span class="rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700 dark:bg-dark-700 dark:text-gray-200">
-                        {{ t('announcements.title') }}
-                      </span>
+                      <NotificationKindBadge :kind="selectedAnnouncement.kind" />
                       <span
                         v-if="!selectedAnnouncement.read_at"
                         class="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 dark:bg-gray-700 px-2.5 py-1 text-xs font-medium text-white shadow-sm"
@@ -276,7 +276,15 @@
                   </svg>
                   <span>{{ selectedAnnouncement.read_at ? t('announcements.readStatus') : t('announcements.markReadHint') }}</span>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3">
+                  <RouterLink
+                    v-if="selectedAnnouncement.action_url && (!selectedGroupTarget || availableChannelsEnabled)"
+                    :to="{ path: '/notifications', query: { id: selectedAnnouncement.id } }"
+                    class="btn btn-secondary"
+                    @click="closeDetail(); closeModal()"
+                  >
+                    {{ t(selectedGroupTarget ? 'operations.openGroup' : 'operations.openPlan') }}
+                  </RouterLink>
                   <button
                     @click="closeDetail"
                     class="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow dark:border-dark-600 dark:bg-dark-700 dark:text-gray-300 dark:hover:bg-dark-600"
@@ -314,8 +322,10 @@ import DOMPurify from 'dompurify'
 import { useAppStore } from '@/stores/app'
 import { useAnnouncementStore } from '@/stores/announcements'
 import { formatRelativeTime, formatRelativeWithDateTime } from '@/utils/format'
+import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import type { UserAnnouncement } from '@/types'
 import Icon from '@/components/icons/Icon.vue'
+import NotificationKindBadge from './NotificationKindBadge.vue'
 import '@/styles/announcement-markdown.css'
 
 const { t } = useI18n()
@@ -336,6 +346,8 @@ const unreadCount = computed(() => announcementStore.unreadCount)
 const isModalOpen = ref(false)
 const detailModalOpen = ref(false)
 const selectedAnnouncement = ref<UserAnnouncement | null>(null)
+const selectedGroupTarget = computed(() => Boolean(selectedAnnouncement.value?.group_id && !selectedAnnouncement.value.plan_id))
+const availableChannelsEnabled = computed(() => isFeatureFlagEnabled(FeatureFlags.availableChannels))
 
 // Methods
 function renderMarkdown(content: string): string {
@@ -346,6 +358,7 @@ function renderMarkdown(content: string): string {
 
 function openModal() {
   isModalOpen.value = true
+  void announcementStore.fetchAnnouncements()
 }
 
 function closeModal() {
@@ -401,12 +414,23 @@ function handleEscape(e: KeyboardEvent) {
   }
 }
 
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+
+function refreshVisible() {
+  if (document.visibilityState !== 'hidden') void announcementStore.fetchAnnouncements()
+}
+
 onMounted(() => {
   document.addEventListener('keydown', handleEscape)
+  document.addEventListener('visibilitychange', refreshVisible)
+  refreshTimer = setInterval(refreshVisible, 60_000)
+  refreshVisible()
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleEscape)
+  document.removeEventListener('visibilitychange', refreshVisible)
+  clearInterval(refreshTimer)
   document.body.style.overflow = ''
 })
 

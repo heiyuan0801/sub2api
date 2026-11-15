@@ -45,6 +45,8 @@ type PlazaGroup struct {
 	Name               string
 	Description        string
 	I18n               GroupI18n
+	DisplayTags        []string
+	CustomDisplayTags  []GroupDisplayTag
 	Platform           string
 	SubscriptionType   string
 	RateMultiplier     float64
@@ -131,6 +133,8 @@ func (s *ModelPlazaService) ListGroups(ctx context.Context) ([]PlazaGroup, error
 			Name:                      g.Name,
 			Description:               g.Description,
 			I18n:                      g.I18n,
+			DisplayTags:               g.DisplayTags,
+			CustomDisplayTags:         g.CustomDisplayTags,
 			Platform:                  g.Platform,
 			SubscriptionType:          g.SubscriptionType,
 			RateMultiplier:            g.RateMultiplier,

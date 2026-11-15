@@ -2,7 +2,8 @@
   <span
     :class="[
       'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium transition-colors',
-      badgeClass
+      badgeClass,
+      (displayTags?.length || customDisplayTags?.length) ? 'min-w-0 flex-wrap' : ''
     ]"
   >
     <!-- Platform logo -->
@@ -23,6 +24,7 @@
     <span v-if="hasPeakRate" :class="peakRateClass" :title="peakRateTitle">
       {{ peakRateText }}
     </span>
+    <GroupDisplayTags :tags="displayTags" :custom-tags="customDisplayTags" />
   </span>
 </template>
 
@@ -32,10 +34,14 @@ import { useI18n } from 'vue-i18n'
 import type { SubscriptionType, GroupPlatform } from '@/types'
 import { useAppStore } from '@/stores/app'
 import { formatPeakRateWindow, serverTimezoneLabel } from '@/utils/peak-rate'
+import type { CustomGroupDisplayTag, GroupDisplayTag } from '@/constants/groupDisplayTags'
+import GroupDisplayTags from './GroupDisplayTags.vue'
 import PlatformIcon from './PlatformIcon.vue'
 
 interface Props {
   name: string
+  displayTags?: GroupDisplayTag[] | null
+  customDisplayTags?: CustomGroupDisplayTag[] | null
   platform?: GroupPlatform
   subscriptionType?: SubscriptionType
   rateMultiplier?: number

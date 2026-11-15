@@ -1,10 +1,10 @@
 <template>
   <section
     class="overflow-hidden rounded-2xl border bg-white shadow-card dark:bg-dark-800/50"
-    :class="[platformBorderStrongClass(group.platform)]"
+    :class="market ? 'market-group' : platformBorderStrongClass(group.platform)"
   >
     <!-- 分组头部:名称/平台/倍率徽章/专属/订阅徽章 + 描述 -->
-    <header class="border-b border-gray-100 px-5 py-4 dark:border-dark-700/60">
+    <header class="plaza-group-header border-b border-gray-100 px-5 py-4 dark:border-dark-700/60">
       <div class="flex flex-wrap items-center gap-2">
         <h3 v-if="pricesOnly" class="min-w-0 break-words text-sm font-semibold text-gray-900 dark:text-white">{{ group.name }}</h3>
         <GroupBadge
@@ -20,6 +20,7 @@
           :peak-rate-multiplier="group.peak_rate_multiplier"
           always-show-rate
         />
+        <GroupDisplayTags :tags="group.display_tags" :custom-tags="group.custom_display_tags" />
         <span
           v-if="group.is_exclusive"
           class="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-600 dark:bg-purple-900/20 dark:text-purple-400"
@@ -59,6 +60,7 @@
         v-if="group.models.length > 0"
         :models="group.models"
         :prices-only="pricesOnly"
+        :model-details="modelDetails"
         :platform="group.platform"
         :rate-multiplier="group.rate_multiplier"
         :user-rate-multiplier="group.user_rate_multiplier ?? null"
@@ -68,6 +70,7 @@
         :video-rate-multiplier="group.video_rate_multiplier"
         :peak-window="peakWindow"
         :peak-rate-multiplier="group.peak_rate_multiplier"
+        @select-model="emit('selectModel', $event)"
       />
       <p v-else class="px-5 py-4 text-center text-sm text-gray-400 dark:text-dark-500">
         {{ t('modelPlaza.detail.noModels') }}
@@ -79,10 +82,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import GroupDisplayTags from '@/components/common/GroupDisplayTags.vue'
 import Icon from '@/components/icons/Icon.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import PlazaModelPricingTable from './PlazaModelPricingTable.vue'
-import type { ModelPlazaGroup } from '@/api/modelPlaza'
+import type { ModelPlazaGroup, PlazaModel } from '@/api/modelPlaza'
 import type { GroupPlatform, SubscriptionType } from '@/types'
 import { platformBorderStrongClass } from '@/utils/platformColors'
 import { hasPeakRate, formatPeakRateWindow, serverTimezoneLabel } from '@/utils/peak-rate'
@@ -90,8 +94,11 @@ import { useAppStore } from '@/stores/app'
 
 const props = defineProps<{
   group: ModelPlazaGroup
+  market?: boolean
   pricesOnly?: boolean
+  modelDetails?: boolean
 }>()
+const emit = defineEmits<{ selectModel: [model: PlazaModel] }>()
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -125,3 +132,35 @@ const longContextNote = computed(() => {
   return hasOfficialLadder ? t(props.pricesOnly ? 'publicSite.models.baseContextPrice' : 'modelPlaza.detail.longContextDisabledNote') : ''
 })
 </script>
+
+<style scoped>
+.market-group {
+  min-width: 0;
+  border-color: var(--market-line, #e9e9e7);
+  border-radius: 24px;
+  background: var(--market-surface, #fff);
+  color: var(--market-ink, #171717);
+  box-shadow: none;
+}
+.dark .market-group {
+  border-color: var(--market-line, #353535);
+  background: var(--market-surface, #202020);
+  color: var(--market-ink, #f5f5f5);
+}
+.market-group .plaza-group-header {
+  border-bottom: 0;
+  background: var(--market-soft, #f6f6f4);
+}
+.dark .market-group .plaza-group-header { background: var(--market-soft, #262626); }
+.market-group :deep(.plaza-pricing-table) {
+  --pz-title: currentColor;
+  --pz-bg: transparent;
+  --pz-bg-hover: var(--market-soft, #f6f6f4);
+}
+.dark .market-group :deep(.plaza-pricing-table) { --pz-bg-hover: var(--market-soft, #262626); }
+.market-group :deep(.pz-title) { border-color: var(--market-line, #e9e9e7); }
+.market-group :deep(.pz-unit) { color: var(--market-muted, #676764); }
+.dark .market-group :deep(.pz-title) { border-color: var(--market-line, #353535); }
+.dark .market-group :deep(.pz-unit) { color: var(--market-muted, #afafae); }
+.market-group :deep(tbody button) { color: inherit; }
+</style>

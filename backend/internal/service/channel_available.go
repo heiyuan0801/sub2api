@@ -17,6 +17,8 @@ type AvailableGroupRef struct {
 	ID                 int64
 	Name               string
 	I18n               GroupI18n
+	DisplayTags        []string
+	CustomDisplayTags  []GroupDisplayTag
 	Platform           string
 	SubscriptionType   string
 	RateMultiplier     float64
@@ -68,6 +70,8 @@ func (s *ChannelService) ListAvailable(ctx context.Context) ([]AvailableChannel,
 			ID:                 g.ID,
 			Name:               g.Name,
 			I18n:               g.I18n,
+			DisplayTags:        g.DisplayTags,
+			CustomDisplayTags:  g.CustomDisplayTags,
 			Platform:           g.Platform,
 			SubscriptionType:   g.SubscriptionType,
 			RateMultiplier:     g.RateMultiplier,

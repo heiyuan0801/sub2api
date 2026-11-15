@@ -19,6 +19,10 @@ type channelMonitorV2RepoStub struct {
 	admin  bool
 }
 
+func (s *channelMonitorV2RepoStub) GetModelPerformance(context.Context, ChannelMonitorV2Filter, ChannelMonitorV2Config) (PlazaPerformanceFacts, error) {
+	return PlazaPerformanceFacts{}, nil
+}
+
 // Alias keeps composite literals readable without introducing another package.
 type serviceChannelMonitorV2ConfigAlias = ChannelMonitorV2Config
 

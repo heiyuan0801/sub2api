@@ -4,8 +4,10 @@
  */
 
 import { apiClient } from './client'
+import { buildRegistrationAttribution, clearRegistrationCampaign, oauthRegistrationAttributionPayload, storeOAuthRegistrationAttribution } from '@/utils/registrationAttribution'
 import { refreshAuthTokens, type RefreshTokenResponse } from './tokenRefresh'
 export type { RefreshTokenResponse } from './tokenRefresh'
+import type { RegistrationAttribution } from '@/types/operations'
 import type {
   LoginRequest,
   RegisterRequest,
@@ -41,22 +43,29 @@ export interface OAuthLoginStartResponse {
   authorize_url: string
 }
 
+function oauthLoginStartParams(request: OAuthLoginStart): Record<string, string> {
+  if (request.params.registration_attribution) return request.params
+  const attribution = buildRegistrationAttribution()
+  storeOAuthRegistrationAttribution(attribution)
+  return attribution ? { ...request.params, registration_attribution: JSON.stringify(attribution) } : request.params
+}
+
 export function buildOAuthLoginStartURL(request: OAuthLoginStart): string {
   const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api/v1'
   const normalized = apiBase.replace(/\/$/, '')
-  const query = new URLSearchParams(request.params).toString()
+  const query = new URLSearchParams(oauthLoginStartParams(request)).toString()
   const path = `${normalized}/auth/oauth/${request.provider}/start`
   return query ? `${path}?${query}` : path
 }
 
 export async function startOAuthLogin(
   request: OAuthLoginStart,
-  proof: ActionCaptchaRequestProof
+  proof: ActionCaptchaRequestProof & { registration_attribution?: RegistrationAttribution }
 ): Promise<OAuthLoginStartResponse> {
   const { data } = await apiClient.post<OAuthLoginStartResponse>(
     `/auth/oauth/${request.provider}/start`,
     proof,
-    { params: request.params }
+    { params: oauthLoginStartParams(request) }
   )
   return data
 }
@@ -306,6 +315,7 @@ export function hasPendingOAuthSuggestedProfile(
 }
 
 export function persistOAuthTokenContext(tokens: Partial<OAuthTokenResponse>): void {
+  if (tokens.access_token) clearRegistrationCampaign()
   if (tokens.refresh_token) {
     setRefreshToken(tokens.refresh_token)
   }
@@ -623,6 +633,7 @@ async function createPendingOAuthAccount(
     `/auth/oauth/${provider}/complete-registration`,
     {
       invitation_code: invitationCode,
+      ...oauthRegistrationAttributionPayload(),
       ...(normalizedAffiliateCode ? { aff_code: normalizedAffiliateCode } : {}),
       ...serializeOAuthAdoptionDecision(decision)
     }

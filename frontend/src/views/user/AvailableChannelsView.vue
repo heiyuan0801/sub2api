@@ -17,6 +17,11 @@
                 class="input pl-10"
               />
             </div>
+            <button v-if="linkedGroupID" type="button" class="btn btn-secondary gap-2" @click="clearLinkedGroup">
+              <span>{{ linkedGroupName || `${t('operations.notificationGroup')} #${linkedGroupID}` }}</span>
+              <Icon name="x" size="xs" aria-hidden="true" />
+              <span class="sr-only">{{ t('operations.clearGroupFilter') }}</span>
+            </button>
           </div>
 
           <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
@@ -51,6 +56,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -62,11 +68,28 @@ import { extractApiErrorMessage } from '@/utils/apiError'
 
 const { t } = useI18n()
 const appStore = useAppStore()
+const route = useRoute()
+const router = useRouter()
 
 const channels = ref<UserAvailableChannel[]>([])
 const userGroupRates = ref<Record<number, number>>({})
 const loading = ref(false)
 const searchQuery = ref('')
+const linkedGroupID = computed(() => {
+  const id = route.query.group_id
+  if (typeof id !== 'string' || !/^[1-9][0-9]*$/.test(id)) return 0
+  const parsed = Number(id)
+  return Number.isSafeInteger(parsed) ? parsed : 0
+})
+const linkedGroupName = computed(() => linkedGroupID.value
+  ? channels.value.flatMap(channel => channel.platforms).flatMap(platform => platform.groups)
+    .find(group => group.id === linkedGroupID.value)?.name
+  : undefined)
+
+function clearLinkedGroup() {
+  const { group_id: _groupID, ...query } = route.query
+  void router.replace({ query })
+}
 
 const columnLabels = computed(() => ({
   name: t('availableChannels.columns.name'),
@@ -83,9 +106,17 @@ const columnLabels = computed(() => ({
  * - 所有 sections 都不匹配时，渠道本身被过滤掉
  */
 const filteredChannels = computed(() => {
+  const groupID = linkedGroupID.value
+  const scopedChannels = !groupID ? channels.value : channels.value.flatMap(channel => {
+    const platforms = channel.platforms.flatMap(platform => {
+      const groups = platform.groups.filter(group => group.id === groupID)
+      return groups.length ? [{ ...platform, groups }] : []
+    })
+    return platforms.length ? [{ ...channel, platforms }] : []
+  })
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return channels.value
-  return channels.value
+  if (!q) return scopedChannels
+  return scopedChannels
     .map((ch) => {
       const nameHit = ch.name.toLowerCase().includes(q)
       const descHit = (ch.description || '').toLowerCase().includes(q)

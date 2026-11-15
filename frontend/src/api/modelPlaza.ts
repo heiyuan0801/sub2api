@@ -4,6 +4,7 @@
  * 带 token 请求时后端会额外返回专属分组与用户专属倍率。
  */
 
+import type { CustomGroupDisplayTag, GroupDisplayTag } from '@/constants/groupDisplayTags'
 import { apiClient } from './client'
 import type { UserPricingInterval, UserSupportedModelPricing } from './channels'
 
@@ -57,6 +58,8 @@ export interface PlazaModel {
 }
 
 export interface ModelPlazaGroup {
+  display_tags?: GroupDisplayTag[] | null
+  custom_display_tags?: CustomGroupDisplayTag[] | null
   id: number
   name: string
   description: string
@@ -105,6 +108,55 @@ export async function getModelPlaza(options?: { signal?: AbortSignal }): Promise
   return data
 }
 
-export const modelPlazaAPI = { getModelPlaza }
+export type PlazaPerformanceRange = '24h' | '7d' | '30d'
+
+export interface PlazaPerformanceMetrics {
+  tps: number | null
+  avg_ttft_ms: number | null
+  avg_latency_ms: number | null
+  success_rate: number | null
+  failures: number | null
+  incident_count: number
+}
+
+export interface PlazaPerformanceBucket {
+  bucket_start: string
+  success_rate: number | null
+  failures: number | null
+  abnormal?: boolean
+}
+
+export interface PlazaPerformancePoint extends PlazaPerformanceBucket {
+  avg_ttft_ms: number | null
+  ttft_status?: 'healthy' | 'warning' | 'critical' | 'unknown'
+}
+
+export interface PlazaPerformanceGroup {
+  id: number
+  name: string
+  metrics: PlazaPerformanceMetrics
+  buckets: PlazaPerformanceBucket[]
+}
+
+export interface PlazaPerformanceResponse {
+  range: PlazaPerformanceRange
+  bucket_seconds: number
+  summary: PlazaPerformanceMetrics
+  groups: PlazaPerformanceGroup[]
+  trend: PlazaPerformancePoint[]
+}
+
+export async function getModelPlazaPerformance(
+  filter: { model: string; platform: string; range: PlazaPerformanceRange; groupId?: number },
+  options?: { signal?: AbortSignal },
+): Promise<PlazaPerformanceResponse> {
+  const { data } = await apiClient.get<PlazaPerformanceResponse>('/model-plaza/performance', {
+    params: { model: filter.model, platform: filter.platform, range: filter.range, group_id: filter.groupId },
+    signal: options?.signal,
+  })
+  return data
+}
+
+export const modelPlazaAPI = { getModelPlaza, getModelPlazaPerformance }
 
 export default modelPlazaAPI

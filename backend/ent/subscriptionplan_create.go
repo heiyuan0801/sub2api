@@ -166,6 +166,38 @@ func (_c *SubscriptionPlanCreate) SetNillableSortOrder(v *int) *SubscriptionPlan
 	return _c
 }
 
+// SetDisplayTags sets the "display_tags" field.
+func (_c *SubscriptionPlanCreate) SetDisplayTags(v []string) *SubscriptionPlanCreate {
+	_c.mutation.SetDisplayTags(v)
+	return _c
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (_c *SubscriptionPlanCreate) SetVisibilityScope(v string) *SubscriptionPlanCreate {
+	_c.mutation.SetVisibilityScope(v)
+	return _c
+}
+
+// SetNillableVisibilityScope sets the "visibility_scope" field if the given value is not nil.
+func (_c *SubscriptionPlanCreate) SetNillableVisibilityScope(v *string) *SubscriptionPlanCreate {
+	if v != nil {
+		_c.SetVisibilityScope(*v)
+	}
+	return _c
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (_c *SubscriptionPlanCreate) SetVisibilityUserIds(v []int64) *SubscriptionPlanCreate {
+	_c.mutation.SetVisibilityUserIds(v)
+	return _c
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (_c *SubscriptionPlanCreate) SetVisibilityGroupIds(v []int64) *SubscriptionPlanCreate {
+	_c.mutation.SetVisibilityGroupIds(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *SubscriptionPlanCreate) SetCreatedAt(v time.Time) *SubscriptionPlanCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -261,6 +293,22 @@ func (_c *SubscriptionPlanCreate) defaults() {
 		v := subscriptionplan.DefaultSortOrder
 		_c.mutation.SetSortOrder(v)
 	}
+	if _, ok := _c.mutation.DisplayTags(); !ok {
+		v := subscriptionplan.DefaultDisplayTags
+		_c.mutation.SetDisplayTags(v)
+	}
+	if _, ok := _c.mutation.VisibilityScope(); !ok {
+		v := subscriptionplan.DefaultVisibilityScope
+		_c.mutation.SetVisibilityScope(v)
+	}
+	if _, ok := _c.mutation.VisibilityUserIds(); !ok {
+		v := subscriptionplan.DefaultVisibilityUserIds
+		_c.mutation.SetVisibilityUserIds(v)
+	}
+	if _, ok := _c.mutation.VisibilityGroupIds(); !ok {
+		v := subscriptionplan.DefaultVisibilityGroupIds
+		_c.mutation.SetVisibilityGroupIds(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := subscriptionplan.DefaultCreatedAt()
 		_c.mutation.SetCreatedAt(v)
@@ -325,6 +373,23 @@ func (_c *SubscriptionPlanCreate) check() error {
 	}
 	if _, ok := _c.mutation.SortOrder(); !ok {
 		return &ValidationError{Name: "sort_order", err: errors.New(`ent: missing required field "SubscriptionPlan.sort_order"`)}
+	}
+	if _, ok := _c.mutation.DisplayTags(); !ok {
+		return &ValidationError{Name: "display_tags", err: errors.New(`ent: missing required field "SubscriptionPlan.display_tags"`)}
+	}
+	if _, ok := _c.mutation.VisibilityScope(); !ok {
+		return &ValidationError{Name: "visibility_scope", err: errors.New(`ent: missing required field "SubscriptionPlan.visibility_scope"`)}
+	}
+	if v, ok := _c.mutation.VisibilityScope(); ok {
+		if err := subscriptionplan.VisibilityScopeValidator(v); err != nil {
+			return &ValidationError{Name: "visibility_scope", err: fmt.Errorf(`ent: validator failed for field "SubscriptionPlan.visibility_scope": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.VisibilityUserIds(); !ok {
+		return &ValidationError{Name: "visibility_user_ids", err: errors.New(`ent: missing required field "SubscriptionPlan.visibility_user_ids"`)}
+	}
+	if _, ok := _c.mutation.VisibilityGroupIds(); !ok {
+		return &ValidationError{Name: "visibility_group_ids", err: errors.New(`ent: missing required field "SubscriptionPlan.visibility_group_ids"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "SubscriptionPlan.created_at"`)}
@@ -406,6 +471,22 @@ func (_c *SubscriptionPlanCreate) createSpec() (*SubscriptionPlan, *sqlgraph.Cre
 	if value, ok := _c.mutation.SortOrder(); ok {
 		_spec.SetField(subscriptionplan.FieldSortOrder, field.TypeInt, value)
 		_node.SortOrder = value
+	}
+	if value, ok := _c.mutation.DisplayTags(); ok {
+		_spec.SetField(subscriptionplan.FieldDisplayTags, field.TypeJSON, value)
+		_node.DisplayTags = value
+	}
+	if value, ok := _c.mutation.VisibilityScope(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityScope, field.TypeString, value)
+		_node.VisibilityScope = value
+	}
+	if value, ok := _c.mutation.VisibilityUserIds(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityUserIds, field.TypeJSON, value)
+		_node.VisibilityUserIds = value
+	}
+	if value, ok := _c.mutation.VisibilityGroupIds(); ok {
+		_spec.SetField(subscriptionplan.FieldVisibilityGroupIds, field.TypeJSON, value)
+		_node.VisibilityGroupIds = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(subscriptionplan.FieldCreatedAt, field.TypeTime, value)
@@ -644,6 +725,54 @@ func (u *SubscriptionPlanUpsert) UpdateSortOrder() *SubscriptionPlanUpsert {
 // AddSortOrder adds v to the "sort_order" field.
 func (u *SubscriptionPlanUpsert) AddSortOrder(v int) *SubscriptionPlanUpsert {
 	u.Add(subscriptionplan.FieldSortOrder, v)
+	return u
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (u *SubscriptionPlanUpsert) SetDisplayTags(v []string) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldDisplayTags, v)
+	return u
+}
+
+// UpdateDisplayTags sets the "display_tags" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateDisplayTags() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldDisplayTags)
+	return u
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (u *SubscriptionPlanUpsert) SetVisibilityScope(v string) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldVisibilityScope, v)
+	return u
+}
+
+// UpdateVisibilityScope sets the "visibility_scope" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateVisibilityScope() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldVisibilityScope)
+	return u
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (u *SubscriptionPlanUpsert) SetVisibilityUserIds(v []int64) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldVisibilityUserIds, v)
+	return u
+}
+
+// UpdateVisibilityUserIds sets the "visibility_user_ids" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateVisibilityUserIds() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldVisibilityUserIds)
+	return u
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (u *SubscriptionPlanUpsert) SetVisibilityGroupIds(v []int64) *SubscriptionPlanUpsert {
+	u.Set(subscriptionplan.FieldVisibilityGroupIds, v)
+	return u
+}
+
+// UpdateVisibilityGroupIds sets the "visibility_group_ids" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsert) UpdateVisibilityGroupIds() *SubscriptionPlanUpsert {
+	u.SetExcluded(subscriptionplan.FieldVisibilityGroupIds)
 	return u
 }
 
@@ -911,6 +1040,62 @@ func (u *SubscriptionPlanUpsertOne) AddSortOrder(v int) *SubscriptionPlanUpsertO
 func (u *SubscriptionPlanUpsertOne) UpdateSortOrder() *SubscriptionPlanUpsertOne {
 	return u.Update(func(s *SubscriptionPlanUpsert) {
 		s.UpdateSortOrder()
+	})
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (u *SubscriptionPlanUpsertOne) SetDisplayTags(v []string) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDisplayTags(v)
+	})
+}
+
+// UpdateDisplayTags sets the "display_tags" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateDisplayTags() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDisplayTags()
+	})
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (u *SubscriptionPlanUpsertOne) SetVisibilityScope(v string) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetVisibilityScope(v)
+	})
+}
+
+// UpdateVisibilityScope sets the "visibility_scope" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateVisibilityScope() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateVisibilityScope()
+	})
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (u *SubscriptionPlanUpsertOne) SetVisibilityUserIds(v []int64) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetVisibilityUserIds(v)
+	})
+}
+
+// UpdateVisibilityUserIds sets the "visibility_user_ids" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateVisibilityUserIds() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateVisibilityUserIds()
+	})
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (u *SubscriptionPlanUpsertOne) SetVisibilityGroupIds(v []int64) *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetVisibilityGroupIds(v)
+	})
+}
+
+// UpdateVisibilityGroupIds sets the "visibility_group_ids" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertOne) UpdateVisibilityGroupIds() *SubscriptionPlanUpsertOne {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateVisibilityGroupIds()
 	})
 }
 
@@ -1346,6 +1531,62 @@ func (u *SubscriptionPlanUpsertBulk) AddSortOrder(v int) *SubscriptionPlanUpsert
 func (u *SubscriptionPlanUpsertBulk) UpdateSortOrder() *SubscriptionPlanUpsertBulk {
 	return u.Update(func(s *SubscriptionPlanUpsert) {
 		s.UpdateSortOrder()
+	})
+}
+
+// SetDisplayTags sets the "display_tags" field.
+func (u *SubscriptionPlanUpsertBulk) SetDisplayTags(v []string) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetDisplayTags(v)
+	})
+}
+
+// UpdateDisplayTags sets the "display_tags" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateDisplayTags() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateDisplayTags()
+	})
+}
+
+// SetVisibilityScope sets the "visibility_scope" field.
+func (u *SubscriptionPlanUpsertBulk) SetVisibilityScope(v string) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetVisibilityScope(v)
+	})
+}
+
+// UpdateVisibilityScope sets the "visibility_scope" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateVisibilityScope() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateVisibilityScope()
+	})
+}
+
+// SetVisibilityUserIds sets the "visibility_user_ids" field.
+func (u *SubscriptionPlanUpsertBulk) SetVisibilityUserIds(v []int64) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetVisibilityUserIds(v)
+	})
+}
+
+// UpdateVisibilityUserIds sets the "visibility_user_ids" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateVisibilityUserIds() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateVisibilityUserIds()
+	})
+}
+
+// SetVisibilityGroupIds sets the "visibility_group_ids" field.
+func (u *SubscriptionPlanUpsertBulk) SetVisibilityGroupIds(v []int64) *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.SetVisibilityGroupIds(v)
+	})
+}
+
+// UpdateVisibilityGroupIds sets the "visibility_group_ids" field to the value that was provided on create.
+func (u *SubscriptionPlanUpsertBulk) UpdateVisibilityGroupIds() *SubscriptionPlanUpsertBulk {
+	return u.Update(func(s *SubscriptionPlanUpsert) {
+		s.UpdateVisibilityGroupIds()
 	})
 }
 

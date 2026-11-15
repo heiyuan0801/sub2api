@@ -60,7 +60,7 @@ func TestEmailOAuthAuto_SnapshotsPlatformQuotaDefaults(t *testing.T) {
 		quotaRepo,
 	)
 
-	user, err := svc.createEmailOAuthUser(
+	user, created, err := svc.createEmailOAuthUser(
 		context.Background(),
 		"newoauth@example.com",
 		"newoauth",
@@ -69,6 +69,7 @@ func TestEmailOAuthAuto_SnapshotsPlatformQuotaDefaults(t *testing.T) {
 		"", // affiliateCode
 	)
 	require.NoError(t, err)
+	require.True(t, created)
 	require.NotNil(t, user)
 	require.Equal(t, int64(88), user.ID)
 
@@ -86,4 +87,17 @@ func TestEmailOAuthAuto_SnapshotsPlatformQuotaDefaults(t *testing.T) {
 	require.NotNil(t, geminiRecord, "expected gemini platform record")
 	require.NotNil(t, geminiRecord.MonthlyLimitUSD)
 	require.InDelta(t, 100.0, *geminiRecord.MonthlyLimitUSD, 0.0001)
+}
+
+func TestEmailOAuthAuto_ConflictingCreateDoesNotClaimAnotherSignup(t *testing.T) {
+	existing := &User{ID: 7, Email: "existing@example.com", Status: StatusActive}
+	repo := &userRepoStub{
+		createErr:    ErrEmailExists,
+		usersByEmail: map[string]*User{existing.Email: existing},
+	}
+	svc := newEmailOAuthAutoAuthService(repo, map[string]string{SettingKeyRegistrationEnabled: "true"}, nil)
+	got, created, err := svc.createEmailOAuthUser(context.Background(), existing.Email, "", "github", "", "")
+	require.NoError(t, err)
+	require.False(t, created)
+	require.Equal(t, existing.ID, got.ID)
 }

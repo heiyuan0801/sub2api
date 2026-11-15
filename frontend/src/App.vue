@@ -11,6 +11,9 @@ import { getSetupStatus } from '@/api/setup'
 import { updateFavicon } from '@/utils/branding'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
+import { getLocale } from '@/i18n'
+import { isLocaleCode } from '@/i18n/localeConfig'
+import { indexablePublicQuery, localizedSeoCopy, publicRouteSeo, writePageHead } from '@/utils/publicSeo'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,13 +24,48 @@ const announcementStore = useAnnouncementStore()
 const adminComplianceStore = useAdminComplianceStore()
 const adminSettingsStore = useAdminSettingsStore()
 
-function updateDocumentTitle() {
+let previousHeadPath = ''
+
+function updateDocumentHead() {
+  const settings = appStore.cachedPublicSettings
   const customMenuItems = [
-    ...(appStore.cachedPublicSettings?.custom_menu_items ?? []),
+    ...(settings?.custom_menu_items ?? []),
     ...(authStore.isAdmin ? adminSettingsStore.customMenuItems : []),
   ]
-  document.title = resolveRouteDocumentTitle(route, appStore.siteName, customMenuItems, {
-    billingMode: resolveSiteBillingMode(appStore.cachedPublicSettings),
+  const siteName = appStore.siteName.trim() || 'Sub2API'
+  const fallbackTitle = resolveRouteDocumentTitle(route, siteName, customMenuItems, {
+    billingMode: resolveSiteBillingMode(settings),
+  })
+  if (route.name === 'DocsArticle') {
+    // The server already resolves the public metadata on a direct visit. On client navigation
+    // clear the old route's metadata while DocsView checks the new article's visibility.
+    if (previousHeadPath && previousHeadPath !== route.path) {
+      writePageHead({ title: fallbackTitle, siteName, noIndex: true })
+    }
+    previousHeadPath = route.path
+    return
+  }
+  previousHeadPath = route.path
+  const page = publicRouteSeo(route.name)
+  const marketRestricted = page?.key === 'market' && (settings?.model_plaza_enabled !== true || settings.model_plaza_require_auth === true)
+  if (!page || marketRestricted || appStore.backendModeEnabled || !indexablePublicQuery(route.query)) {
+    writePageHead({ title: fallbackTitle, siteName, noIndex: true })
+    return
+  }
+
+  const urlLocale = isLocaleCode(route.query.lang) ? route.query.lang : undefined
+  const copy = localizedSeoCopy(page)
+  const customHome = page.key === 'home' && Boolean(settings?.home_content?.trim())
+  writePageHead({
+    title: customHome ? siteName : `${copy.title} · ${siteName}`,
+    description: customHome ? settings?.site_subtitle?.trim() || undefined : copy.description,
+    siteName,
+    siteLogo: appStore.siteLogo,
+    path: page.path,
+    type: page.type,
+    locale: customHome ? undefined : getLocale(),
+    urlLocale,
+    translated: page.key === 'market' || (page.key === 'home' && !customHome),
   })
 }
 
@@ -47,15 +85,15 @@ watch(
     () => route.fullPath,
     () => route.meta.title,
     () => route.meta.titleKey,
+    getLocale,
     () => appStore.siteName,
-    () => appStore.cachedPublicSettings?.custom_menu_items,
-    () => appStore.cachedPublicSettings?.subscription_enabled,
-    () => appStore.cachedPublicSettings?.payment_balance_disabled,
+    () => appStore.siteLogo,
+    () => appStore.cachedPublicSettings,
     () => authStore.isAdmin,
     () => adminSettingsStore.customMenuItems,
   ],
-  updateDocumentTitle,
-  { deep: true }
+  updateDocumentHead,
+  { deep: true, immediate: true }
 )
 
 // Watch for authentication state and manage subscription data + announcements
@@ -157,7 +195,7 @@ onMounted(async () => {
   await appStore.fetchPublicSettings()
 
   // Re-resolve document title now that site settings are available
-  updateDocumentTitle()
+  updateDocumentHead()
 })
 </script>
 

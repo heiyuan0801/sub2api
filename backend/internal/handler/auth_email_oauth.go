@@ -82,6 +82,7 @@ func (h *AuthHandler) emailOAuthStart(c *gin.Context, provider string) {
 	emailOAuthSetCookie(c, emailOAuthRedirectCookie, encodeCookieValue(redirectTo), secureCookie)
 	emailOAuthSetCookie(c, emailOAuthProviderCookie, encodeCookieValue(provider), secureCookie)
 	captureOAuthPromoCode(c, secureCookie)
+	captureOAuthRegistrationAttribution(c, secureCookie)
 	if affCode := strings.TrimSpace(firstNonEmpty(c.Query("aff_code"), c.Query("aff"))); affCode != "" {
 		emailOAuthSetCookie(c, emailOAuthAffiliateCookie, encodeCookieValue(affCode), secureCookie)
 	} else {
@@ -124,6 +125,7 @@ func (h *AuthHandler) emailOAuthCallback(c *gin.Context, provider string) {
 		emailOAuthClearCookie(c, emailOAuthProviderCookie, secureCookie)
 		emailOAuthClearCookie(c, emailOAuthAffiliateCookie, secureCookie)
 		clearOAuthPromoCodeCookie(c, secureCookie)
+		clearOAuthRegistrationAttribution(c, secureCookie)
 	}()
 	expectedState, err := readCookieDecoded(c, emailOAuthStateCookieName)
 	if err != nil || expectedState == "" || expectedState != state {
@@ -187,7 +189,7 @@ func (h *AuthHandler) emailOAuthCallbackWithProfile(
 	}
 
 	tokenPair, user, err := h.authService.LoginOrRegisterVerifiedEmailOAuthWithSignupCodes(
-		c.Request.Context(),
+		oauthRegistrationContext(c, nil, nil),
 		input,
 		"",
 		affiliateCode,
@@ -373,7 +375,7 @@ func (h *AuthHandler) completeEmailOAuthRegistration(c *gin.Context, provider st
 	}
 
 	tokenPair, user, err := h.authService.RegisterVerifiedOAuthEmailAccount(
-		c.Request.Context(),
+		oauthRegistrationContext(c, session, nil),
 		strings.TrimSpace(session.ResolvedEmail),
 		req.Password,
 		strings.TrimSpace(req.InvitationCode),

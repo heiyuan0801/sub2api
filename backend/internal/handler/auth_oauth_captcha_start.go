@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -12,9 +13,10 @@ import (
 
 type oauthStartCaptchaRequest struct {
 	// TurnstileToken 承载阿里云验证码的 captchaVerifyParam（复用既有请求字段名）
-	TurnstileToken        string `json:"turnstile_token"`
-	TencentCaptchaTicket  string `json:"tencent_captcha_ticket"`
-	TencentCaptchaRandstr string `json:"tencent_captcha_randstr"`
+	TurnstileToken          string          `json:"turnstile_token"`
+	TencentCaptchaTicket    string          `json:"tencent_captcha_ticket"`
+	TencentCaptchaRandstr   string          `json:"tencent_captcha_randstr"`
+	RegistrationAttribution json.RawMessage `json:"registration_attribution,omitempty"`
 }
 
 type oauthStartResponse struct {
@@ -37,6 +39,9 @@ func (h *AuthHandler) requireActionCaptchaForOAuthLoginStart(c *gin.Context) boo
 	}, ip.GetClientIP(c)); err != nil {
 		response.ErrorFrom(c, err)
 		return false
+	}
+	if len(req.RegistrationAttribution) > 0 {
+		c.Set(oauthRegistrationAttributionFormKey, service.ParseRegistrationAttribution(req.RegistrationAttribution))
 	}
 	return true
 }

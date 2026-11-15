@@ -6,6 +6,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -175,4 +176,27 @@ func TestOAuthStartGetRemainsCompatibleWhenTencentDisabled(t *testing.T) {
 	require.Equal(t, http.StatusFound, recorder.Code)
 	require.Equal(t, "https://provider.example/authorize", recorder.Header().Get("Location"))
 	require.Zero(t, verifier.calls)
+}
+
+func TestOAuthRegistrationAttributionAcceptsPrivateNoteFromStartBody(t *testing.T) {
+	handler, _ := newOAuthCaptchaTestHandler(false)
+	r := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(r)
+	query := url.QueryEscape(`{"utm_source":"github"}`)
+	body := strings.NewReader(`{"registration_attribution":{"selected_source":"other","source_note":"某论坛"}}`)
+	c.Request = httptest.NewRequest(http.MethodPost, "/api/v1/auth/oauth/google/start?registration_attribution="+query, body)
+	c.Request.Header.Set("Content-Type", "application/json")
+	require.True(t, handler.requireActionCaptchaForOAuthLoginStart(c))
+	captureOAuthRegistrationAttribution(c, true)
+	cookies := r.Result().Cookies()
+	require.Len(t, cookies, 1)
+
+	r = httptest.NewRecorder()
+	callback, _ := gin.CreateTestContext(r)
+	callback.Request = httptest.NewRequest(http.MethodGet, "/api/v1/auth/oauth/google/callback", nil)
+	callback.Request.AddCookie(cookies[0])
+	ctx := oauthRegistrationContext(callback, nil, nil)
+	attribution, ok := service.RegistrationAttributionFromContext(ctx)
+	require.True(t, ok)
+	require.Equal(t, service.RegistrationAttribution{SelectedSource: "other", SourceNote: "某论坛", UTMSource: "github"}, attribution)
 }

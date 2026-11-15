@@ -12,10 +12,18 @@ import publicSite from './publicSite'
 import publicHome from './publicHome'
 import rewards from './rewards'
 import docs from './docs'
+import operations from './operations'
+import planOps from './planOps'
 
 import cluster from './cluster'
 
 export default {
+  ...planOps,
+  seo: {
+    home: { title: 'AI Model API Gateway', description: 'Access AI models through a unified API and browse model pricing and integration guides.' },
+    market: { title: 'Model Market', description: 'Compare AI models and see input, output and cache prices by group.' },
+    docs: { title: 'API Documentation', description: 'Learn how to connect to the AI API, configure clients and manage API keys.' },
+  },
   ...design,
   ...cluster,
   adminAccessKeys,
@@ -31,4 +39,5 @@ export default {
   ...publicHome,
   rewards,
   docs,
+  operations,
 }

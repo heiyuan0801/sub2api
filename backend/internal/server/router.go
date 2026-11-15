@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log"
+	"net/http"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -79,24 +80,35 @@ func SetupRouter(
 			r.Use(web.ServeEmbeddedFrontend())
 			settingService.SetOnUpdateCallback(refreshFrameOrigins)
 		} else {
-			// Register combined callback: invalidate HTML cache + refresh frame origins
+			var docsMetadata func(context.Context, string) (string, string, bool)
+			if handlers.Docs != nil {
+				docsMetadata = handlers.Docs.PublicMetadata
+			}
+			seo := web.NewPublicSEO(func(ctx context.Context) (web.PublicSEOSettings, error) {
+				settings, err := settingService.GetPublicSettings(ctx)
+				if err != nil {
+					return web.PublicSEOSettings{}, err
+				}
+				return web.PublicSEOSettings{
+					SiteName: settings.SiteName, SiteLogo: settings.SiteLogo,
+					FrontendURL:  settingService.GetFrontendURL(ctx),
+					BackendMode:  settings.BackendModeEnabled,
+					MarketPublic: settings.ModelPlazaEnabled && !settings.ModelPlazaRequireAuth,
+					CustomHome:   strings.TrimSpace(settings.HomeContent) != "",
+					SiteSubtitle: settings.SiteSubtitle,
+				}, nil
+			}, cfg.Server.FrontendURL, docsMetadata)
+
+			// Revalidate cached settings and branding after admin changes.
 			settingService.SetOnUpdateCallback(func() {
 				frontendServer.InvalidateCache()
+				seo.Invalidate()
 				refreshFrameOrigins()
 			})
-			r.Use(frontendServer.Middleware(func(ctx context.Context, path string) (web.PageMetadata, bool) {
-				slug, docsPath := strings.CutPrefix(path, "/docs/")
-				if !docsPath || slug == "batch-image" || handlers.Docs == nil {
-					return web.PageMetadata{}, false
-				}
-				if settingService.IsBackendModeEnabled(ctx) {
-					return web.PageMetadata{NoIndex: true}, true
-				}
-				ctx, cancel := context.WithTimeout(ctx, time.Second)
-				defer cancel()
-				title, description, found := handlers.Docs.PublicMetadata(ctx, slug)
-				return web.PageMetadata{Title: title, Description: description, NoIndex: !found}, true
-			}))
+			r.Use(frontendServer.Middleware(seo.PageMetadata))
+			methods := []string{http.MethodGet, http.MethodHead}
+			r.Match(methods, "/robots.txt", gin.WrapF(seo.Robots))
+			r.Match(methods, "/sitemap.xml", gin.WrapF(seo.Sitemap))
 		}
 	} else {
 		settingService.SetOnUpdateCallback(refreshFrameOrigins)
