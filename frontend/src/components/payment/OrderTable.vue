@@ -1,5 +1,5 @@
 <template>
-  <DataTable :columns="columns" :data="orders" :loading="loading">
+  <component :is="tableComponent" :columns="columns" :data="orders" :loading="loading">
     <template #cell-id="{ value }">
       <span class="font-mono text-sm">#{{ value }}</span>
     </template>
@@ -38,7 +38,7 @@
     <template #cell-actions="{ row }">
       <slot name="actions" :row="row" />
     </template>
-  </DataTable>
+  </component>
 </template>
 
 <script setup lang="ts">
@@ -47,6 +47,7 @@ import { useI18n } from 'vue-i18n'
 import type { PaymentOrder } from '@/types/payment'
 import type { Column } from '@/components/common/types'
 import DataTable from '@/components/common/DataTable.vue'
+import AdminDataTable from '@/components/page/AdminDataTable.vue'
 import OrderStatusBadge from '@/components/payment/OrderStatusBadge.vue'
 import { currencySymbol } from '@/components/payment/currency'
 
@@ -56,7 +57,10 @@ const props = defineProps<{
   orders: PaymentOrder[]
   loading: boolean
   showUser?: boolean
+  adminPresentation?: boolean
 }>()
+
+const tableComponent = computed(() => props.adminPresentation ? AdminDataTable : DataTable)
 
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleString() }
 

@@ -10,7 +10,7 @@
         <label class="input-label">{{ t('admin.affiliates.withdraw.user') }}</label>
         <div
           v-if="selectedUser"
-          class="flex items-center justify-between gap-3 rounded-md border border-primary-200 bg-brand/10 px-3 py-2 dark:border-primary-700/50"
+          class="flex items-center justify-between gap-3 rounded-md border border-brand/30 bg-brand/5 px-3 py-2"
           data-test="withdraw-selected-user"
         >
           <div class="min-w-0 truncate text-sm">
@@ -59,7 +59,7 @@
 
       <div
         v-if="selectedUser"
-        class="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-dark-700 dark:bg-dark-800"
+        class="rounded-lg border border-border bg-muted/40 p-3"
       >
         <div class="flex items-center justify-between text-sm">
           <span class="text-muted-foreground">{{ t('admin.affiliates.withdraw.availableQuota') }}</span>

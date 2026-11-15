@@ -1,8 +1,12 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader as="h2" :title="t(pageMeta[props.type].title)" :description="t(pageMeta[props.type].description)" />
+      </template>
+
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <Toolbar>
           <div class="relative w-full md:w-80">
             <Icon name="search" size="md" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input v-model="filters.search" type="text" class="input pl-10" :placeholder="t('admin.affiliates.records.searchPlaceholder')" @input="debounceLoad" />
@@ -21,7 +25,7 @@
           >
             {{ t('admin.affiliates.withdraw.button') }}
           </button>
-        </div>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -45,7 +49,7 @@
             />
           </template>
           <template #cell-invitee="{ row }">
-            <span v-if="row.invitee_id == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.invitee_id == null" class="text-sm text-muted-foreground">-</span>
             <UserCell
               v-else
               :id="row.invitee_id"
@@ -65,10 +69,10 @@
             />
           </template>
           <template #cell-aff_code="{ row }">
-            <span class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ row.aff_code || '-' }}</span>
+            <span class="font-mono text-sm text-foreground">{{ row.aff_code || '-' }}</span>
           </template>
           <template #cell-order="{ row }">
-            <span v-if="row.order_id == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.order_id == null" class="text-sm text-muted-foreground">-</span>
             <div v-else class="space-y-0.5">
               <div class="font-mono text-sm text-foreground">#{{ row.order_id }}</div>
               <div class="max-w-56 truncate text-sm text-muted-foreground">{{ row.out_trade_no }}</div>
@@ -76,11 +80,11 @@
           </template>
           <template #cell-payment_type="{ row }">
             <template v-if="row.payment_type">{{ t('payment.methods.' + row.payment_type, row.payment_type) }}</template>
-            <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-else class="text-sm text-muted-foreground">-</span>
           </template>
           <template #cell-order_status="{ row }">
             <OrderStatusBadge v-if="row.order_status" :status="row.order_status" />
-            <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-else class="text-sm text-muted-foreground">-</span>
           </template>
           <template #cell-total_rebate="{ row }">
             <AmountText :value="row.total_rebate" />
@@ -89,16 +93,14 @@
             <NullableAmountText :value="row.order_amount" />
           </template>
           <template #cell-pay_amount="{ row }">
-            <span v-if="row.pay_amount == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.pay_amount == null" class="text-sm text-muted-foreground">-</span>
             <span v-else class="text-sm text-foreground">¥{{ formatAmount(row.pay_amount) }}</span>
           </template>
           <template #cell-rebate_amount="{ row }">
             <AmountText :value="row.rebate_amount" strong />
           </template>
           <template #cell-action="{ row }">
-            <span :class="['badge whitespace-nowrap', row.action === 'withdraw' ? 'badge-warning' : 'badge-primary']">
-              {{ outflowTypeLabel(row.action) }}
-            </span>
+            <StatusBadge :label="outflowTypeLabel(row.action)" :tone="row.action === 'withdraw' ? 'warning' : 'brand'" />
           </template>
           <template #cell-amount="{ row }">
             <AmountText :value="row.amount" strong />
@@ -116,7 +118,7 @@
             <NullableAmountText :value="row.history_quota_after" />
           </template>
           <template #cell-created_at="{ row }">
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(row.created_at) }}</span>
+            <span class="text-sm text-foreground">{{ formatDateTime(row.created_at) }}</span>
           </template>
         </DataTable>
       </template>
@@ -141,6 +143,7 @@
     />
 
     <BaseDialog
+      presentation="sheet"
       :show="overviewDialog"
       :title="t('admin.affiliates.overview.title')"
       width="normal"
@@ -150,18 +153,18 @@
         <div class="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent"></div>
       </div>
       <div v-else-if="selectedOverview" class="space-y-4">
-        <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-800">
+        <SectionCard>
           <div class="font-mono text-sm text-foreground">#{{ selectedOverview.user_id }}</div>
           <div class="mt-1 text-sm font-medium text-foreground">{{ selectedOverview.email || '-' }}</div>
           <div class="mt-0.5 text-sm text-muted-foreground">{{ selectedOverview.username || '-' }}</div>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2">
-          <OverviewStat :label="t('admin.affiliates.overview.affCode')" :value="selectedOverview.aff_code || '-'" mono />
-          <OverviewStat :label="t('admin.affiliates.overview.rebateRate')" :value="formatPercent(selectedOverview.rebate_rate_percent)" />
-          <OverviewStat :label="t('admin.affiliates.overview.invitedCount')" :value="String(selectedOverview.invited_count)" />
-          <OverviewStat :label="t('admin.affiliates.overview.rebatedInviteeCount')" :value="String(selectedOverview.rebated_invitee_count)" />
-          <OverviewStat :label="t('admin.affiliates.overview.availableQuota')" :value="'$' + formatAmount(selectedOverview.available_quota)" />
-          <OverviewStat :label="t('admin.affiliates.overview.historyQuota')" :value="'$' + formatAmount(selectedOverview.history_quota)" />
+        </SectionCard>
+        <div class="grid min-w-0 gap-2 sm:grid-cols-2">
+          <StatCard :label="t('admin.affiliates.overview.affCode')" :value="selectedOverview.aff_code || '-'" class="font-mono" />
+          <StatCard :label="t('admin.affiliates.overview.rebateRate')" :value="formatPercent(selectedOverview.rebate_rate_percent)" />
+          <StatCard :label="t('admin.affiliates.overview.invitedCount')" :value="String(selectedOverview.invited_count)" />
+          <StatCard :label="t('admin.affiliates.overview.rebatedInviteeCount')" :value="String(selectedOverview.rebated_invitee_count)" />
+          <StatCard :label="t('admin.affiliates.overview.availableQuota')" :value="'$' + formatAmount(selectedOverview.available_quota)" />
+          <StatCard :label="t('admin.affiliates.overview.historyQuota')" :value="'$' + formatAmount(selectedOverview.history_quota)" />
         </div>
       </div>
     </BaseDialog>
@@ -172,8 +175,9 @@
 import { computed, defineComponent, h, onMounted, reactive, ref, type PropType } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import { PageHeader, Toolbar, SectionCard, StatCard, StatusBadge } from '@/components/page'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
@@ -188,6 +192,12 @@ import { formatDateTime as formatDisplayDateTime } from '@/utils/format'
 
 type RecordType = 'invites' | 'rebates' | 'transfers'
 type AffiliateRecord = AffiliateInviteRecord | AffiliateRebateRecord | AffiliateTransferRecord
+
+const pageMeta = {
+  invites: { title: 'nav.affiliateInviteRecords', description: 'admin.affiliates.invitesDescription' },
+  rebates: { title: 'nav.affiliateRebateRecords', description: 'admin.affiliates.rebatesDescription' },
+  transfers: { title: 'nav.affiliateTransferRecords', description: 'admin.affiliates.transfersDescription' },
+} as const
 
 const props = defineProps<{
   type: RecordType
@@ -386,7 +396,7 @@ const UserCell = defineComponent({
       h(cellProps.clickable ? 'button' : 'div', {
         class: cellProps.clickable
           ? 'max-w-56 truncate text-left text-sm font-medium text-brand hover:text-brand hover:underline'
-          : 'max-w-56 truncate text-sm text-gray-700 dark:text-gray-300',
+          : 'max-w-56 truncate text-sm text-foreground',
         type: cellProps.clickable ? 'button' : undefined,
         onClick: cellProps.clickable ? () => emit('open', cellProps.id) : undefined,
       }, cellProps.email || '-'),
@@ -417,28 +427,10 @@ const NullableAmountText = defineComponent({
     return () => {
       const value = amountProps.value
       if (value === null || value === undefined) {
-        return h('span', { class: 'text-sm text-gray-400 dark:text-dark-500' }, '-')
+        return h('span', { class: 'text-sm text-muted-foreground' }, '-')
       }
       return h(AmountText, { value })
     }
-  },
-})
-
-const OverviewStat = defineComponent({
-  props: {
-    label: { type: String, required: true },
-    value: { type: String, required: true },
-    mono: { type: Boolean, default: false },
-  },
-  setup(statProps) {
-    return () => h('div', { class: 'rounded-lg border border-gray-100 bg-background p-3 dark:border-dark-700' }, [
-      h('div', { class: 'text-sm text-muted-foreground' }, statProps.label),
-      h('div', {
-        class: statProps.mono
-          ? 'mt-1 font-mono text-base font-semibold text-foreground'
-          : 'mt-1 text-base font-semibold text-foreground',
-      }, statProps.value),
-    ])
   },
 })
 
