@@ -9,25 +9,25 @@
     <template v-if="showUser" #cell-user_email="{ value, row }">
       <div class="text-sm">
         <span class="text-foreground">{{ value || row.user_name || '#' + row.user_id }}</span>
-        <span v-if="row.user_notes" class="ml-1 text-xs text-gray-400">({{ row.user_notes }})</span>
+        <span v-if="row.user_notes" class="ml-1 text-xs text-muted-foreground">({{ row.user_notes }})</span>
       </div>
     </template>
     <template #cell-pay_amount="{ value, row }">
       <div class="text-sm">
-        <span class="font-medium text-foreground">{{ paymentAmountSymbol(row) }}{{ value.toFixed(2) }}</span>
-        <span v-if="row.fee_rate > 0" class="ml-1 text-xs text-gray-400" :title="t('payment.orders.fee') + ': ' + row.fee_rate + '%'">
+        <span class="font-medium tabular-nums text-foreground">{{ paymentAmountSymbol(row) }}{{ value.toFixed(2) }}</span>
+        <span v-if="row.fee_rate > 0" class="ml-1 text-xs text-muted-foreground" :title="t('payment.orders.fee') + ': ' + row.fee_rate + '%'">
           ({{ t('payment.orders.fee') }} {{ row.fee_rate }}%)
         </span>
-        <div v-if="row.amount !== row.pay_amount || (row.bonus_amount ?? 0) > 0" class="text-xs text-gray-500">
+        <div v-if="row.amount !== row.pay_amount || (row.bonus_amount ?? 0) > 0" class="text-xs text-muted-foreground">
           {{ t('payment.orders.creditedAmount') }}: {{ creditedAmountSymbol }}{{ row.amount.toFixed(2) }}
-          <span v-if="(row.bonus_amount ?? 0) > 0" class="ml-1 text-amber-600 dark:text-amber-400">
+          <span v-if="(row.bonus_amount ?? 0) > 0" class="ml-1 text-warning">
             ({{ t('payment.orders.bonusIncluded', { amount: creditedAmountSymbol + (row.bonus_amount ?? 0).toFixed(2) }) }})
           </span>
         </div>
       </div>
     </template>
     <template #cell-payment_type="{ value }">
-      <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('payment.methods.' + value, value) }}</span>
+      <span class="text-sm text-foreground">{{ t('payment.methods.' + value, value) }}</span>
     </template>
     <template #cell-status="{ value }">
       <OrderStatusBadge :status="value" />
@@ -37,6 +37,9 @@
     </template>
     <template #cell-actions="{ row }">
       <slot name="actions" :row="row" />
+    </template>
+    <template v-if="compactPresentation" #empty>
+      <EmptyState :title="t('payment.orders.empty')" />
     </template>
   </component>
 </template>
@@ -48,6 +51,7 @@ import type { PaymentOrder } from '@/types/payment'
 import type { Column } from '@/components/common/types'
 import DataTable from '@/components/common/DataTable.vue'
 import AdminDataTable from '@/components/page/AdminDataTable.vue'
+import EmptyState from '@/components/page/EmptyState.vue'
 import OrderStatusBadge from '@/components/payment/OrderStatusBadge.vue'
 import { currencySymbol } from '@/components/payment/currency'
 
@@ -58,9 +62,10 @@ const props = defineProps<{
   loading: boolean
   showUser?: boolean
   adminPresentation?: boolean
+  compactPresentation?: boolean
 }>()
 
-const tableComponent = computed(() => props.adminPresentation ? AdminDataTable : DataTable)
+const tableComponent = computed(() => (props.adminPresentation || props.compactPresentation) ? AdminDataTable : DataTable)
 
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleString() }
 

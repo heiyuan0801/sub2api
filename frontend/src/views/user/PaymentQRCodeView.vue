@@ -1,38 +1,49 @@
 <template>
   <AppLayout>
-    <div class="mx-auto flex max-w-md flex-col items-center space-y-6 py-8">
-      <h2 class="text-xl font-semibold text-foreground">
-        {{ qrUrl ? scanTitle : t('payment.qr.payInNewWindow') }}
-      </h2>
-      <div v-if="qrUrl" class="rounded-2xl bg-card p-6 shadow-lg">
-        <canvas ref="qrCanvas" class="mx-auto"></canvas>
-      </div>
-      <!-- Scan prompt for QR code -->
-      <p v-if="qrUrl && !expired && scanHint" class="text-center text-sm text-muted-foreground">
-        {{ scanHint }}
-      </p>
-      <div v-if="expired" class="text-center">
-        <p class="text-lg font-medium text-red-500">{{ t('payment.qr.expired') }}</p>
-        <button class="btn btn-primary mt-4" @click="router.push('/purchase')">{{ t('payment.result.backToRecharge') }}</button>
-      </div>
-      <div v-else class="text-center">
-        <p class="text-sm text-muted-foreground">{{ qrUrl ? t('payment.qr.expiresIn') : t('payment.qr.payInNewWindowHint') }}</p>
-        <p class="mt-1 text-2xl font-bold tabular-nums text-foreground">{{ countdownDisplay }}</p>
-        <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">{{ t('payment.qr.waitingPayment') }}</p>
-      </div>
-      <a v-if="payUrl && !qrUrl && !expired" :href="payUrl" target="_blank" rel="noopener noreferrer"
-        class="btn btn-primary w-full py-3">
-        {{ t('payment.qr.openPayWindow') }}
-      </a>
-      <!-- Cancel button -->
-      <button v-if="!expired && orderId" class="btn btn-secondary w-full" :disabled="cancelling" @click="handleCancel">
-        {{ cancelling ? t('common.processing') : t('payment.qr.cancelOrder') }}
-      </button>
+    <div class="mx-auto w-full max-w-md space-y-4 py-5 sm:py-8">
+      <PageHeader :title="qrUrl ? scanTitle : t('payment.qr.payInNewWindow')" />
+
+      <SectionCard flush class="overflow-hidden">
+        <div v-if="qrUrl" class="grid place-items-center border-b border-border p-4 sm:p-6">
+          <div class="max-w-full rounded-md border border-border bg-white p-2">
+            <canvas ref="qrCanvas" class="mx-auto block max-w-full !h-auto"></canvas>
+          </div>
+          <!-- Scan prompt for QR code -->
+          <p v-if="!expired && scanHint" class="mt-3 text-center text-sm text-muted-foreground">
+            {{ scanHint }}
+          </p>
+        </div>
+        <div v-if="expired" class="px-4 py-6 text-center">
+          <StatusBadge :label="t('payment.qr.expired')" tone="danger" role="status" />
+          <div class="mt-4">
+            <button type="button" class="btn btn-primary" @click="router.push('/purchase')">{{ t('payment.result.backToRecharge') }}</button>
+          </div>
+        </div>
+        <div v-else class="space-y-2 px-4 py-6 text-center">
+          <p class="text-sm text-muted-foreground">{{ qrUrl ? t('payment.qr.expiresIn') : t('payment.qr.payInNewWindowHint') }}</p>
+          <p class="text-2xl font-semibold tabular-nums text-foreground">{{ countdownDisplay }}</p>
+          <StatusBadge :label="t('payment.qr.waitingPayment')" tone="warning" role="status" />
+        </div>
+        <template v-if="(payUrl && !qrUrl && !expired) || (!expired && orderId)" #footer>
+          <div class="grid gap-2 py-1">
+            <a v-if="payUrl && !qrUrl && !expired" :href="payUrl" target="_blank" rel="noopener noreferrer"
+              class="btn btn-primary w-full">
+              {{ t('payment.qr.openPayWindow') }}
+            </a>
+            <button v-if="!expired && orderId" type="button" class="btn btn-secondary w-full" :disabled="cancelling" @click="handleCancel">
+              {{ cancelling ? t('common.processing') : t('payment.qr.cancelOrder') }}
+            </button>
+          </div>
+        </template>
+      </SectionCard>
     </div>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
+import PageHeader from '@/components/page/PageHeader.vue'
+import SectionCard from '@/components/page/SectionCard.vue'
+import StatusBadge from '@/components/page/StatusBadge.vue'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'

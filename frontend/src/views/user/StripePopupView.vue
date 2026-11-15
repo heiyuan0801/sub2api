@@ -1,12 +1,10 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-slate-950">
-    <div
-      class="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-    >
+  <SiteLayout surface="canvas" class="items-center justify-center p-4">
+    <main class="w-full max-w-md space-y-4 rounded-lg border border-border bg-card p-4 sm:p-5">
       <!-- Amount + Order ID -->
       <div v-if="amount" class="text-center">
-        <p class="text-3xl font-bold" :style="{ color: methodColor }">¥{{ amount }}</p>
-        <p v-if="orderId" class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+        <p class="text-2xl font-semibold tabular-nums tracking-tight" :style="{ color: methodColor }">¥{{ amount }}</p>
+        <p v-if="orderId" class="mt-1 text-sm text-muted-foreground">
           {{ t('payment.orders.orderId') }}: {{ orderId }}
         </p>
       </div>
@@ -14,12 +12,12 @@
       <!-- Error -->
       <div v-if="error" class="space-y-3">
         <div
-          class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400"
+          class="rounded-md border border-danger/25 bg-danger/10 p-3 text-sm text-danger"
         >
           {{ error }}
         </div>
         <button
-          class="w-full text-sm underline dark:text-blue-400 dark:hover:text-blue-300"
+          type="button" class="btn btn-secondary w-full"
           :style="{ color: methodColor }"
           @click="closeWindow"
         >
@@ -29,10 +27,10 @@
 
       <!-- Success -->
       <div v-else-if="success" class="space-y-3 py-4 text-center">
-        <div class="text-5xl text-green-600 dark:text-green-400">✓</div>
-        <p class="text-sm text-gray-500 dark:text-slate-400">{{ t('payment.result.success') }}</p>
+        <div class="mx-auto grid size-10 place-items-center rounded-lg border border-success/20 bg-success/10 text-xl text-success" aria-hidden="true">✓</div>
+        <p class="text-sm text-muted-foreground">{{ t('payment.result.success') }}</p>
         <button
-          class="text-sm underline dark:text-blue-400 dark:hover:text-blue-300"
+          type="button" class="btn btn-secondary"
           :style="{ color: methodColor }"
           @click="closeWindow"
         >
@@ -46,13 +44,14 @@
           class="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
           :style="{ borderColor: methodColor, borderTopColor: 'transparent' }"
         />
-        <span class="ml-3 text-sm text-gray-500 dark:text-slate-400">{{ hint }}</span>
+        <span class="ml-3 text-sm text-muted-foreground">{{ hint }}</span>
       </div>
-    </div>
-  </div>
+    </main>
+  </SiteLayout>
 </template>
 
 <script setup lang="ts">
+import SiteLayout from '@/components/site-shell/SiteLayout.vue'
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
