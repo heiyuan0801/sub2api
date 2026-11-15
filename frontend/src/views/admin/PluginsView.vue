@@ -1,29 +1,11 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
-      <section
-        class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between"
+    <div class="space-y-4">
+      <PageHeader
+        :title="t('admin.plugins.title')"
+        :description="t('admin.plugins.description')"
       >
-        <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-foreground">
-            {{ t("admin.plugins.title") }}
-          </h2>
-          <p class="mt-1 max-w-3xl text-sm text-muted-foreground">
-            {{ t("admin.plugins.description") }}
-          </p>
-          <div
-            class="mt-3 flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300"
-          >
-            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-dark-700">{{
-              t("admin.plugins.onlyOpenAI")
-            }}</span>
-            <span class="rounded bg-gray-100 px-2 py-1 dark:bg-dark-700">{{
-              t("admin.plugins.noAccountCoupling")
-            }}</span>
-          </div>
-        </div>
-
-        <div class="flex flex-shrink-0 items-center gap-2">
+        <template #actions>
           <input
             ref="fileInput"
             class="hidden"
@@ -33,32 +15,36 @@
           />
           <button
             type="button"
-            class="btn btn-primary"
+            class="btn btn-secondary btn-sm"
+            :disabled="loading"
+            :title="t('common.refresh')"
+            @click="loadPlugins"
+          >
+            <Icon name="refresh" size="sm" :class="{ 'animate-spin': loading }" />
+            <span class="sr-only">{{ t("common.refresh") }}</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm"
             :disabled="uploading"
             @click="fileInput?.click()"
           >
             <Icon name="upload" size="sm" />
             {{ uploading ? t("common.processing") : t("admin.plugins.upload") }}
           </button>
-          <button
-            type="button"
-            class="btn btn-secondary"
-            :disabled="loading"
-            :title="t('common.refresh')"
-            @click="loadPlugins"
-          >
-            <Icon name="refresh" size="sm" />
-            <span class="sr-only">{{ t("common.refresh") }}</span>
-          </button>
-        </div>
-      </section>
+        </template>
+      </PageHeader>
 
-      <p class="text-xs text-muted-foreground">
-        {{ t("admin.plugins.uploadHint") }}
-      </p>
+      <Toolbar>
+        <StatusBadge :label="t('admin.plugins.onlyOpenAI')" tone="info" soft />
+        <StatusBadge :label="t('admin.plugins.noAccountCoupling')" soft />
+        <template #actions>
+          <p class="text-xs text-muted-foreground">{{ t("admin.plugins.uploadHint") }}</p>
+        </template>
+      </Toolbar>
 
       <div
-        class="border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200"
+        class="rounded-lg border border-info/30 bg-info/10 px-3.5 py-2.5 text-sm text-foreground"
       >
         <p>{{ t("admin.plugins.runtimeNotice") }}</p>
         <p class="mt-1">{{ t("admin.plugins.menuNotice") }}</p>
@@ -66,83 +52,59 @@
 
       <div
         v-if="loading"
-        class="flex min-h-48 items-center justify-center text-sm text-gray-500"
+        class="flex min-h-40 items-center justify-center rounded-lg border border-border bg-card text-sm text-muted-foreground"
+        role="status"
       >
         {{ t("common.loading") }}
       </div>
 
-      <div
-        v-else-if="plugins.length === 0"
-        class="flex min-h-56 flex-col items-center justify-center border border-dashed border-gray-300 px-6 text-center dark:border-dark-600"
-      >
-        <Icon name="cube" size="xl" class="text-gray-400" />
-        <p class="mt-3 font-medium text-gray-800 dark:text-gray-200">
-          {{ t("admin.plugins.empty") }}
-        </p>
-        <p class="mt-1 max-w-lg text-sm text-muted-foreground">
-          {{ t("admin.plugins.emptyHint") }}
-        </p>
-      </div>
+      <SectionCard v-else-if="plugins.length === 0">
+        <EmptyState :title="t('admin.plugins.empty')" :description="t('admin.plugins.emptyHint')">
+          <template #icon>
+            <span class="grid size-10 place-items-center rounded-lg border border-border bg-muted/60 text-muted-foreground">
+              <Icon name="cube" size="md" />
+            </span>
+          </template>
+        </EmptyState>
+      </SectionCard>
 
-      <div v-else class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <article
+      <div v-else class="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+        <SectionCard
           v-for="plugin in plugins"
           :key="plugin.id"
-          class="card overflow-hidden border border-border"
+          heading="h2"
+          flush
         >
-          <div
-            class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 p-5 dark:border-dark-700"
-          >
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h3
-                  class="truncate text-base font-semibold text-foreground"
-                >
-                  {{ plugin.name }}
-                </h3>
-                <span class="font-mono text-xs text-gray-500"
-                  >v{{ plugin.version }}</span
-                >
-                <span
-                  class="rounded px-2 py-0.5 text-xs font-medium"
-                  :class="stateClass(plugin.state)"
-                >
-                  {{ t(`admin.plugins.${plugin.state}`) }}
-                </span>
-              </div>
-              <p class="mt-1 text-xs text-gray-500">
-                {{ plugin.plugin_key
-                }}<span v-if="plugin.author"> · {{ plugin.author }}</span>
-              </p>
-              <p
-                v-if="plugin.description"
-                class="mt-2 text-sm text-gray-600 dark:text-gray-300"
-              >
-                {{ plugin.description }}
-              </p>
-            </div>
-            <button
-              type="button"
-              class="btn btn-secondary btn-sm"
-              @click="openConfiguration(plugin)"
-            >
+          <template #title>
+            <span class="inline-flex min-w-0 flex-wrap items-center gap-2">
+              <span class="break-all">{{ plugin.name }}</span>
+              <span class="font-mono text-xs font-normal text-muted-foreground">v{{ plugin.version }}</span>
+              <StatusBadge :label="t(`admin.plugins.${plugin.state}`)" :tone="stateTone(plugin.state)" />
+            </span>
+          </template>
+          <template #actions>
+            <button type="button" class="btn btn-secondary btn-sm" @click="openConfiguration(plugin)">
               <Icon name="cog" size="sm" />
               {{ t("admin.plugins.configure") }}
             </button>
+          </template>
+          <div class="border-b border-border px-3.5 py-2.5">
+            <p class="break-words text-xs text-muted-foreground">
+              <span class="font-mono">{{ plugin.plugin_key }}</span><span v-if="plugin.author"> · {{ plugin.author }}</span>
+            </p>
+            <p v-if="plugin.description" class="mt-1 break-words text-sm text-foreground">{{ plugin.description }}</p>
           </div>
 
-          <div class="grid grid-cols-1 gap-x-6 gap-y-4 p-5 md:grid-cols-2">
+          <div class="grid grid-cols-1 gap-x-5 gap-y-4 p-3.5 md:grid-cols-2">
             <div>
-              <p class="text-xs font-medium uppercase text-gray-500">
+              <p class="text-xs font-medium uppercase text-muted-foreground">
                 {{ t("admin.plugins.compatibility") }}
               </p>
               <div class="mt-2 flex items-center gap-2">
-                <span
-                  class="rounded px-2 py-0.5 text-xs font-medium"
-                  :class="compatibilityClass(plugin.compatibility.status)"
-                >
-                  {{ t(`admin.plugins.${plugin.compatibility.status}`) }}
-                </span>
+                <StatusBadge
+                  :label="t(`admin.plugins.${plugin.compatibility.status}`)"
+                  :tone="compatibilityTone(plugin.compatibility.status)"
+                />
                 <span class="text-xs text-muted-foreground">{{
                   plugin.compatibility.message
                 }}</span>
@@ -150,62 +112,50 @@
               <dl
                 class="mt-3 grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 text-xs"
               >
-                <dt class="text-gray-500">
+                <dt class="text-muted-foreground">
                   {{ t("admin.plugins.currentVersion") }}
                 </dt>
-                <dd class="font-mono text-gray-800 dark:text-gray-200">
+                <dd class="font-mono text-foreground">
                   {{ plugin.compatibility.current_sub2api_version }}
                 </dd>
-                <dt class="text-gray-500">
+                <dt class="text-muted-foreground">
                   {{ t("admin.plugins.requiredVersion") }}
                 </dt>
-                <dd class="font-mono text-gray-800 dark:text-gray-200">
+                <dd class="font-mono text-foreground">
                   {{ plugin.compatibility.required_sub2api_version }}
                 </dd>
-                <dt class="text-gray-500">
+                <dt class="text-muted-foreground">
                   {{ t("admin.plugins.recommendedVersion") }}
                 </dt>
-                <dd class="font-mono text-gray-800 dark:text-gray-200">
+                <dd class="font-mono text-foreground">
                   {{ plugin.compatibility.recommended_sub2api_version || "-" }}
                 </dd>
               </dl>
             </div>
 
             <div>
-              <p class="text-xs font-medium uppercase text-gray-500">
+              <p class="text-xs font-medium uppercase text-muted-foreground">
                 {{ t("admin.plugins.runtime") }}
               </p>
               <div class="mt-2 flex flex-wrap gap-2 text-xs">
-                <span
-                  class="rounded px-2 py-0.5"
-                  :class="
-                    plugin.runtime_healthy
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                      : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-300'
-                  "
-                >
-                  {{
-                    plugin.runtime_healthy
-                      ? t("admin.plugins.healthy")
-                      : t("admin.plugins.unhealthy")
-                  }}
-                </span>
-                <span
-                  class="rounded bg-gray-100 px-2 py-0.5 text-gray-600 dark:bg-dark-700 dark:text-gray-300"
-                >
-                  {{ t("admin.plugins.signature") }}:
-                  {{ t(`admin.plugins.${plugin.signature_status}`) }}
-                </span>
+                <StatusBadge
+                  :label="plugin.runtime_healthy ? t('admin.plugins.healthy') : t('admin.plugins.unhealthy')"
+                  :tone="plugin.runtime_healthy ? 'success' : 'neutral'"
+                />
+                <StatusBadge
+                  :label="`${t('admin.plugins.signature')}: ${t(`admin.plugins.${plugin.signature_status}`)}`"
+                  soft
+                />
               </div>
               <p
                 v-if="plugin.last_error"
-                class="mt-3 break-words text-xs text-red-600 dark:text-red-400"
+                class="mt-3 break-words text-xs text-danger"
               >
                 {{ plugin.last_error }}
               </p>
               <p
                 v-else-if="plugin.runtime_message"
-                class="mt-3 break-words text-xs text-gray-500"
+                class="mt-3 break-words text-xs text-muted-foreground"
               >
                 {{ plugin.runtime_message }}
               </p>
@@ -213,7 +163,7 @@
 
             <div class="md:col-span-2">
               <label
-                class="flex items-center justify-between gap-4 text-xs font-medium text-gray-600 dark:text-gray-300"
+                class="flex items-center justify-between gap-4 text-xs font-medium text-muted-foreground"
               >
                 <span>{{ t("admin.plugins.rollout") }}</span>
                 <span class="w-11 text-right font-mono"
@@ -235,53 +185,53 @@
             </div>
           </div>
 
-          <div
-            class="flex flex-wrap justify-end gap-2 border-t border-gray-100 px-5 py-4 dark:border-dark-700"
-          >
-            <button
-              type="button"
-              class="btn btn-secondary btn-sm"
-              :disabled="busyID === plugin.id"
-              @click="testPlugin(plugin)"
-            >
-              <Icon name="beaker" size="sm" />
-              {{ t("admin.plugins.test") }}
-            </button>
-            <button
-              v-if="hasEnabledBinding(plugin)"
-              type="button"
-              class="btn btn-secondary btn-sm"
-              :disabled="busyID === plugin.id"
-              @click="disablePlugin(plugin)"
-            >
-              <Icon name="ban" size="sm" />
-              {{ t("admin.plugins.disable") }}
-            </button>
-            <button
-              v-else
-              type="button"
-              class="btn btn-primary btn-sm"
-              :disabled="
-                busyID === plugin.id ||
-                plugin.state === 'starting' ||
-                !plugin.compatibility.compatible
-              "
-              @click="enablePlugin(plugin)"
-            >
-              <Icon name="play" size="sm" />
-              {{ t("admin.plugins.enable") }}
-            </button>
-            <button
-              type="button"
-              class="btn btn-danger btn-sm"
-              :disabled="busyID === plugin.id || hasEnabledBinding(plugin)"
-              @click="uninstallPlugin(plugin)"
-            >
-              <Icon name="trash" size="sm" />
-              {{ t("admin.plugins.uninstall") }}
-            </button>
-          </div>
-        </article>
+          <template #footer>
+            <div class="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="busyID === plugin.id"
+                @click="testPlugin(plugin)"
+              >
+                <Icon name="beaker" size="sm" />
+                {{ t("admin.plugins.test") }}
+              </button>
+              <button
+                v-if="hasEnabledBinding(plugin)"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="busyID === plugin.id"
+                @click="disablePlugin(plugin)"
+              >
+                <Icon name="ban" size="sm" />
+                {{ t("admin.plugins.disable") }}
+              </button>
+              <button
+                v-else
+                type="button"
+                class="btn btn-primary btn-sm"
+                :disabled="
+                  busyID === plugin.id ||
+                  plugin.state === 'starting' ||
+                  !plugin.compatibility.compatible
+                "
+                @click="enablePlugin(plugin)"
+              >
+                <Icon name="play" size="sm" />
+                {{ t("admin.plugins.enable") }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger btn-sm"
+                :disabled="busyID === plugin.id || hasEnabledBinding(plugin)"
+                @click="uninstallPlugin(plugin)"
+              >
+                <Icon name="trash" size="sm" />
+                {{ t("admin.plugins.uninstall") }}
+              </button>
+            </div>
+          </template>
+        </SectionCard>
       </div>
 
       <BaseDialog
@@ -293,12 +243,12 @@
         @close="closeConfiguration"
       >
         <div
-          class="relative min-h-[520px] overflow-hidden bg-gray-50 dark:bg-dark-900"
+          class="relative min-h-[520px] overflow-hidden bg-canvas"
           :style="{ height: `${iframeHeight}px` }"
         >
           <div
             v-if="uiLoading"
-            class="absolute inset-0 z-10 flex items-center justify-center text-sm text-gray-500"
+            class="absolute inset-0 z-10 flex items-center justify-center text-sm text-muted-foreground"
           >
             {{ t("admin.plugins.loadingUI") }}
           </div>
@@ -306,11 +256,11 @@
             v-if="uiError"
             class="absolute inset-0 z-20 flex flex-col items-center justify-center p-8 text-center"
           >
-            <Icon name="exclamationTriangle" size="xl" class="text-amber-500" />
-            <p class="mt-3 font-medium text-gray-800 dark:text-gray-200">
+            <Icon name="exclamationTriangle" size="xl" class="text-warning" />
+            <p class="mt-3 font-medium text-foreground">
               {{ t("admin.plugins.uiUnavailable") }}
             </p>
-            <p class="mt-1 max-w-xl text-sm text-gray-500">{{ uiError }}</p>
+            <p class="mt-1 max-w-xl text-sm text-muted-foreground">{{ uiError }}</p>
           </div>
           <iframe
             v-if="uiSession"
@@ -344,6 +294,7 @@ import { useAppStore } from "@/stores";
 import AppLayout from "@/components/layout/AppLayout.vue";
 import BaseDialog from "@/components/common/BaseDialog.vue";
 import Icon from "@/components/icons/Icon.vue";
+import { EmptyState, PageHeader, SectionCard, StatusBadge, Toolbar, type PageTone } from "@/components/page";
 import TotpStepUpDialog from "@/components/auth/TotpStepUpDialog.vue";
 import {
   isStepUpBlocked,
@@ -702,24 +653,17 @@ async function handleBridgeMessage(event: MessageEvent): Promise<void> {
   }
 }
 
-function stateClass(state: PluginInstallation["state"]): string {
-  if (state === "enabled")
-    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
-  if (state === "error" || state === "incompatible")
-    return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
-  if (state === "starting")
-    return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
-  return "bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-300";
+function stateTone(state: PluginInstallation["state"]): PageTone {
+  if (state === "enabled") return "success";
+  if (state === "error" || state === "incompatible") return "danger";
+  if (state === "starting") return "warning";
+  return "neutral";
 }
 
-function compatibilityClass(
-  status: PluginInstallation["compatibility"]["status"],
-): string {
-  if (status === "compatible")
-    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
-  if (status === "untested")
-    return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
-  return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300";
+function compatibilityTone(status: PluginInstallation["compatibility"]["status"]): PageTone {
+  if (status === "compatible") return "success";
+  if (status === "untested") return "warning";
+  return "danger";
 }
 
 onMounted(() => {
