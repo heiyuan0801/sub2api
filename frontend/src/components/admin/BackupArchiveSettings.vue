@@ -1,7 +1,7 @@
 <template>
-  <section class="mt-5 border-t border-gray-200 pt-5 dark:border-dark-600" aria-labelledby="backup-archive-title">
+  <section class="mt-5 border-t border-border pt-5" aria-labelledby="backup-archive-title">
     <div class="mb-3 flex items-center justify-between gap-3">
-      <h4 id="backup-archive-title" class="text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.backup.archive.title') }}</h4>
+      <h4 id="backup-archive-title" class="text-sm font-medium text-foreground">{{ t('admin.backup.archive.title') }}</h4>
       <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <input data-testid="archive-enabled" type="checkbox" :checked="modelValue.enabled" @change="update({ enabled: ($event.target as HTMLInputElement).checked })" />
         {{ t('admin.backup.archive.enabled') }}
@@ -19,15 +19,15 @@
             >
               <span class="flex min-w-0 flex-wrap items-center gap-1">
                 <span v-if="!selectedLabels.length" class="text-gray-400">{{ t('admin.backup.archive.selectDates') }}</span>
-                <span v-for="label in selectedLabels.slice(0, 3)" :key="label" class="rounded bg-primary-50 px-1.5 py-0.5 text-xs text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">{{ label }}</span>
+                <span v-for="label in selectedLabels.slice(0, 3)" :key="label" class="rounded bg-brand/10 px-1.5 py-0.5 text-xs text-brand">{{ label }}</span>
                 <span v-if="selectedLabels.length > 3" class="text-xs">+{{ selectedLabels.length - 3 }}</span>
               </span>
               <Icon name="chevronDown" size="sm" class="shrink-0" />
             </button>
-            <div v-if="datesOpen" id="backup-archive-options" class="absolute left-0 top-full z-30 mt-1 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-dark-600 dark:bg-dark-800">
-              <div class="mb-1 flex items-center justify-between gap-2 px-1 text-xs text-gray-500 dark:text-gray-400">
+            <div v-if="datesOpen" id="backup-archive-options" class="absolute left-0 top-full z-30 mt-1 w-full rounded-xl border border-border bg-card p-2 shadow-lg">
+              <div class="mb-1 flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
                 <span>{{ t('admin.backup.archive.selectedDates', { count: selectedLabels.length }) }}</span>
-                <button type="button" class="min-h-9 px-2 text-primary-600 dark:text-primary-400" @click="closeDates(true)">{{ t('admin.backup.archive.done') }}</button>
+                <button type="button" class="min-h-9 px-2 text-brand" @click="closeDates(true)">{{ t('admin.backup.archive.done') }}</button>
               </div>
               <div class="grid grid-cols-4 gap-1" role="group" :aria-label="t('admin.backup.archive.dates')">
                 <label v-for="day in 31" :key="day" class="flex min-h-10 cursor-pointer items-center gap-1.5 rounded px-1 text-xs hover:bg-gray-100 dark:hover:bg-dark-700">
@@ -41,7 +41,7 @@
               </div>
             </div>
           </div>
-          <p id="backup-archive-dates-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.archive.datesHint') }}</p>
+          <p id="backup-archive-dates-hint" class="mt-1 text-xs text-muted-foreground">{{ t('admin.backup.archive.datesHint') }}</p>
         </div>
         <div>
           <span class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.archive.retention') }}</span>
@@ -55,13 +55,13 @@
               {{ t('admin.backup.archive.forever') }}
             </label>
           </div>
-          <p id="backup-archive-retention-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t(forever ? 'admin.backup.archive.foreverHint' : 'admin.backup.archive.countHint') }}</p>
+          <p id="backup-archive-retention-hint" class="mt-1 text-xs text-muted-foreground">{{ t(forever ? 'admin.backup.archive.foreverHint' : 'admin.backup.archive.countHint') }}</p>
         </div>
       </div>
-      <p class="mt-3 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.archive.fallbackHint') }}</p>
-      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.archive.independentHint') }}</p>
+      <p class="mt-3 text-xs text-muted-foreground">{{ t('admin.backup.archive.fallbackHint') }}</p>
+      <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.backup.archive.independentHint') }}</p>
     </div>
-    <p v-else class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.archive.disabledHint') }}</p>
+    <p v-else class="text-xs text-muted-foreground">{{ t('admin.backup.archive.disabledHint') }}</p>
   </section>
 </template>
 

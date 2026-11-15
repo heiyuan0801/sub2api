@@ -2,14 +2,14 @@
   <div class="border-t border-gray-100 pt-4 dark:border-dark-700" data-testid="email-blacklist-editor">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0">
-        <label class="font-medium text-gray-900 dark:text-white">
+        <label class="font-medium text-foreground">
           {{ t('admin.settings.registration.emailBlacklist.title') }}
         </label>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p class="mt-1 text-sm text-muted-foreground">
           {{ t('admin.settings.registration.emailBlacklist.hint') }}
         </p>
         <p class="mt-2 text-sm" data-testid="email-blacklist-summary">
-          <span v-if="loading" class="text-gray-500 dark:text-gray-400">{{ t('common.loading') }}</span>
+          <span v-if="loading" class="text-muted-foreground">{{ t('common.loading') }}</span>
           <span v-else-if="loadError" class="text-red-600 dark:text-red-400">
             {{ t('admin.settings.registration.emailBlacklist.loadFailed') }}
             <button type="button" class="ml-2 underline" @click="load">{{ t('admin.settings.registration.emailBlacklist.retry') }}</button>
@@ -102,7 +102,7 @@
               {{ t('admin.settings.registration.emailBlacklist.listLabel', { count: formatCount(draft.length) }) }}
               <span
                 v-if="pendingAdded > 0 || pendingRemoved > 0"
-                class="ml-2 font-normal text-primary-600 dark:text-primary-400"
+                class="ml-2 font-normal text-brand"
                 data-testid="email-blacklist-pending"
               >
                 {{
@@ -133,11 +133,11 @@
             </div>
           </div>
 
-          <div class="mt-2 max-h-80 overflow-y-auto rounded-lg border border-gray-200 dark:border-dark-600">
-            <p v-if="draft.length === 0" class="p-4 text-sm text-gray-500 dark:text-gray-400">
+          <div class="mt-2 max-h-80 overflow-y-auto rounded-lg border border-border">
+            <p v-if="draft.length === 0" class="p-4 text-sm text-muted-foreground">
               {{ t('admin.settings.registration.emailBlacklist.empty') }}
             </p>
-            <p v-else-if="filtered.length === 0" class="p-4 text-sm text-gray-500 dark:text-gray-400">
+            <p v-else-if="filtered.length === 0" class="p-4 text-sm text-muted-foreground">
               {{ t('admin.settings.registration.emailBlacklist.noMatch') }}
             </p>
             <ul v-else class="divide-y divide-gray-100 dark:divide-dark-700">
@@ -151,7 +151,7 @@
                   {{ email }}
                   <span
                     v-if="!savedSet.has(email)"
-                    class="ml-2 rounded bg-primary-50 px-1.5 py-0.5 font-sans text-xs text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                    class="ml-2 rounded bg-brand/10 px-1.5 py-0.5 font-sans text-xs text-brand"
                   >
                     {{ t('admin.settings.registration.emailBlacklist.newTag') }}
                   </span>
@@ -168,7 +168,7 @@
               </li>
             </ul>
           </div>
-          <p v-if="filtered.length > VISIBLE_LIMIT" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <p v-if="filtered.length > VISIBLE_LIMIT" class="mt-2 text-xs text-muted-foreground">
             {{ t('admin.settings.registration.emailBlacklist.truncated', { limit: VISIBLE_LIMIT, total: formatCount(filtered.length) }) }}
           </p>
           <p v-if="draft.length > maxEntries" class="mt-2 text-sm text-red-600 dark:text-red-400" data-testid="email-blacklist-too-many">
@@ -223,12 +223,12 @@
           {{ t('admin.settings.registration.emailBlacklist.disableMessage', { count: formatCount(matchedUsers.length) }) }}
         </p>
         <ul
-          class="max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-gray-200 dark:divide-dark-700 dark:border-dark-600"
+          class="max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-lg border border-border dark:divide-dark-700"
           data-testid="email-blacklist-matched-users"
         >
           <li v-for="user in matchedUsers" :key="user.id" class="flex items-center justify-between gap-3 px-3 py-1.5 text-sm">
             <span class="min-w-0 truncate font-mono text-gray-800 dark:text-gray-200" :title="user.email">{{ user.email }}</span>
-            <span class="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+            <span class="shrink-0 text-xs text-muted-foreground">
               <template v-if="user.username">{{ user.username }} · </template>#{{ user.id }}
             </span>
           </li>

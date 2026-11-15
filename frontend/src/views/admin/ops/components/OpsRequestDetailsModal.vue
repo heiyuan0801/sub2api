@@ -190,7 +190,7 @@ function accountLabel(row: OpsRequestDetail): string {
     <template #default>
       <div class="flex h-full min-h-0 flex-col">
         <div class="mb-4 flex flex-shrink-0 items-center justify-between">
-          <div class="text-xs text-gray-500 dark:text-gray-400">
+          <div class="text-xs text-muted-foreground">
             {{ t('admin.ops.requestDetails.rangeLabel', { range: rangeLabel }) }}
           </div>
           <button
@@ -213,18 +213,18 @@ function accountLabel(row: OpsRequestDetail): string {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('common.loading') }}</span>
+            <span class="text-sm font-medium text-muted-foreground">{{ t('common.loading') }}</span>
           </div>
         </div>
 
         <!-- Table -->
         <div v-else class="flex min-h-0 flex-1 flex-col">
-          <div v-if="items.length === 0" class="rounded-xl border border-dashed border-gray-200 p-10 text-center dark:border-dark-700">
+          <div v-if="items.length === 0" class="rounded-xl border border-dashed border-border p-10 text-center">
             <div class="text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('admin.ops.requestDetails.empty') }}</div>
             <div class="mt-1 text-xs text-gray-400">{{ t('admin.ops.requestDetails.emptyHint') }}</div>
           </div>
 
-          <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700">
+          <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border">
             <div class="min-h-0 flex-1 overflow-auto">
               <div v-if="!isDesktopViewport" class="divide-y divide-gray-100 dark:divide-dark-800">
                 <div v-for="(row, idx) in items" :key="idx" class="space-y-2 p-4">
@@ -233,10 +233,10 @@ function accountLabel(row: OpsRequestDetail): string {
                       {{ row.kind === 'error' ? t('admin.ops.requestDetails.kind.error') : t('admin.ops.requestDetails.kind.success') }}
                     </span>
                     <span class="text-xs font-medium text-gray-700 dark:text-gray-200">{{ (row.platform || 'unknown').toUpperCase() }}</span>
-                    <span class="ml-auto text-[11px] text-gray-500 dark:text-gray-400">{{ formatDateTime(row.created_at) }}</span>
+                    <span class="ml-auto text-[11px] text-muted-foreground">{{ formatDateTime(row.created_at) }}</span>
                   </div>
                   <div class="break-all text-xs text-gray-600 dark:text-gray-300">{{ row.model || '-' }}</div>
-                  <div v-if="typeof row.account_id === 'number' && row.account_id > 0" class="break-all text-xs text-gray-500 dark:text-gray-400" :title="accountLabel(row)">
+                  <div v-if="typeof row.account_id === 'number' && row.account_id > 0" class="break-all text-xs text-muted-foreground" :title="accountLabel(row)">
                     {{ t('admin.ops.requestDetails.table.account') }}: {{ accountLabel(row) }}
                   </div>
                   <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-300">
@@ -263,39 +263,39 @@ function accountLabel(row: OpsRequestDetail): string {
                   </button>
                 </div>
               </div>
-              <table v-else class="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
+              <table v-else class="min-w-full divide-y divide-border">
                 <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-dark-900">
                 <tr>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.time') }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.kind') }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.platform') }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.model') }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.account') }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ latencyLabel }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.status') }}
                   </th>
-                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.requestId') }}
                   </th>
-                  <th class="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <th class="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                     {{ t('admin.ops.requestDetails.table.actions') }}
                   </th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-800">
+              <tbody class="divide-y divide-border bg-card">
                 <tr v-for="(row, idx) in items" :key="idx" class="hover:bg-gray-50 dark:hover:bg-dark-700/50">
                   <td class="whitespace-nowrap px-4 py-3 text-xs text-gray-600 dark:text-gray-300">
                     {{ formatDateTime(row.created_at) }}

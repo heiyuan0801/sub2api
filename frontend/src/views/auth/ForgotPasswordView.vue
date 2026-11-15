@@ -4,10 +4,10 @@
       <!-- Title -->
       <div class="auth-heading">
         <span class="auth-eyebrow">{{ t('publicSite.auth.recoveryEyebrow') }}</span>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 class="text-2xl font-bold text-foreground">
           {{ pageCopy.heading }}
         </h2>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
+        <p class="mt-2 text-sm text-muted-foreground">
           {{ pageCopy.subtitle }}
         </p>
       </div>
@@ -33,7 +33,7 @@
         <div class="text-center">
           <router-link
             to="/login"
-            class="inline-flex items-center gap-2 font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+            class="inline-flex items-center gap-2 font-medium text-brand transition-colors hover:text-brand"
           >
             <Icon name="arrowLeft" size="sm" />
             {{ t('auth.backToLogin') }}

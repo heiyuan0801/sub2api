@@ -4,10 +4,10 @@
       <!-- Title -->
       <div class="auth-heading">
         <span class="auth-eyebrow">{{ t('publicSite.auth.recoveryEyebrow') }}</span>
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 class="text-2xl font-bold text-foreground">
           {{ t('auth.resetPasswordTitle') }}
         </h2>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
+        <p class="mt-2 text-sm text-muted-foreground">
           {{ t('auth.resetPasswordHint') }}
         </p>
       </div>
@@ -33,7 +33,7 @@
         <div class="text-center">
           <router-link
             to="/forgot-password"
-            class="inline-flex items-center gap-2 font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+            class="inline-flex items-center gap-2 font-medium text-brand transition-colors hover:text-brand"
           >
             {{ t('auth.requestNewResetLink') }}
           </router-link>
@@ -186,7 +186,7 @@
         {{ t('auth.rememberedPassword') }}
         <router-link
           to="/login"
-          class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
+          class="font-medium text-brand transition-colors hover:text-brand"
         >
           {{ t('auth.signIn') }}
         </router-link>

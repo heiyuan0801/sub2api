@@ -10,13 +10,13 @@
         <label class="input-label">{{ t('admin.affiliates.withdraw.user') }}</label>
         <div
           v-if="selectedUser"
-          class="flex items-center justify-between gap-3 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 dark:border-primary-700/50 dark:bg-primary-900/20"
+          class="flex items-center justify-between gap-3 rounded-md border border-primary-200 bg-brand/10 px-3 py-2 dark:border-primary-700/50"
           data-test="withdraw-selected-user"
         >
           <div class="min-w-0 truncate text-sm">
-            <span class="font-mono text-gray-500 dark:text-dark-400">#{{ selectedUser.id }}</span>
-            <span class="ml-2 font-medium text-gray-900 dark:text-white">{{ selectedUser.email }}</span>
-            <span v-if="selectedUser.username" class="ml-1 text-xs text-gray-500 dark:text-dark-400">({{ selectedUser.username }})</span>
+            <span class="font-mono text-muted-foreground">#{{ selectedUser.id }}</span>
+            <span class="ml-2 font-medium text-foreground">{{ selectedUser.email }}</span>
+            <span v-if="selectedUser.username" class="ml-1 text-xs text-muted-foreground">({{ selectedUser.username }})</span>
           </div>
           <button
             type="button"
@@ -40,17 +40,17 @@
           />
           <div
             v-if="userResults.length > 0"
-            class="mt-1 max-h-40 overflow-y-auto rounded border border-gray-200 dark:border-dark-700"
+            class="mt-1 max-h-40 overflow-y-auto rounded border border-border"
           >
             <button
               v-for="user in userResults"
               :key="user.id"
               type="button"
-              class="w-full px-3 py-1.5 text-left text-sm text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-dark-800"
+              class="w-full px-3 py-1.5 text-left text-sm text-foreground hover:bg-muted"
               data-test="withdraw-user-option"
               @click="selectUser(user)"
             >
-              {{ user.email }} <span class="text-xs text-gray-500 dark:text-dark-400">({{ user.username }})</span>
+              {{ user.email }} <span class="text-xs text-muted-foreground">({{ user.username }})</span>
             </button>
           </div>
           <p v-else-if="searched" class="input-hint">{{ t('admin.affiliates.withdraw.noUserFound') }}</p>
@@ -62,16 +62,16 @@
         class="rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-dark-700 dark:bg-dark-800"
       >
         <div class="flex items-center justify-between text-sm">
-          <span class="text-gray-500 dark:text-dark-400">{{ t('admin.affiliates.withdraw.availableQuota') }}</span>
+          <span class="text-muted-foreground">{{ t('admin.affiliates.withdraw.availableQuota') }}</span>
           <span
             v-if="overviewLoading"
-            class="h-4 w-4 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"
+            class="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent"
           ></span>
-          <span v-else class="font-semibold text-gray-900 dark:text-white" data-test="withdraw-available-quota">
+          <span v-else class="font-semibold text-foreground" data-test="withdraw-available-quota">
             ${{ formatPreciseAmount(availableQuota) }}
           </span>
         </div>
-        <p class="mt-1 text-xs text-gray-500 dark:text-dark-400">{{ t('admin.affiliates.withdraw.frozenHint') }}</p>
+        <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.affiliates.withdraw.frozenHint') }}</p>
       </div>
 
       <div>

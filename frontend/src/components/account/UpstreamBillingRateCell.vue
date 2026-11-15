@@ -203,7 +203,7 @@ const statusLabel = computed(() => {
 })
 const statusClass = computed(() => {
   if (!snapshot.value) return 'text-gray-400 dark:text-gray-500'
-  if (snapshot.value.status === 'unsupported') return 'text-gray-500 dark:text-gray-400'
+  if (snapshot.value.status === 'unsupported') return 'text-muted-foreground'
   if (stale.value) return 'text-amber-600 dark:text-amber-400'
   if (snapshot.value.status === 'failed') return 'text-red-600 dark:text-red-400'
   return ''

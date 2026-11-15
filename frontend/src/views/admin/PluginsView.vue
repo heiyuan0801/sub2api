@@ -2,13 +2,13 @@
   <AppLayout>
     <div class="space-y-6">
       <section
-        class="flex flex-col gap-4 border-b border-gray-200 pb-5 dark:border-dark-700 sm:flex-row sm:items-end sm:justify-between"
+        class="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between"
       >
         <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-lg font-semibold text-foreground">
             {{ t("admin.plugins.title") }}
           </h2>
-          <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">
+          <p class="mt-1 max-w-3xl text-sm text-muted-foreground">
             {{ t("admin.plugins.description") }}
           </p>
           <div
@@ -53,7 +53,7 @@
         </div>
       </section>
 
-      <p class="text-xs text-gray-500 dark:text-gray-400">
+      <p class="text-xs text-muted-foreground">
         {{ t("admin.plugins.uploadHint") }}
       </p>
 
@@ -79,7 +79,7 @@
         <p class="mt-3 font-medium text-gray-800 dark:text-gray-200">
           {{ t("admin.plugins.empty") }}
         </p>
-        <p class="mt-1 max-w-lg text-sm text-gray-500 dark:text-gray-400">
+        <p class="mt-1 max-w-lg text-sm text-muted-foreground">
           {{ t("admin.plugins.emptyHint") }}
         </p>
       </div>
@@ -88,7 +88,7 @@
         <article
           v-for="plugin in plugins"
           :key="plugin.id"
-          class="card overflow-hidden border border-gray-200 dark:border-dark-700"
+          class="card overflow-hidden border border-border"
         >
           <div
             class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 p-5 dark:border-dark-700"
@@ -96,7 +96,7 @@
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <h3
-                  class="truncate text-base font-semibold text-gray-900 dark:text-white"
+                  class="truncate text-base font-semibold text-foreground"
                 >
                   {{ plugin.name }}
                 </h3>
@@ -143,7 +143,7 @@
                 >
                   {{ t(`admin.plugins.${plugin.compatibility.status}`) }}
                 </span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">{{
+                <span class="text-xs text-muted-foreground">{{
                   plugin.compatibility.message
                 }}</span>
               </div>
@@ -228,7 +228,7 @@
                 min="1"
                 max="100"
                 step="1"
-                class="mt-2 w-full accent-primary-600"
+                class="mt-2 w-full accent-brand"
                 :disabled="hasEnabledBinding(plugin)"
                 @input="setRollout(plugin.id, $event)"
               />
@@ -318,7 +318,7 @@
             :src="uiSession.url"
             sandbox="allow-scripts"
             referrerpolicy="no-referrer"
-            class="h-full w-full border-0 bg-white dark:bg-dark-900"
+            class="h-full w-full border-0 bg-background"
             :title="
               t('admin.plugins.configTitle', { name: configPlugin?.name || '' })
             "

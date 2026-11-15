@@ -41,17 +41,17 @@
 
       <div v-if="providerSections.length" class="space-y-7">
         <section v-for="{ platform, groups } in providerSections" :key="platform" class="space-y-3">
-          <h2 class="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-white">
+          <h2 class="flex items-center gap-2 text-base font-semibold text-foreground">
             <PlatformIcon :platform="platform as GroupPlatform" size="sm" />
             {{ platformLabel(platform) }}
-            <span class="text-xs font-normal text-gray-500 dark:text-dark-400">{{ t('publicSite.models.groupCount', { count: groups.length }) }}</span>
+            <span class="text-xs font-normal text-muted-foreground">{{ t('publicSite.models.groupCount', { count: groups.length }) }}</span>
           </h2>
           <PlazaGroupSection v-for="group in groups" :key="group.id" :group="group" prices-only />
         </section>
       </div>
       <div
         v-else
-        class="rounded-2xl border border-dashed border-gray-300 px-5 py-12 text-center text-sm text-gray-500 dark:border-dark-600 dark:text-dark-400"
+        class="rounded-2xl border border-dashed border-gray-300 px-5 py-12 text-center text-sm text-muted-foreground dark:border-dark-600"
       >
         {{ searchActive ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}
       </div>
@@ -148,7 +148,7 @@ const providerSections = computed(() => {
 .plaza-description :deep(h1),
 .plaza-description :deep(h2),
 .plaza-description :deep(h3) {
-  @apply mb-2 mt-3 font-semibold text-gray-900 first:mt-0 dark:text-white;
+  @apply mb-2 mt-3 font-semibold text-foreground first:mt-0;
 }
 
 .plaza-description :deep(p) {
@@ -156,7 +156,7 @@ const providerSections = computed(() => {
 }
 
 .plaza-description :deep(a) {
-  @apply text-primary-600 underline underline-offset-4 hover:text-primary-700 dark:text-primary-300;
+  @apply text-primary-600 underline underline-offset-4 hover:text-brand dark:text-primary-300;
 }
 
 .plaza-description :deep(ul) {
@@ -172,7 +172,7 @@ const providerSections = computed(() => {
 }
 
 .plaza-description :deep(code) {
-  @apply rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs dark:bg-dark-800;
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-xs;
 }
 
 .plaza-description :deep(blockquote) {

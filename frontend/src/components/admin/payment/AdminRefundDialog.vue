@@ -30,19 +30,19 @@
       <!-- Order Info -->
       <div class="rounded-lg bg-gray-50 p-3 dark:bg-dark-700">
         <div class="flex justify-between text-sm">
-          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.orderId') }}</span>
-          <span class="font-mono text-gray-900 dark:text-white">#{{ order?.id }}</span>
+          <span class="text-muted-foreground">{{ t('payment.orders.orderId') }}</span>
+          <span class="font-mono text-foreground">#{{ order?.id }}</span>
         </div>
         <div class="mt-1 flex justify-between text-sm">
-          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.creditedAmount') }}</span>
-          <span class="font-medium text-gray-900 dark:text-white">{{ creditedAmountSymbol }}{{ order?.amount?.toFixed(2) }}</span>
+          <span class="text-muted-foreground">{{ t('payment.orders.creditedAmount') }}</span>
+          <span class="font-medium text-foreground">{{ creditedAmountSymbol }}{{ order?.amount?.toFixed(2) }}</span>
         </div>
         <div class="mt-1 flex justify-between text-sm">
-          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</span>
-          <span class="font-medium text-gray-900 dark:text-white">{{ paymentAmountSymbol }}{{ order?.pay_amount?.toFixed(2) }}</span>
+          <span class="text-muted-foreground">{{ t('payment.orders.payAmount') }}</span>
+          <span class="font-medium text-foreground">{{ paymentAmountSymbol }}{{ order?.pay_amount?.toFixed(2) }}</span>
         </div>
         <div v-if="actuallyRefunded > 0" class="mt-1 flex justify-between text-sm">
-          <span class="text-gray-500 dark:text-gray-400">{{ t('payment.admin.alreadyRefunded') }}</span>
+          <span class="text-muted-foreground">{{ t('payment.admin.alreadyRefunded') }}</span>
           <span class="font-medium text-red-600 dark:text-red-400">{{ creditedAmountSymbol }}{{ actuallyRefunded.toFixed(2) }}</span>
         </div>
       </div>
@@ -54,23 +54,23 @@
             id="deduct-balance"
             v-model="form.deduct_balance"
             type="checkbox"
-            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            class="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
           />
           <label for="deduct-balance" class="text-sm text-gray-700 dark:text-gray-300">
             {{ t('payment.admin.deductBalance') }}
           </label>
-          <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.deductBalanceHint') }}</span>
+          <span class="text-xs text-muted-foreground">{{ t('payment.admin.deductBalanceHint') }}</span>
         </div>
 
         <!-- User Balance Info (when deduct_balance is checked) -->
         <div v-if="form.deduct_balance && userBalance != null" class="mt-3 grid grid-cols-2 gap-3">
           <div class="rounded-lg bg-gray-50 p-3 text-sm dark:bg-dark-700">
-            <div class="text-gray-500 dark:text-gray-400">{{ t('payment.admin.userBalance') }}</div>
-            <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ creditedAmountSymbol }}{{ userBalance.toFixed(2) }}</div>
+            <div class="text-muted-foreground">{{ t('payment.admin.userBalance') }}</div>
+            <div class="mt-1 font-semibold text-foreground">{{ creditedAmountSymbol }}{{ userBalance.toFixed(2) }}</div>
           </div>
           <div class="rounded-lg bg-gray-50 p-3 text-sm dark:bg-dark-700">
-            <div class="text-gray-500 dark:text-gray-400">{{ t('payment.admin.orderAmount') }}</div>
-            <div class="mt-1 font-semibold text-gray-900 dark:text-white">{{ creditedAmountSymbol }}{{ order?.amount?.toFixed(2) }}</div>
+            <div class="text-muted-foreground">{{ t('payment.admin.orderAmount') }}</div>
+            <div class="mt-1 font-semibold text-foreground">{{ creditedAmountSymbol }}{{ order?.amount?.toFixed(2) }}</div>
           </div>
         </div>
 
@@ -106,7 +106,7 @@
             required
           />
         </div>
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-1 text-xs text-muted-foreground">
           {{ t('payment.admin.maxRefundable') }}: {{ creditedAmountSymbol }}{{ maxRefundable.toFixed(2) }}
         </p>
       </div>

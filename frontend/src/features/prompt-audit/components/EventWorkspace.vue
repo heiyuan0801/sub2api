@@ -58,7 +58,7 @@
     <div v-if="error" role="alert" class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{{ error }}</div>
     <div class="mt-5 overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-700/60">
       <table class="min-w-[1120px] w-full text-left text-sm">
-        <thead class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-dark-900/70 dark:text-dark-400">
+        <thead class="bg-gray-50 text-xs uppercase tracking-wide text-muted-foreground dark:bg-dark-900/70">
           <tr>
             <th class="w-10 px-3 py-3"><input type="checkbox" :checked="allSelected" :aria-label="t('admin.promptAudit.events.selectAll')" @change="toggleAll" /></th>
             <th class="px-3 py-3 font-medium">{{ t('admin.promptAudit.events.time') }}</th>
@@ -83,7 +83,7 @@
             </td>
             <td class="px-3 py-3 text-gray-700 dark:text-dark-200">{{ event.snapshot.group_name || '—' }}</td>
             <td class="px-3 py-3">
-              <p class="font-medium text-gray-900 dark:text-white">{{ event.snapshot.endpoint }}</p>
+              <p class="font-medium text-foreground">{{ event.snapshot.endpoint }}</p>
               <p class="mt-1 text-xs text-gray-500">{{ event.snapshot.model }} · {{ event.snapshot.protocol }} · {{ event.snapshot.stage || 'http' }}</p>
             </td>
             <td class="px-3 py-3">
@@ -149,10 +149,10 @@ const CopyLine = defineComponent({
   props: { label: { type: String, required: true }, value: { type: String, default: '' } },
   setup(componentProps) {
     return () => h('div', { class: 'flex max-w-56 items-center gap-1 text-xs' }, [
-      h('span', { class: 'w-16 flex-none text-gray-500 dark:text-dark-400' }, componentProps.label),
+      h('span', { class: 'w-16 flex-none text-muted-foreground' }, componentProps.label),
       h('span', { class: 'min-w-0 flex-1 truncate text-gray-800 dark:text-dark-100' }, componentProps.value || '—'),
       componentProps.value ? h('button', {
-        type: 'button', class: 'text-primary-600 hover:underline', 'aria-label': `${t('common.copy')} ${componentProps.label}`,
+        type: 'button', class: 'text-brand hover:underline', 'aria-label': `${t('common.copy')} ${componentProps.label}`,
         onClick: () => navigator.clipboard?.writeText(componentProps.value),
       }, t('common.copy')) : null,
     ])

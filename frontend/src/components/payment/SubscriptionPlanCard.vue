@@ -4,7 +4,7 @@
       'group relative flex flex-col overflow-hidden rounded-2xl border transition-all',
       'hover:shadow-xl hover:-translate-y-0.5',
       borderClass,
-      'bg-white dark:bg-dark-800',
+      'bg-card',
     ]"
   >
     <!-- Colored top accent bar -->
@@ -16,11 +16,11 @@
         <div class="min-w-0 flex-1">
           <h3
             :title="plan.name"
-            class="h-12 min-w-0 break-words [overflow-wrap:anywhere] text-base font-bold leading-6 text-gray-900 dark:text-white line-clamp-2"
+            class="h-12 min-w-0 break-words [overflow-wrap:anywhere] text-base font-bold leading-6 text-foreground line-clamp-2"
           >
             {{ plan.name }}
           </h3>
-          <p v-if="plan.description" class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-dark-400 line-clamp-2">
+          <p v-if="plan.description" class="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">
             {{ plan.description }}
           </p>
         </div>

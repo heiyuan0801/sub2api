@@ -3,7 +3,7 @@
     <div class="space-y-4">
       <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('keys.magpie.description') }}</p>
       <p class="font-medium">{{ apiKey.name }}</p>
-      <dl v-if="config" class="space-y-2 rounded-xl border border-gray-200 p-4 text-sm dark:border-dark-600">
+      <dl v-if="config" class="space-y-2 rounded-xl border border-border p-4 text-sm">
         <div v-for="(endpoint, protocol) in config.endpoints" :key="protocol">
           <dt class="font-medium">{{ protocol }}</dt><dd class="break-all text-gray-500">{{ endpoint }}</dd>
         </div>

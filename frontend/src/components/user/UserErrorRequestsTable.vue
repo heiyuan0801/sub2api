@@ -15,13 +15,13 @@
         @rowClick="(row) => openDetail(row.id)"
       >
         <template #cell-model="{ row }">
-          <span v-if="row.model" class="text-sm font-medium text-gray-900 dark:text-white">{{ row.model }}</span>
+          <span v-if="row.model" class="text-sm font-medium text-foreground">{{ row.model }}</span>
           <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
         </template>
 
         <template #cell-key_name="{ row }">
           <div class="text-sm">
-            <span class="text-gray-900 dark:text-white">{{ row.key_name || '-' }}</span>
+            <span class="text-foreground">{{ row.key_name || '-' }}</span>
             <span
               v-if="row.key_deleted"
               class="ml-1 inline-flex items-center rounded px-1 py-px text-[10px] font-medium leading-tight bg-rose-100 text-rose-600 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:ring-rose-500/30"
@@ -32,7 +32,7 @@
         <template #cell-endpoint="{ row }">
           <div class="max-w-[320px] text-xs">
             <div class="break-all text-gray-700 dark:text-gray-300">
-              <span class="font-medium text-gray-500 dark:text-gray-400">{{ t('usage.inbound') }}:</span>
+              <span class="font-medium text-muted-foreground">{{ t('usage.inbound') }}:</span>
               <span class="ml-1">{{ row.inbound_endpoint?.trim() || '-' }}</span>
             </div>
           </div>
@@ -45,7 +45,7 @@
         </template>
 
         <template #cell-category="{ row }">
-          <span class="text-sm text-gray-900 dark:text-white">{{ t('usage.errors.categories.' + row.category) }}</span>
+          <span class="text-sm text-foreground">{{ t('usage.errors.categories.' + row.category) }}</span>
         </template>
 
         <template #cell-message="{ row }">
@@ -75,7 +75,7 @@
         </template>
 
         <template #cell-platform="{ row }">
-          <span class="text-sm text-gray-900 dark:text-white">{{ row.platform || '-' }}</span>
+          <span class="text-sm text-foreground">{{ row.platform || '-' }}</span>
         </template>
 
         <template #cell-client_ip="{ row }">

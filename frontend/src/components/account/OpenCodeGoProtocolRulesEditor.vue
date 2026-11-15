@@ -4,7 +4,7 @@
       <label class="input-label mb-0">{{ t('admin.accounts.opencodeGo.protocolRules.title') }}</label>
       <button
         type="button"
-        class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+        class="text-xs text-brand hover:text-brand"
         @click="restoreDefaults"
       >
         {{ t('admin.accounts.opencodeGo.protocolRules.restoreDefaults') }}
@@ -42,7 +42,7 @@
         </div>
         <div
           v-if="protocolOptions.length > 1"
-          class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400"
+          class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
           :title="t('admin.accounts.opencodeGo.protocolRules.alsoSupportsHint')"
         >
           <span>{{ t('admin.accounts.opencodeGo.protocolRules.alsoSupports') }}</span>
@@ -52,8 +52,8 @@
             type="button"
             class="rounded-full border px-2 py-0.5 transition-colors"
             :class="hasExtraProtocol(row, option.value)
-              ? 'border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 dark:border-dark-600 dark:text-gray-400 dark:hover:border-dark-500'"
+              ? 'border-primary-300 bg-brand/10 text-brand dark:border-primary-700'
+              : 'border-border text-muted-foreground hover:border-gray-300 dark:hover:border-dark-500'"
             :aria-pressed="hasExtraProtocol(row, option.value)"
             :data-testid="`opencode-go-protocol-extra-${index}-${option.value}`"
             @click="toggleExtraProtocol(row, option.value)"
@@ -64,7 +64,7 @@
       </div>
     </div>
     <div
-      class="mb-2 flex items-center gap-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-dark-600 dark:bg-dark-800/60 dark:text-gray-400"
+      class="mb-2 flex items-center gap-2 rounded-lg border border-dashed border-border bg-gray-50 px-3 py-2 text-xs text-muted-foreground dark:bg-dark-800/60"
       data-testid="opencode-go-protocol-fallback"
     >
       <span class="flex-1 font-mono">*</span>

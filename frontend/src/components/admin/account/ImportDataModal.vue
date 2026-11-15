@@ -32,7 +32,7 @@
             <div class="truncate text-sm text-gray-700 dark:text-dark-200" :title="fileListTitle">
               {{ selectedFilesLabel || t('admin.accounts.dataImportSelectFile') }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-dark-400">
+            <div class="text-xs text-muted-foreground">
               JSON (.json)
               <span v-if="files.length > 1"> · {{ fileListTitle }}</span>
             </div>
@@ -53,9 +53,9 @@
 
       <div
         v-if="result"
-        class="space-y-2 rounded-xl border border-gray-200 p-4 dark:border-dark-700"
+        class="space-y-2 rounded-xl border border-border p-4"
       >
-        <div class="text-sm font-medium text-gray-900 dark:text-white">
+        <div class="text-sm font-medium text-foreground">
           {{ t('admin.accounts.dataImportResult') }}
         </div>
         <div class="text-sm text-gray-700 dark:text-dark-300">

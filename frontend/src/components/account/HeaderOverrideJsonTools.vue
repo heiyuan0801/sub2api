@@ -1,14 +1,14 @@
 <template>
   <button
     type="button"
-    class="rounded-lg bg-primary-50 px-3 py-1 text-xs text-primary-700 transition-colors hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50"
+    class="rounded-lg bg-brand/10 px-3 py-1 text-xs text-primary-700 transition-colors hover:bg-primary-100 dark:text-primary-400 dark:hover:bg-primary-900/50"
     @click="toggleImportPanel"
   >
     {{ t('admin.accounts.headerOverride.importJson') }}
   </button>
   <button
     type="button"
-    class="rounded-lg bg-primary-50 px-3 py-1 text-xs text-primary-700 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50"
+    class="rounded-lg bg-brand/10 px-3 py-1 text-xs text-primary-700 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-primary-400 dark:hover:bg-primary-900/50"
     :disabled="!hasNamedRows"
     @click="copyAsJson"
   >
@@ -26,7 +26,7 @@
     <div class="flex gap-2">
       <button
         type="button"
-        class="rounded-lg bg-primary-600 px-3 py-1 text-xs text-white transition-colors hover:bg-primary-700"
+        class="rounded-lg bg-brand px-3 py-1 text-xs text-brand-foreground transition-colors hover:bg-brand/90"
         @click="applyImport"
       >
         {{ t('admin.accounts.headerOverride.importJsonApply') }}
@@ -39,7 +39,7 @@
         {{ t('admin.accounts.headerOverride.importJsonCancel') }}
       </button>
     </div>
-    <p class="text-xs text-gray-500 dark:text-gray-400">
+    <p class="text-xs text-muted-foreground">
       {{ t('admin.accounts.headerOverride.importJsonHint') }}
     </p>
   </div>

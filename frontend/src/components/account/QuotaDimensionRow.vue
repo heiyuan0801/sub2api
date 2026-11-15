@@ -78,7 +78,7 @@ function getTimezoneOffsetLabel(tz: string): string {
     <!-- Input row -->
     <div class="flex items-center gap-2">
       <div :class="['relative', quotaNotifyGlobalEnabled ? 'flex-1 min-w-0' : 'flex-1']">
-        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">$</span>
+        <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
         <input :value="limit" @input="onLimitInput" type="number" min="0" step="0.01" class="input pl-6 py-1.5 text-sm" :placeholder="t('admin.accounts.quotaLimitPlaceholder')" />
       </div>
       <QuotaNotifyToggle
@@ -91,7 +91,7 @@ function getTimezoneOffsetLabel(tz: string): string {
 
     <!-- Reset mode row (daily/weekly only) -->
     <div v-if="hasResetMode" class="mt-1 flex items-center gap-2 flex-wrap">
-      <label class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('admin.accounts.quotaResetMode') }}</label>
+      <label class="text-xs text-muted-foreground whitespace-nowrap">{{ t('admin.accounts.quotaResetMode') }}</label>
       <select :value="resetMode || 'rolling'" @change="onModeChange" class="input py-1 text-xs w-auto">
         <option value="rolling">{{ t('admin.accounts.quotaResetModeRolling') }}</option>
         <option value="fixed">{{ t('admin.accounts.quotaResetModeFixed') }}</option>
@@ -99,12 +99,12 @@ function getTimezoneOffsetLabel(tz: string): string {
       <template v-if="resetMode === 'fixed'">
         <!-- Weekly: day of week selector -->
         <template v-if="dim === 'weekly'">
-          <label class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('admin.accounts.quotaWeeklyResetDay') }}</label>
+          <label class="text-xs text-muted-foreground whitespace-nowrap">{{ t('admin.accounts.quotaWeeklyResetDay') }}</label>
           <select :value="resetDay ?? 1" @change="emit('update:resetDay', Number(($event.target as HTMLSelectElement).value))" class="input py-1 text-xs w-28">
             <option v-for="d in dayOptions" :key="d.value" :value="d.value">{{ t('admin.accounts.dayOfWeek.' + d.key) }}</option>
           </select>
         </template>
-        <label class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('admin.accounts.quotaResetHour') }}</label>
+        <label class="text-xs text-muted-foreground whitespace-nowrap">{{ t('admin.accounts.quotaResetHour') }}</label>
         <select :value="resetHour ?? 0" @change="emit('update:resetHour', Number(($event.target as HTMLSelectElement).value))" class="input py-1 text-xs w-24">
           <option v-for="h in hourOptions" :key="h" :value="h">{{ String(h).padStart(2, '0') }}:00</option>
         </select>
@@ -114,7 +114,7 @@ function getTimezoneOffsetLabel(tz: string): string {
           </select>
         </template>
       </template>
-      <span class="text-[11px] text-gray-500 dark:text-gray-400">
+      <span class="text-[11px] text-muted-foreground">
         <template v-if="resetMode === 'fixed'">{{ hintFixed }}</template>
         <template v-else>{{ hintRolling }}</template>
       </span>

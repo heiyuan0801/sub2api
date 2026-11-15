@@ -49,7 +49,7 @@
     <HeaderOverrideJsonTools :rows="rows" @update:rows="emit('update:rows', $event)" />
   </div>
 
-  <p class="text-xs text-gray-500 dark:text-gray-400">
+  <p class="text-xs text-muted-foreground">
     {{ t('admin.accounts.headerOverride.emptyValueHint') }}
   </p>
 </template>

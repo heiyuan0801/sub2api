@@ -26,7 +26,7 @@
         <template v-else-if="snapshot?.coverage.data_through">{{ t('channelMonitorV2.updatedTo', { time: formatTime(snapshot.coverage.data_through) }) }}</template>
       </p>
       <div v-if="isAdmin || (snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive)" class="flex flex-wrap items-center justify-end gap-2">
-        <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive" class="mr-auto text-xs text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.partialCoverage') }}</span>
+        <span v-if="snapshot && !snapshot.coverage.coverage_complete && !bootstrapActive" class="mr-auto text-xs text-muted-foreground">{{ t('channelMonitorV2.partialCoverage') }}</span>
         <template v-if="isAdmin">
           <router-link to="/admin/ops?open_alert_rules=1" class="availability-settings"><Icon name="bell" size="sm" />{{ t('channelMonitorV2.preferences.alerts') }}</router-link>
           <router-link to="/admin/channels/monitor" class="availability-settings"><Icon name="cog" size="sm" />{{ t('channelMonitorV2.availability.settings') }}</router-link>
@@ -48,9 +48,9 @@
         <button type="button" class="shrink-0 underline underline-offset-4" :disabled="refreshing" @click="reload(false)">{{ t('common.refresh') }}</button>
       </div>
 
-      <div v-if="bootstrapActive" class="rounded-xl border border-gray-200 p-4 dark:border-dark-700" role="status" aria-live="polite">
+      <div v-if="bootstrapActive" class="rounded-xl border border-border p-4" role="status" aria-live="polite">
         <p class="text-sm font-semibold">{{ t('channelMonitorV2.bootstrap.title') }}</p>
-        <p class="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">{{ t('channelMonitorV2.bootstrap.description') }}</p>
+        <p class="mt-1 text-xs leading-relaxed text-muted-foreground">{{ t('channelMonitorV2.bootstrap.description') }}</p>
         <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-dark-700" role="progressbar" :aria-valuenow="bootstrapPercent" aria-valuemin="0" aria-valuemax="100" :aria-label="t('channelMonitorV2.bootstrap.working')">
           <div class="h-full rounded-full bg-gray-900 transition-[width] duration-500 dark:bg-gray-200" :style="{ width: `${bootstrapPercent}%` }" />
         </div>
@@ -89,7 +89,7 @@
           <div v-else-if="loading" class="min-h-[280px] space-y-4" aria-hidden="true">
             <div v-for="i in 3" :key="i" class="availability-placeholder h-28 animate-pulse rounded-xl" />
           </div>
-          <div v-else class="py-16 text-center text-sm text-gray-500 dark:text-gray-400">{{ monitorDisabled ? t('channelMonitorV2.availability.disabledHint') : loadError || t('channelMonitorV2.empty.title') }}</div>
+          <div v-else class="py-16 text-center text-sm text-muted-foreground">{{ monitorDisabled ? t('channelMonitorV2.availability.disabledHint') : loadError || t('channelMonitorV2.empty.title') }}</div>
         </div>
       </section>
 
@@ -172,7 +172,7 @@
         </details>
 
       <details class="card availability-details min-h-0 overflow-hidden !rounded-3xl p-0 shadow-sm ring-1 ring-gray-900/5 dark:ring-dark-700">
-        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900 outline-offset-[-4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 dark:text-gray-100 sm:px-6">
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-foreground outline-offset-[-4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-gray-400 sm:px-6">
           {{ t('channelMonitorV2.cards.details') }}
           <Icon name="chevronDown" size="sm" />
         </summary>
@@ -269,7 +269,7 @@
                   <td>
                     <strong
                       class="font-semibold"
-                      :class="row.is_self ? 'text-primary-700 dark:text-primary-300' : 'text-gray-900 dark:text-white'"
+                      :class="row.is_self ? 'text-brand' : 'text-foreground'"
                     >
                       {{ row.display_label }}
                       <span

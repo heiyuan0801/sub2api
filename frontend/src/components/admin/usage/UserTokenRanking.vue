@@ -16,18 +16,18 @@
 
     <!-- Table -->
     <div class="overflow-x-auto">
-      <table class="w-full min-w-max divide-y divide-gray-200 dark:divide-dark-700">
+      <table class="w-full min-w-max divide-y divide-border">
         <thead class="bg-gray-50 dark:bg-dark-800">
           <tr>
-            <th class="w-16 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400 sm:px-6">#</th>
-            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-dark-400">
+            <th class="w-16 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground sm:px-6">#</th>
+            <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {{ t('admin.usage.tokenRanking.columns.user') }}
             </th>
             <th
               v-for="col in sortableColumns"
               :key="col.key"
               class="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-right text-xs font-medium uppercase tracking-wider transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-              :class="sortBy === col.key ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 dark:text-dark-400'"
+              :class="sortBy === col.key ? 'text-brand' : 'text-muted-foreground'"
               @click="setSort(col.key)"
             >
               {{ t(col.label) }}
@@ -35,7 +35,7 @@
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 bg-white dark:divide-dark-700 dark:bg-dark-900">
+        <tbody class="divide-y divide-border bg-background">
           <tr v-if="loading">
             <td :colspan="sortableColumns.length + 2" class="py-12 text-center">
               <LoadingSpinner />
@@ -66,11 +66,11 @@
               {{ item.email || `User #${item.user_id}` }}
               <span class="ml-1 font-normal text-gray-400 dark:text-gray-500">#{{ item.user_id }}</span>
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-gray-500 dark:text-gray-400">{{ item.requests.toLocaleString() }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-gray-500 dark:text-gray-400">{{ fmtTokens(item.input_tokens) }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-gray-500 dark:text-gray-400">{{ fmtTokens(item.output_tokens) }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-gray-500 dark:text-gray-400">{{ fmtTokens(item.cache_tokens) }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-medium tabular-nums text-gray-900 dark:text-gray-100">{{ fmtTokens(item.total_tokens) }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">{{ item.requests.toLocaleString() }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">{{ fmtTokens(item.input_tokens) }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">{{ fmtTokens(item.output_tokens) }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm tabular-nums text-muted-foreground">{{ fmtTokens(item.cache_tokens) }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-medium tabular-nums text-foreground">{{ fmtTokens(item.total_tokens) }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-medium tabular-nums text-green-600 dark:text-green-400">${{ fmtCost(item.actual_cost) }}</td>
           </tr>
         </tbody>

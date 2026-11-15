@@ -1,5 +1,5 @@
 <template>
-  <div class="console-shell min-h-screen bg-gray-50 text-foreground dark:bg-dark-950">
+  <div class="console-shell min-h-screen bg-canvas text-foreground">
     <!-- Sidebar -->
     <AppSidebar />
 

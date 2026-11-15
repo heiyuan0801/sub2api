@@ -6,7 +6,7 @@
     @close="$emit('close')"
   >
     <div class="space-y-3">
-      <p class="text-xs text-gray-500 dark:text-gray-400">
+      <p class="text-xs text-muted-foreground">
         {{ t('admin.channelMonitor.form.selectKeyHint') }}
       </p>
 
@@ -28,24 +28,24 @@
       <div v-else-if="filteredKeys.length === 0" class="py-6 text-center text-sm text-gray-500">
         {{ t('admin.channelMonitor.form.noActiveKey') }}
       </div>
-      <div v-else class="max-h-96 overflow-auto rounded-lg border border-gray-200 dark:border-dark-600">
+      <div v-else class="max-h-96 overflow-auto rounded-lg border border-border">
         <table class="w-full text-sm">
           <thead class="bg-gray-50 dark:bg-dark-800 sticky top-0 z-10">
-            <tr class="text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            <tr class="text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <th class="px-3 py-2">{{ t('common.name') }}</th>
               <th class="px-3 py-2">{{ t('keys.apiKey') }}</th>
               <th class="px-3 py-2">{{ t('keys.group') }}</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200 dark:divide-dark-700">
+          <tbody class="divide-y divide-border">
             <tr
               v-for="k in filteredKeys"
               :key="k.id"
               class="cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700"
               @click="$emit('pick', k)"
             >
-              <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">{{ k.name }}</td>
-              <td class="px-3 py-2 font-mono text-xs text-gray-500 dark:text-gray-400">{{ maskApiKey(k.key) }}</td>
+              <td class="px-3 py-2 font-medium text-foreground">{{ k.name }}</td>
+              <td class="px-3 py-2 font-mono text-xs text-muted-foreground">{{ maskApiKey(k.key) }}</td>
               <td class="px-3 py-2">
                 <GroupBadge
                   v-if="k.group"

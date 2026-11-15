@@ -9,10 +9,10 @@
   >
     <form id="bulk-edit-keys-form" class="space-y-5" @submit.prevent="submit">
       <div class="space-y-1 text-sm">
-        <p class="font-medium text-gray-900 dark:text-white">
+        <p class="font-medium text-foreground">
           {{ t('keys.bulkEdit.selectedCount', { count: pendingKeys.length }) }}
         </p>
-        <p class="text-gray-500 dark:text-gray-400">{{ t('keys.bulkEdit.hint') }}</p>
+        <p class="text-muted-foreground">{{ t('keys.bulkEdit.hint') }}</p>
       </div>
 
       <fieldset :disabled="submitting" class="space-y-5">

@@ -16,7 +16,7 @@
       </colgroup>
       <thead>
         <tr
-          class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-dark-400"
+          class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
         >
           <th
             rowspan="2"
@@ -35,7 +35,7 @@
             colspan="3"
             class="border-l border-gray-100 pt-2 text-center dark:border-dark-700/60"
           >
-            <div class="border-b border-gray-200 pb-2 text-gray-400 dark:border-dark-600 dark:text-dark-500">
+            <div class="border-b border-border pb-2 text-gray-400 dark:text-dark-500">
               {{ t('modelPlaza.table.officialPrice') }}
               <span class="ml-1 normal-case font-normal text-gray-400 dark:text-dark-500">{{ t('modelPlaza.table.unitPerMillion') }}</span>
             </div>
@@ -49,7 +49,7 @@
           </th>
         </tr>
         <tr
-          class="border-b border-gray-200 text-left text-[11px] font-medium uppercase leading-4 tracking-wide text-gray-400 dark:border-dark-700 dark:text-dark-500"
+          class="border-b border-border text-left text-[11px] font-medium uppercase leading-4 tracking-wide text-gray-400 dark:text-dark-500"
         >
           <th class="pz-bg px-3 py-2 font-medium">{{ t('modelPlaza.table.input') }}</th>
           <th class="pz-bg px-3 py-2 font-medium">{{ t('modelPlaza.table.output') }}</th>
@@ -72,7 +72,7 @@
           <!-- 模型名 + 非 token 计费模式徽章;分时时段行额外标注时段 -->
           <td class="border-r border-gray-100 py-2.5 pl-5 pr-4 align-middle dark:border-dark-700/60">
             <div class="flex flex-wrap items-center gap-1.5">
-              <span class="font-medium text-gray-900 dark:text-white">{{ m.name }}</span>
+              <span class="font-medium text-foreground">{{ m.name }}</span>
               <!-- 时段徽章紧跟模型名,其余徽章排在后面,空间不足时先换行的是它们 -->
               <span
                 v-if="period"
@@ -224,7 +224,7 @@
           <template v-if="!pricesOnly">
             <!-- 官方价格(参考价,不乘倍率;官方有阶梯时每档一行) -->
             <td
-              class="border-l border-gray-100 px-3 py-2.5 align-middle font-mono text-xs text-gray-500 dark:border-dark-700/60 dark:text-dark-400"
+              class="border-l border-gray-100 px-3 py-2.5 align-middle font-mono text-xs text-muted-foreground dark:border-dark-700/60"
             >
               <template v-if="officialIntervals(m).length">
                 <div
@@ -238,7 +238,7 @@
               </template>
               <template v-else>{{ official(m.official_pricing?.input_price) }}</template>
             </td>
-            <td class="px-3 py-2.5 align-middle font-mono text-xs text-gray-500 dark:text-dark-400">
+            <td class="px-3 py-2.5 align-middle font-mono text-xs text-muted-foreground">
               <template v-if="officialIntervals(m).length">
                 <div
                   v-for="(iv, idx) in officialIntervals(m)"
@@ -256,7 +256,7 @@
                 <div
                   v-for="(iv, idx) in officialIntervals(m)"
                   :key="idx"
-                  class="whitespace-nowrap font-mono text-xs leading-5 text-gray-500 dark:text-dark-400"
+                  class="whitespace-nowrap font-mono text-xs leading-5 text-muted-foreground"
                   :title="t('modelPlaza.table.tierHint')"
                 >
                   <template v-if="iv.cache_write_price != null || iv.cache_write_1h_price != null || iv.cache_write_12h_price != null || iv.cache_read_price != null">
@@ -277,7 +277,7 @@
               </template>
               <div
                 v-else-if="m.official_pricing && hasOfficialCache(m.official_pricing)"
-                class="space-y-0.5 font-mono text-xs text-gray-500 dark:text-dark-400"
+                class="space-y-0.5 font-mono text-xs text-muted-foreground"
               >
                 <div>
                   <span class="mr-1 font-sans font-normal text-gray-400 dark:text-dark-500">{{ t('modelPlaza.table.cacheWrite') }}</span>
@@ -304,7 +304,7 @@
             >
               <span
                 v-if="period"
-                class="font-bold text-primary-600 dark:text-primary-400"
+                class="font-bold text-brand"
                 :title="t('modelPlaza.table.timePricingRateHint', { rate: effectiveRate, multiplier: period.multiplier })"
                 >{{ periodRate(period) }}x</span
               >
@@ -315,7 +315,7 @@
               >
               <template v-else-if="hasCustomRate">
                 <span class="mr-1 text-gray-400 line-through dark:text-dark-500">{{ rateMultiplier }}x</span>
-                <span class="font-bold text-primary-600 dark:text-primary-400">{{ effectiveRate }}x</span>
+                <span class="font-bold text-brand">{{ effectiveRate }}x</span>
               </template>
               <span v-else class="font-bold text-gray-700 dark:text-gray-300">{{ effectiveRate }}x</span>
             </td>

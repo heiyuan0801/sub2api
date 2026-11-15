@@ -91,7 +91,7 @@
 
           <template #cell-actor="{ row }">
             <div class="min-w-0 max-w-[220px]">
-              <div class="truncate font-medium text-gray-900 dark:text-white" :title="row.actor_email">
+              <div class="truncate font-medium text-foreground" :title="row.actor_email">
                 {{ row.actor_email || '—' }}
               </div>
               <div class="mt-0.5 truncate text-xs text-gray-400">
@@ -119,7 +119,7 @@
           </template>
 
           <template #cell-latency_ms="{ value }">
-            <span class="whitespace-nowrap text-gray-500 dark:text-gray-400">{{ value }} ms</span>
+            <span class="whitespace-nowrap text-muted-foreground">{{ value }} ms</span>
           </template>
 
           <template #cell-client_ip="{ value }">
@@ -129,7 +129,7 @@
           <template #cell-actions="{ row }">
             <button
               type="button"
-              class="inline-flex items-center gap-1 font-medium text-primary-600 transition-colors hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+              class="inline-flex items-center gap-1 font-medium text-brand transition-colors hover:text-brand"
               @click="openDetail(row.id)"
             >
               <Icon name="eye" size="sm" />
@@ -140,7 +140,7 @@
           <template #empty>
             <div class="flex flex-col items-center py-8">
               <Icon name="shield" size="xl" class="mb-4 h-12 w-12 text-gray-300 dark:text-dark-600" />
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('admin.audit.empty') }}</p>
+              <p class="text-sm font-medium text-muted-foreground">{{ t('admin.audit.empty') }}</p>
             </div>
           </template>
         </DataTable>
@@ -169,32 +169,32 @@
     >
       <div v-if="detailLoading" class="flex items-center justify-center py-16">
         <div class="flex flex-col items-center gap-3">
-          <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"></div>
-          <div class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ t('common.loading') }}</div>
+          <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-brand"></div>
+          <div class="text-sm font-medium text-muted-foreground">{{ t('common.loading') }}</div>
         </div>
       </div>
 
       <div v-else-if="detail" class="space-y-5 py-2">
         <!-- Hero: action + result at a glance -->
-        <div class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5 dark:border-dark-700 dark:bg-dark-900/60">
+        <div class="rounded-2xl border border-border bg-gray-50/60 p-5 dark:bg-dark-900/60">
           <div class="flex flex-wrap items-center gap-3">
             <span :class="statusBadgeClass(detail.status_code)">
               <span class="h-1.5 w-1.5 rounded-full" :class="statusDotClass(detail.status_code)"></span>
               {{ detail.status_code }} {{ statusText(detail.status_code) }}
             </span>
-            <span class="break-all font-mono text-base font-semibold text-gray-900 dark:text-white">
+            <span class="break-all font-mono text-base font-semibold text-foreground">
               {{ detail.action }}
             </span>
           </div>
 
-          <div class="mt-3 flex items-center gap-2 rounded-lg bg-white px-3 py-2 ring-1 ring-gray-200 dark:bg-dark-800 dark:ring-dark-600">
+          <div class="mt-3 flex items-center gap-2 rounded-lg bg-card px-3 py-2 ring-1 ring-gray-200 dark:ring-dark-600">
             <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] font-bold text-gray-700 dark:bg-dark-700 dark:text-gray-200">
               {{ detail.method }}
             </span>
             <span class="break-all font-mono text-xs text-gray-600 dark:text-gray-300">{{ detail.path }}</span>
           </div>
 
-          <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
             <span class="inline-flex items-center gap-1.5">
               <Icon name="clock" size="xs" />
               {{ formatTime(detail.created_at) }}
@@ -213,7 +213,7 @@
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400">
               {{ t('admin.audit.columns.actor') }}
             </div>
-            <div class="mt-1 break-all text-sm font-medium text-gray-900 dark:text-white">
+            <div class="mt-1 break-all text-sm font-medium text-foreground">
               {{ detail.actor_email || '—' }}
             </div>
             <div class="mt-0.5 text-xs text-gray-400">{{ detail.actor_role }}</div>
@@ -223,7 +223,7 @@
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400">
               {{ t('admin.audit.filters.authMethod') }}
             </div>
-            <div class="mt-1 text-sm font-medium text-gray-900 dark:text-white">
+            <div class="mt-1 text-sm font-medium text-foreground">
               {{ authMethodLabel(detail.auth_method) || '—' }}
             </div>
             <div v-if="detail.credential_masked" class="mt-0.5 break-all font-mono text-xs text-gray-400">
@@ -235,7 +235,7 @@
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400">
               {{ t('admin.audit.columns.clientIp') }}
             </div>
-            <div class="mt-1 break-all font-mono text-sm font-medium text-gray-900 dark:text-white">
+            <div class="mt-1 break-all font-mono text-sm font-medium text-foreground">
               {{ detail.client_ip || '—' }}
             </div>
           </div>
@@ -322,7 +322,7 @@
       @close="cancelClearTotp"
     >
       <div class="py-2">
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.audit.clearConfirm.totpHint') }}</p>
+        <p class="text-sm text-muted-foreground">{{ t('admin.audit.clearConfirm.totpHint') }}</p>
         <input
           v-model.trim="clearTotpCode"
           type="text"

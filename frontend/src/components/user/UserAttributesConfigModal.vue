@@ -3,7 +3,7 @@
     <div class="space-y-4">
       <!-- Header with Add Button -->
       <div class="flex items-center justify-between">
-        <p class="text-sm text-gray-500 dark:text-dark-400">
+        <p class="text-sm text-muted-foreground">
           {{ t('admin.users.attributes.description') }}
         </p>
         <button @click="openCreateModal" class="btn btn-primary btn-sm">
@@ -14,7 +14,7 @@
 
       <!-- Loading State -->
       <div v-if="loading" class="flex justify-center py-12">
-        <svg class="h-8 w-8 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+        <svg class="h-8 w-8 animate-spin text-brand" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
@@ -26,7 +26,7 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z" />
         </svg>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
+        <p class="mt-2 text-sm text-muted-foreground">
           {{ t('admin.users.attributes.noAttributes') }}
         </p>
         <p class="text-xs text-gray-400 dark:text-dark-500">
@@ -39,7 +39,7 @@
         <div
           v-for="attr in attributes"
           :key="attr.id"
-          class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-dark-600 dark:bg-dark-800"
+          class="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
         >
           <!-- Drag Handle -->
           <div class="cursor-move text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" :title="t('admin.users.attributes.dragToReorder')">
@@ -49,8 +49,8 @@
           <!-- Attribute Info -->
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
-              <span class="font-medium text-gray-900 dark:text-white">{{ attr.name }}</span>
-              <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-500 dark:bg-dark-700 dark:text-dark-400">
+              <span class="font-medium text-foreground">{{ attr.name }}</span>
+              <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-muted-foreground dark:bg-dark-700">
                 {{ attr.key }}
               </span>
               <span v-if="attr.required" class="badge badge-danger text-xs">
@@ -60,7 +60,7 @@
                 {{ t('common.disabled') }}
               </span>
             </div>
-            <div class="mt-0.5 flex items-center gap-2 text-xs text-gray-500 dark:text-dark-400">
+            <div class="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
               <span class="badge badge-gray">{{ t(`admin.users.attributes.types.${attr.type}`) }}</span>
               <span v-if="attr.description" class="truncate">{{ attr.description }}</span>
             </div>
@@ -70,7 +70,7 @@
           <div class="flex items-center gap-1">
             <button
               @click="openEditModal(attr)"
-              class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400"
+              class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-brand dark:hover:bg-dark-700"
               :title="t('common.edit')"
             >
               <Icon name="edit" size="sm" />
@@ -197,11 +197,11 @@
       <!-- Required & Enabled -->
       <div class="flex items-center gap-6">
         <label class="flex items-center gap-2">
-          <input v-model="form.required" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
+          <input v-model="form.required" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-brand" />
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('admin.users.attributes.required') }}</span>
         </label>
         <label class="flex items-center gap-2">
-          <input v-model="form.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" />
+          <input v-model="form.enabled" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-brand" />
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('admin.users.attributes.enabled') }}</span>
         </label>
       </div>
