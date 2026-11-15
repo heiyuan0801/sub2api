@@ -72,10 +72,11 @@ function select(item: CommandEntry, event: Event) {
           @select="select(item, $event)"
         >
           <component :is="item.icon" v-if="item.icon" class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span class="min-w-0 flex-1">
-            <span class="block truncate">{{ item.label }}</span>
-            <span v-if="item.description" class="block truncate text-xs text-muted-foreground">{{ item.description }}</span>
+          <span class="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between sm:gap-2">
+            <span class="block min-w-0 truncate">{{ item.label }}</span>
+            <span v-if="item.description" class="block truncate text-xs text-muted-foreground sm:max-w-[45%]">{{ item.description }}</span>
           </span>
+          <kbd v-if="item.shortcut" class="shrink-0 rounded border border-border bg-muted px-1 font-mono text-[10px] text-muted-foreground">{{ item.shortcut }}</kbd>
         </ListboxItem>
       </ListboxGroup>
     </ListboxContent>

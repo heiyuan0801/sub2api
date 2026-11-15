@@ -5,6 +5,7 @@ export interface CommandEntry {
   label: string
   description?: string
   keywords?: string[]
+  shortcut?: string
   disabled?: boolean
   icon?: Component
 }

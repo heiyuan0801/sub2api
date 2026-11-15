@@ -44,6 +44,21 @@ export default {
     },
     "page": {
       "filters": "搜索和筛选"
+    },
+    "shell": {
+      "operations": "运营",
+      "resources": "资源",
+      "billing": "用户与计费",
+      "system": "内容与系统",
+      "navigation": "控制台导航",
+      "navigationDescription": "打开控制台中的页面。",
+      "breadcrumb": "当前位置",
+      "pages": "页面",
+      "actions": "操作",
+      "toggleSidebar": "切换侧栏",
+      "choose": "选择",
+      "openItem": "打开",
+      "togglePanel": "打开或关闭命令面板"
     }
   }
 }

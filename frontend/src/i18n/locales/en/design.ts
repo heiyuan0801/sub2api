@@ -44,6 +44,21 @@ export default {
     },
     "page": {
       "filters": "Search and filter"
+    },
+    "shell": {
+      "operations": "Operations",
+      "resources": "Resources",
+      "billing": "Users & billing",
+      "system": "Content & system",
+      "navigation": "Console navigation",
+      "navigationDescription": "Open a page in the console.",
+      "breadcrumb": "Current page",
+      "pages": "Pages",
+      "actions": "Actions",
+      "toggleSidebar": "Toggle sidebar",
+      "choose": "Choose",
+      "openItem": "Open",
+      "togglePanel": "Toggle command palette"
     }
   }
 }

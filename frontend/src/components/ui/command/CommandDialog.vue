@@ -14,7 +14,7 @@ defineProps<{
 }>()
 const open = defineModel<boolean>('open', { default: false })
 const query = defineModel<string>('query', { default: '' })
-const emit = defineEmits<{ select: [entry: CommandEntry] }>()
+const emit = defineEmits<{ select: [entry: CommandEntry]; 'close-auto-focus': [event: Event] }>()
 const { t } = useI18n()
 
 function select(item: CommandEntry) {
@@ -25,7 +25,7 @@ function select(item: CommandEntry) {
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent :show-close-button="false" class="gap-0 overflow-hidden p-0 sm:max-w-[600px]">
+    <DialogContent :show-close-button="false" class="gap-0 overflow-hidden p-0 sm:max-w-[600px]" @close-auto-focus="emit('close-auto-focus', $event)">
       <DialogTitle class="sr-only">{{ title ?? t('design.command.label') }}</DialogTitle>
       <DialogDescription class="sr-only">{{ description ?? t('design.command.description') }}</DialogDescription>
       <Command v-model:query="query" :groups="groups" :placeholder="placeholder" :label="title" @select="select">
@@ -37,6 +37,7 @@ function select(item: CommandEntry) {
           </DialogClose>
         </template>
       </Command>
+      <slot name="footer" />
     </DialogContent>
   </Dialog>
 </template>
