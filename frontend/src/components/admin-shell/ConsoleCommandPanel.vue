@@ -6,7 +6,7 @@ import { CircleHelp, LogOut, Moon, PanelLeft, Settings2, Sun } from '@lucide/vue
 import { useAppStore, useAuthStore } from '@/stores'
 import { CommandDialog, type CommandEntry, type CommandGroup } from '@/components/ui/command'
 import { selectConsoleLinks, type SidebarCommandLink } from './navigation'
-import { SETTINGS_SECTIONS, SETTINGS_SECTION_QUERY_KEY } from './settingsSections'
+import { ADMIN_SETTINGS_INDEX_PATH, SETTINGS_SECTIONS, settingsSectionLocation } from './settingsSections'
 import { getShellShortcutHint } from './shortcuts'
 
 const props = defineProps<{ links: SidebarCommandLink[]; dark: boolean }>()
@@ -39,14 +39,14 @@ const destinations = computed<Destination[]>(() => (
 ))
 
 const sectionDestinations = computed<Destination[]>(() => {
-  if (!authStore.isAdmin || !destinations.value.some(item => item.to === '/admin/settings')) return []
+  if (!authStore.isAdmin || !destinations.value.some(item => item.to === ADMIN_SETTINGS_INDEX_PATH)) return []
   return SETTINGS_SECTIONS.map(section => ({
     id: 'settings:' + section.key,
     label: t(section.labelKey),
     description: t('admin.settings.title'),
-    keywords: [section.key, '/admin/settings'],
+    keywords: [section.key, ADMIN_SETTINGS_INDEX_PATH],
     icon: Settings2,
-    to: { name: 'AdminSettings', query: { [SETTINGS_SECTION_QUERY_KEY]: section.key } }
+    to: settingsSectionLocation(section.key)
   }))
 })
 

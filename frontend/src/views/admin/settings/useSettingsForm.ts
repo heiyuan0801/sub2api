@@ -3,6 +3,7 @@ import {
   reactive,
   computed,
   onMounted,
+  nextTick,
   watch,
 } from "vue";
 import { listPlatformIds } from "@/constants/platformCatalog";
@@ -60,6 +61,7 @@ import {
   type CodexClientRow,
   type SettingsForm,
 } from "./useSettingsPayload";
+import { useSettingsDraft } from "./useSettingsDraft";
 
 export interface DefaultSubscriptionGroupOption {
   value: number;
@@ -289,15 +291,15 @@ export function useSettingsForm() {
 
   const defaultClaudeCodeExpansionPrompt = `You are an interactive agent that helps users with software engineering tasks. Use the instructions below and the tools available to you to assist the user.
 
-  IMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.
-  IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.
+IMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.
+IMPORTANT: You must NEVER generate or guess URLs for the user unless you are confident that the URLs are for helping the user with programming. You may use URLs provided by the user in their messages or local files.
 
-  # Tone and style
-   - Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.
-   - Your responses should be short and concise.
-   - When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.
-   - When referencing GitHub issues or pull requests, use the owner/repo#123 format (e.g. anthropics/claude-code#100) so they render as clickable links.
-   - Do not use a colon before tool calls. Your tool calls may not be shown directly in the output, so text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.`;
+# Tone and style
+ - Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.
+ - Your responses should be short and concise.
+ - When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.
+ - When referencing GitHub issues or pull requests, use the owner/repo#123 format (e.g. anthropics/claude-code#100) so they render as clickable links.
+ - Do not use a colon before tool calls. Your tool calls may not be shown directly in the output, so text like "Let me read the file:" followed by a read tool call should just be "Let me read the file." with a period.`;
 
   let claudeOAuthSystemPromptBlockID = 0;
 
@@ -1326,10 +1328,12 @@ export function useSettingsForm() {
           quota_limit: Number(p.quota_limit) > 0 ? Number(p.quota_limit) : null,
         }),
       );
+      const draftBeforeSave = webSearchDraft.capture();
       await adminAPI.settings.updateWebSearchEmulationConfig({
         enabled: webSearchConfig.enabled,
         providers,
       });
+      webSearchDraft.markSaved(draftBeforeSave);
       return true;
     } catch (err: unknown) {
       appStore.showError(extractApiErrorMessage(err, t("common.error")));
@@ -1886,6 +1890,26 @@ export function useSettingsForm() {
     });
   });
 
+  // A single draft spans all sections. Independent settings cards continue
+  // to save through their own existing controls.
+  const mainDraft = useSettingsDraft(() => [
+    form,
+    authSourceDefaults,
+    registrationEmailSuffixWhitelistTags.value,
+    registrationEmailSuffixWhitelistDraft.value,
+    tablePageSizeOptionsInput.value,
+    claudeOAuthSystemPromptBlocks.value,
+    codexFingerprintRows.value,
+    codexBlacklistRows.value,
+    codexWhitelistRows.value,
+    openaiFastPolicyForm.rules,
+  ]);
+  const webSearchDraft = useSettingsDraft(() => [
+    webSearchConfig.enabled,
+    webSearchConfig.providers.map(({ quota_used: _quotaUsed, ...provider }) => provider),
+  ]);
+  const hasUnsavedChanges = computed(() => mainDraft.dirty.value || webSearchDraft.dirty.value);
+
   async function loadSettings() {
     loading.value = true;
     loadFailed.value = false;
@@ -2064,6 +2088,10 @@ export function useSettingsForm() {
 
       // Load web search emulation config separately
       await loadWebSearchConfig();
+      void nextTick(() => {
+        mainDraft.markSaved();
+        webSearchDraft.markSaved();
+      });
     } catch (error: unknown) {
       loadFailed.value = true;
       appStore.showError(
@@ -2404,6 +2432,7 @@ export function useSettingsForm() {
           }));
         openaiFastPolicyLoaded.value = true;
       }
+      void nextTick(() => mainDraft.markSaved());
       // Save web search emulation config separately (errors handled internally)
       const wsOk = await saveWebSearchConfig();
       // Refresh cached settings so sidebar/header update immediately
@@ -3879,6 +3908,7 @@ export function useSettingsForm() {
     handleWeChatOpenEnabledChange,
     hasAnyPaymentTypeEnabled,
     hasOpenAIFastPolicyTargetModels,
+    hasUnsavedChanges,
     isPaymentTypeEnabled,
     isZhLocale,
     linuxdoRedirectUrlSuggestion,

@@ -11,7 +11,9 @@ import { useAdminComplianceStore } from '@/stores/adminCompliance'
 import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { getSetupStatus } from '@/api/setup'
+import { ADMIN_SETTINGS_INDEX_PATH, ADMIN_SETTINGS_ROUTE_NAME } from '@/components/admin-shell/settingsSections'
 import { resolveCompletedSetupRedirectPath } from './setupRedirect'
+import { redirectSettingsIndex, resolveSettingsSectionRedirect } from './settingsSections'
 import { resolveRouteDocumentTitle } from './title'
 
 /**
@@ -669,8 +671,12 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/admin/settings',
-    name: 'AdminSettings',
+    path: ADMIN_SETTINGS_INDEX_PATH,
+    redirect: redirectSettingsIndex
+  },
+  {
+    path: '/admin/settings/:section',
+    name: ADMIN_SETTINGS_ROUTE_NAME,
     component: () => import('@/views/admin/SettingsView.vue'),
     meta: {
       requiresAuth: true,
@@ -975,6 +981,14 @@ router.beforeEach(async (to, _from, next) => {
     // User is authenticated but not admin, redirect to user dashboard
     next('/dashboard')
     return
+  }
+
+  if (to.name === ADMIN_SETTINGS_ROUTE_NAME) {
+    const target = resolveSettingsSectionRedirect(to)
+    if (target) {
+      next(target)
+      return
+    }
   }
 
   if (requiresAdmin && authStore.isAdmin) {

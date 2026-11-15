@@ -69,6 +69,9 @@ export default {
       "todayFailed": "今日失败",
       "lastUpstreamBalance": "最近上游余额",
       "cacheHitRate": "缓存命中率"
+    },
+    "settings": {
+      "unsavedChanges": "有未保存的修改"
     }
   }
 }

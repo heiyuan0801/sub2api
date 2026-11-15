@@ -1,9 +1,18 @@
+import {
+  ADMIN_SETTINGS_INDEX_PATH,
+  ADMIN_SETTINGS_ROUTE_NAME,
+  DEFAULT_SETTINGS_SECTION,
+  getSettingsSection,
+  settingsSectionPath
+} from './settingsSections'
+
 export const ADMIN_SECTIONS = ['operations', 'resources', 'billing', 'system'] as const
 export type AdminSection = (typeof ADMIN_SECTIONS)[number]
 
 export interface AdminRouteEntry {
   readonly name: string
   readonly path: `/admin/${string}`
+  readonly sidebarPath?: `/admin/${string}`
 }
 
 export interface AdminRouteGroup {
@@ -54,7 +63,11 @@ export const ADMIN_ROUTE_GROUPS: readonly AdminRouteGroup[] = [
     routes: [
       { name: 'AdminDocs', path: '/admin/docs' },
       { name: 'AdminAnnouncements', path: '/admin/announcements' },
-      { name: 'AdminSettings', path: '/admin/settings' },
+      {
+        name: ADMIN_SETTINGS_ROUTE_NAME,
+        path: '/admin/settings/:section',
+        sidebarPath: ADMIN_SETTINGS_INDEX_PATH,
+      },
       { name: 'AdminPlugins', path: '/admin/plugins' },
       { name: 'AdminAuditLogs', path: '/admin/audit-logs' },
       { name: 'AdminRiskControl', path: '/admin/risk-control' },
@@ -67,6 +80,7 @@ export const ADMIN_ROUTE_REDIRECTS: Readonly<Record<string, AdminRouteEntry['pat
   '/admin': '/admin/dashboard',
   '/admin/channels': '/admin/channels/pricing',
   '/admin/affiliates': '/admin/affiliates/invites',
+  [ADMIN_SETTINGS_INDEX_PATH]: settingsSectionPath(DEFAULT_SETTINGS_SECTION),
 }
 
 export const ADMIN_SECTION_LABEL_KEYS: Readonly<Record<AdminSection, string>> = {
@@ -79,7 +93,12 @@ export const ADMIN_SECTION_LABEL_KEYS: Readonly<Record<AdminSection, string>> = 
 export function getAdminRouteSection(name: string | symbol | null | undefined, path?: string): AdminSection | undefined {
   const normalizedPath = path?.replace(/\/+$/, '')
   const canonicalPath = normalizedPath && (ADMIN_ROUTE_REDIRECTS[normalizedPath] ?? normalizedPath)
+  const settingsPrefix = `${ADMIN_SETTINGS_INDEX_PATH}/`
+  const settingsSection = canonicalPath?.startsWith(settingsPrefix)
+    ? getSettingsSection(canonicalPath.slice(settingsPrefix.length))
+    : undefined
   return ADMIN_ROUTE_GROUPS.find(group => group.routes.some(route =>
-    route.name === name || route.path === canonicalPath
+    route.name === name || route.path === canonicalPath ||
+    (route.name === ADMIN_SETTINGS_ROUTE_NAME && settingsSection !== undefined)
   ))?.section
 }

@@ -1,3 +1,5 @@
+export const ADMIN_SETTINGS_INDEX_PATH = '/admin/settings'
+export const ADMIN_SETTINGS_ROUTE_NAME = 'AdminSettings'
 export const SETTINGS_SECTION_QUERY_KEY = 'section'
 
 export const SETTINGS_SECTIONS = [
@@ -15,7 +17,17 @@ export const SETTINGS_SECTIONS = [
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 export type SettingsSectionKey = SettingsSection['key']
 
+export const DEFAULT_SETTINGS_SECTION = SETTINGS_SECTIONS[0].key
+
 export function getSettingsSection(value: unknown): SettingsSection | undefined {
   if (typeof value !== 'string') return undefined
   return SETTINGS_SECTIONS.find(section => section.key === value)
+}
+
+export function settingsSectionLocation(section: SettingsSectionKey) {
+  return { name: ADMIN_SETTINGS_ROUTE_NAME, params: { section } } as const
+}
+
+export function settingsSectionPath(section: SettingsSectionKey) {
+  return `${ADMIN_SETTINGS_INDEX_PATH}/${section}` as const
 }

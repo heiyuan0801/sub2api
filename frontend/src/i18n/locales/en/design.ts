@@ -69,6 +69,9 @@ export default {
       "todayFailed": "Failed today",
       "lastUpstreamBalance": "Last upstream balance",
       "cacheHitRate": "Cache hit rate"
+    },
+    "settings": {
+      "unsavedChanges": "Unsaved changes"
     }
   }
 }

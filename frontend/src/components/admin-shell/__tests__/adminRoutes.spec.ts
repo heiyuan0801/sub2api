@@ -9,6 +9,12 @@ import {
   ADMIN_SECTIONS,
   getAdminRouteSection,
 } from '../adminRoutes'
+import {
+  ADMIN_SETTINGS_ROUTE_NAME,
+  DEFAULT_SETTINGS_SECTION,
+  settingsSectionLocation,
+  settingsSectionPath
+} from '../settingsSections'
 
 describe('admin route navigation inventory', () => {
   it('includes every registered admin page once in one of the four sections', () => {
@@ -20,8 +26,11 @@ describe('admin route navigation inventory', () => {
 
     for (const group of ADMIN_ROUTE_GROUPS) {
       for (const entry of group.routes) {
-        const resolved = router.resolve({ name: entry.name })
-        expect(resolved.path).toBe(entry.path)
+        const settingsRoute = entry.name === ADMIN_SETTINGS_ROUTE_NAME
+        const resolved = router.resolve(settingsRoute
+          ? settingsSectionLocation(DEFAULT_SETTINGS_SECTION)
+          : { name: entry.name })
+        expect(resolved.path).toBe(settingsRoute ? settingsSectionPath(DEFAULT_SETTINGS_SECTION) : entry.path)
         expect(resolved.meta.requiresAuth).toBe(true)
         expect(getAdminRouteSection(resolved.name, resolved.path)).toBe(group.section)
       }
@@ -33,7 +42,10 @@ describe('admin route navigation inventory', () => {
     expect(redirects.map(route => route.path).sort()).toEqual(Object.keys(ADMIN_ROUTE_REDIRECTS).sort())
     for (const route of redirects) {
       const target = ADMIN_ROUTE_REDIRECTS[route.path]
-      expect(route.redirect).toBe(target)
+      const redirectTarget = typeof route.redirect === 'function'
+        ? route.redirect(router.resolve(route.path), router.currentRoute.value)
+        : route.redirect
+      expect(redirectTarget && router.resolve(redirectTarget).path).toBe(target)
       expect(getAdminRouteSection(undefined, route.path)).toBeDefined()
       expect(getAdminRouteSection(undefined, route.path)).toBe(getAdminRouteSection(undefined, target))
     }
@@ -44,7 +56,7 @@ describe('admin route navigation inventory', () => {
     const sidebar = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../layout/AppSidebar.vue'), 'utf8')
     const sidebarPaths = [...sidebar.matchAll(/path: '(\/admin\/[^']+)'/g)].map(match => match[1])
     for (const entry of ADMIN_ROUTE_GROUPS.flatMap(group => group.routes)) {
-      expect(sidebarPaths).toContain(entry.path)
+      expect(sidebarPaths).toContain(entry.sidebarPath ?? entry.path)
     }
   })
 })
