@@ -178,7 +178,9 @@ describe('OAuthCallbackView', () => {
     await passwordInputs[1].setValue('secret-123')
     const invitationInput = wrapper.find('input[type="text"]')
     await invitationInput.setValue('INVITE456')
-    await wrapper.findAll('button').at(0)?.trigger('click')
+    const completeRegistration = wrapper.findAll('button').find((button) => button.text() === 'auth.oidc.completeRegistration')
+    expect(completeRegistration).toBeDefined()
+    await completeRegistration!.trigger('click')
 
     expect(apiPostMock).toHaveBeenCalledWith('/auth/oauth/google/complete-registration', {
       password: 'secret-123',
@@ -215,7 +217,9 @@ describe('OAuthCallbackView', () => {
     const passwordInputs = wrapper.findAll('input[type="password"]')
     await passwordInputs[0].setValue('secret-456')
     await passwordInputs[1].setValue('secret-456')
-    await wrapper.findAll('button').at(0)?.trigger('click')
+    const completeRegistration = wrapper.findAll('button').find((button) => button.text() === 'auth.oidc.completeRegistration')
+    expect(completeRegistration).toBeDefined()
+    await completeRegistration!.trigger('click')
 
     expect(apiPostMock).toHaveBeenCalledWith('/auth/oauth/github/complete-registration', {
       password: 'secret-456',
