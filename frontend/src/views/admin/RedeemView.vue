@@ -1,8 +1,18 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader as="h2" :title="t('admin.redeem.title')" :description="t('admin.redeem.description')">
+          <template #actions>
+            <button @click="showGenerateDialog = true" class="btn btn-primary">
+              {{ t('admin.redeem.generateCodes') }}
+            </button>
+          </template>
+        </PageHeader>
+      </template>
+
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <Toolbar>
           <!-- Left: Search + Filters -->
           <div class="flex-1 sm:max-w-64">
             <input
@@ -48,11 +58,8 @@
               <Icon name="edit" size="md" class="mr-2" />
               {{ t('admin.redeem.batchUpdate') }}
             </button>
-            <button @click="showGenerateDialog = true" class="btn btn-primary">
-              {{ t('admin.redeem.generateCodes') }}
-            </button>
           </div>
-        </div>
+        </Toolbar>
       </template>
 
       <template #table>
@@ -142,18 +149,10 @@
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'unused'
-                  ? 'badge-success'
-                  : value === 'used'
-                    ? 'badge-gray'
-                    : 'badge-danger'
-              ]"
-            >
-              {{ t('admin.redeem.status.' + value) }}
-            </span>
+            <StatusBadge
+              :label="t('admin.redeem.status.' + value)"
+              :tone="value === 'unused' ? 'success' : value === 'used' ? 'neutral' : 'danger'"
+            />
           </template>
 
           <template #cell-used_by="{ value, row }">
@@ -198,7 +197,7 @@
                 </svg>
                 <span class="text-xs">{{ t('common.delete') }}</span>
               </button>
-              <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              <span v-else class="text-muted-foreground">-</span>
             </div>
           </template>
         </DataTable>
@@ -274,10 +273,10 @@
 
     <!-- Generate Codes Dialog -->
     <Teleport to="body">
-      <div v-if="showGenerateDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div v-if="showGenerateDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="fixed inset-0 bg-black/50" @click="showGenerateDialog = false"></div>
         <div
-          class="relative z-10 w-full max-w-md rounded-xl bg-card p-6 shadow-xl"
+          class="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-xl sm:p-5"
         >
           <h2 class="mb-4 text-lg font-semibold text-foreground">
             {{ t('admin.redeem.generateCodesTitle') }}
@@ -417,7 +416,7 @@
       >
         <div class="fixed inset-0 bg-black/50" @click="closeBatchUpdateDialog"></div>
         <div
-          class="relative z-10 w-full max-w-lg rounded-xl bg-card p-6 shadow-xl"
+          class="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-xl sm:p-5"
         >
           <h2 class="mb-1 text-lg font-semibold text-foreground">
             {{ t('admin.redeem.batchUpdateTitle') }}
@@ -428,7 +427,7 @@
 
           <form data-test="batch-update-form" class="space-y-4" @submit.prevent="handleBatchUpdate">
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   data-test="batch-field-status"
                   v-model="batchUpdateForm.update_status"
@@ -446,7 +445,7 @@
             </div>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   v-model="batchUpdateForm.update_expires_at"
                   type="checkbox"
@@ -469,7 +468,7 @@
             </div>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   data-test="batch-field-notes"
                   v-model="batchUpdateForm.update_notes"
@@ -489,7 +488,7 @@
             </div>
 
             <div class="space-y-2">
-              <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="flex items-center gap-2 text-sm font-medium text-foreground">
                 <input
                   v-model="batchUpdateForm.update_group_id"
                   type="checkbox"
@@ -527,17 +526,17 @@
     <Teleport to="body">
       <div v-if="showResultDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="fixed inset-0 bg-black/50" @click="closeResultDialog"></div>
-        <div class="relative z-10 w-full max-w-lg rounded-xl bg-card shadow-xl">
+        <div class="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-card shadow-xl">
           <!-- Header -->
           <div
             class="flex items-center justify-between border-b border-border px-5 py-4"
           >
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-success/10"
               >
                 <svg
-                  class="h-5 w-5 text-green-600 dark:text-green-400"
+                  class="h-5 w-5 text-success"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -561,7 +560,7 @@
             </div>
             <button
               @click="closeResultDialog"
-              class="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-dark-700 dark:hover:text-gray-300"
+              class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <Icon name="x" size="md" :stroke-width="2" />
             </button>
@@ -573,13 +572,13 @@
                 readonly
                 :value="generatedCodesText"
                 :style="{ height: textareaHeight }"
-                class="w-full resize-none rounded-lg border border-border bg-gray-50 p-3 font-mono text-sm text-gray-800 focus:outline-none dark:bg-dark-700 dark:text-gray-200"
+                class="w-full resize-none rounded-lg border border-border bg-muted/40 p-3 font-mono text-sm text-foreground focus:outline-none"
               ></textarea>
             </div>
           </div>
           <!-- Footer -->
           <div
-            class="flex justify-end gap-2 rounded-b-xl border-t border-border bg-gray-50 px-5 py-4 dark:bg-dark-700/50"
+            class="flex justify-end gap-2 rounded-b-lg border-t border-border bg-muted/30 px-5 py-4"
           >
             <button
               @click="copyGeneratedCodes"
@@ -633,8 +632,9 @@ import type {
 } from '@/types'
 import type { Column } from '@/components/common/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import { PageHeader, Toolbar, StatusBadge } from '@/components/page'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Select from '@/components/common/Select.vue'

@@ -1,5 +1,6 @@
 <template>
   <BaseDialog
+    presentation="sheet"
     :show="show"
     :title="t('admin.users.createUser')"
     width="normal"

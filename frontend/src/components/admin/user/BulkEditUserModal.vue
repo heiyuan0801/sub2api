@@ -1,12 +1,13 @@
 <template>
   <BaseDialog
+    presentation="sheet"
     :show="show"
     :title="t('admin.users.bulkLimits.title')"
     width="normal"
     @close="emit('close')"
   >
     <form id="bulk-edit-user-limits-form" class="space-y-5" @submit.prevent="handleSubmit">
-      <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <p class="text-sm font-medium text-foreground">
         {{ t('admin.users.bulkLimits.selectedCount', { count: selectedIds.length }) }}
       </p>
 

@@ -1,9 +1,20 @@
 <template>
   <AppLayout>
     <TablePageLayout>
+      <template #actions>
+        <PageHeader as="h2" :title="t('admin.subscriptions.title')" :description="t('admin.subscriptions.description')">
+          <template #actions>
+            <button @click="showAssignModal = true" class="btn btn-primary">
+              <Icon name="plus" size="md" class="mr-1.5" />
+              {{ t('admin.subscriptions.assignSubscription') }}
+            </button>
+          </template>
+        </PageHeader>
+      </template>
+
       <template #filters>
         <!-- Top Toolbar: Left (search + filters) / Right (actions) -->
-        <div class="flex flex-wrap items-start justify-between gap-4">
+        <Toolbar>
           <!-- Left: Fuzzy user search + filters (wrap to multiple lines) -->
           <div class="flex flex-1 flex-wrap items-center gap-3">
             <!-- User Search -->
@@ -56,7 +67,7 @@
                   :key="user.id"
                   type="button"
                   @click="selectFilterUser(user)"
-                  class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700"
+                  class="w-full px-4 py-2 text-left text-sm hover:bg-muted"
                 >
                   <span class="font-medium text-foreground">{{ user.email }}</span>
                   <span class="ml-2 text-muted-foreground">#{{ user.id }}</span>
@@ -159,19 +170,15 @@
             >
               <Icon name="questionCircle" size="md" />
             </button>
-            <button @click="showAssignModal = true" class="btn btn-primary">
-              <Icon name="plus" size="md" class="mr-2" />
-              {{ t('admin.subscriptions.assignSubscription') }}
-            </button>
           </div>
-        </div>
+        </Toolbar>
         <div
           v-if="selectedCount > 0"
-          class="mt-3 space-y-2 rounded-xl border border-primary-200 bg-brand/10 p-3 dark:border-primary-800"
+          class="mt-3 space-y-2 rounded-lg border border-brand/25 bg-brand/5 p-3"
           data-test="subscription-bulk-actions"
         >
           <div class="flex flex-wrap items-center gap-2">
-            <span class="mr-2 text-sm font-medium text-primary-800 dark:text-primary-200">
+            <span class="mr-2 text-sm font-medium text-brand">
               {{ t('admin.subscriptions.bulk.selected', { count: selectedCount }) }}
             </span>
             <button
@@ -189,7 +196,7 @@
               {{ t('admin.subscriptions.bulk.clearSelection') }}
             </button>
           </div>
-          <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('admin.subscriptions.bulk.selectionHint') }}</p>
+          <p class="text-xs text-muted-foreground">{{ t('admin.subscriptions.bulk.selectionHint') }}</p>
         </div>
       </template>
 
@@ -242,7 +249,7 @@
               :rate-multiplier="row.group.rate_multiplier"
               :show-rate="false"
             />
-            <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-else class="text-sm text-muted-foreground">-</span>
           </template>
 
           <template #cell-usage="{ row }">
@@ -382,7 +389,7 @@
                 :class="
                   isExpiringSoon(value)
                     ? 'text-orange-600 dark:text-orange-400'
-                    : 'text-gray-700 dark:text-gray-300'
+                    : 'text-foreground'
                 "
               >
                 {{ formatDateTimeToMinute(value) }}
@@ -402,18 +409,10 @@
           </template>
 
           <template #cell-status="{ value }">
-            <span
-              :class="[
-                'badge',
-                value === 'active'
-                  ? 'badge-success'
-                  : value === 'expired'
-                    ? 'badge-warning'
-                    : 'badge-danger'
-              ]"
-            >
-              {{ t(`admin.subscriptions.status.${value}`) }}
-            </span>
+            <StatusBadge
+              :label="t(`admin.subscriptions.status.${value}`)"
+              :tone="value === 'active' ? 'success' : value === 'expired' ? 'warning' : 'danger'"
+            />
           </template>
 
           <template #cell-actions="{ row }">
@@ -455,12 +454,13 @@
           </template>
 
           <template #empty>
-            <EmptyState
-              :title="t('admin.subscriptions.noSubscriptionsYet')"
-              :description="t('admin.subscriptions.assignFirstSubscription')"
-              :action-text="t('admin.subscriptions.assignSubscription')"
-              @action="showAssignModal = true"
-            />
+            <EmptyState :title="t('admin.subscriptions.noSubscriptionsYet')" :description="t('admin.subscriptions.assignFirstSubscription')">
+              <template #actions>
+                <button type="button" class="btn btn-primary" @click="showAssignModal = true">
+                  {{ t('admin.subscriptions.assignSubscription') }}
+                </button>
+              </template>
+            </EmptyState>
           </template>
         </DataTable>
       </template>
@@ -501,7 +501,7 @@
         @submit.prevent="handleAssignSubscription"
         class="space-y-5"
       >
-        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+        <label class="flex items-center gap-2 text-sm text-foreground">
           <input v-model="batchAssignEnabled" type="checkbox" :disabled="submitting" @change="resetAssignUsers" />
           {{ t('admin.subscriptions.batchAssign.enable') }}
         </label>
@@ -557,7 +557,7 @@
             </div>
           </div>
           <div v-if="batchAssignEnabled && assignUsers.length > 0" class="mt-2 space-y-2" data-test="assign-users">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-muted-foreground">
               {{ t('admin.subscriptions.batchAssign.selected', { count: assignUsers.length }) }}
             </p>
             <ul class="max-h-40 space-y-1 overflow-y-auto">
@@ -658,6 +658,7 @@
 
     <!-- Adjust Subscription Modal -->
     <BaseDialog
+      presentation="sheet"
       :show="showExtendModal"
       :title="t('admin.subscriptions.adjustSubscription')"
       width="narrow"
@@ -670,13 +671,13 @@
         class="space-y-5"
       >
         <div class="rounded-lg bg-gray-50 p-4 dark:bg-dark-700">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-muted-foreground">
             {{ t('admin.subscriptions.adjustingFor') }}
             <span class="font-medium text-foreground">{{
               extendingSubscription.user?.email
             }}</span>
           </p>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <p class="mt-1 text-sm text-muted-foreground">
             {{ t('admin.subscriptions.currentExpiration') }}:
             <span class="font-medium text-foreground">
               {{
@@ -686,7 +687,7 @@
               }}
             </span>
           </p>
-          <p v-if="extendingSubscription.expires_at" class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <p v-if="extendingSubscription.expires_at" class="mt-1 text-sm text-muted-foreground">
             {{ t('admin.subscriptions.remainingDays') }}:
             <span class="font-medium text-foreground">
               {{ getDaysRemaining(extendingSubscription.expires_at) ?? 0 }}
@@ -762,7 +763,7 @@
       <transition name="modal">
         <div v-if="showGuideModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @mousedown.self="showGuideModal = false">
           <div class="fixed inset-0 bg-black/50" @click="showGuideModal = false"></div>
-          <div class="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-card p-6 shadow-2xl">
+          <div class="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-4 shadow-xl sm:p-5">
             <button type="button" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="showGuideModal = false">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
@@ -773,7 +774,7 @@
             <!-- Step 1 -->
             <div class="mb-5">
               <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-brand dark:bg-primary-900/40">1</span>
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">1</span>
                 {{ t('admin.subscriptions.guide.step1.title') }}
               </h3>
               <ol class="ml-8 list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-300">
@@ -796,7 +797,7 @@
             <!-- Step 2 -->
             <div class="mb-5">
               <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-brand dark:bg-primary-900/40">2</span>
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">2</span>
                 {{ t('admin.subscriptions.guide.step2.title') }}
               </h3>
               <ol class="ml-8 list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-300">
@@ -809,15 +810,15 @@
             <!-- Step 3 -->
             <div class="mb-5">
               <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-brand dark:bg-primary-900/40">3</span>
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-xs font-bold text-brand">3</span>
                 {{ t('admin.subscriptions.guide.step3.title') }}
               </h3>
-              <div class="ml-8 overflow-hidden rounded-lg border border-border">
+              <div class="ml-8 overflow-x-auto rounded-lg border border-border">
                 <table class="w-full text-sm">
                   <tbody>
-                    <tr v-for="(row, i) in guideActionRows" :key="i" class="border-b border-gray-100 dark:border-dark-700 last:border-0">
-                      <td class="whitespace-nowrap bg-gray-50 px-3 py-2 font-medium text-gray-700 dark:bg-dark-700 dark:text-gray-300">{{ row.action }}</td>
-                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400">{{ row.desc }}</td>
+                    <tr v-for="(row, i) in guideActionRows" :key="i" class="border-b border-border last:border-0">
+                      <td class="whitespace-nowrap bg-muted/40 px-3 py-2 font-medium text-foreground">{{ row.action }}</td>
+                      <td class="px-3 py-2 text-muted-foreground">{{ row.desc }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -825,7 +826,7 @@
             </div>
 
             <!-- Tip -->
-            <div class="rounded-lg bg-blue-50 p-3 text-xs text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+            <div class="rounded-lg border border-info/20 bg-info/10 p-3 text-xs text-info">
               {{ t('admin.subscriptions.guide.tip') }}
             </div>
 
@@ -853,12 +854,12 @@ import type { Column } from '@/components/common/types'
 import { formatDateTimeToMinute } from '@/utils/format'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import TablePageLayout from '@/components/layout/TablePageLayout.vue'
-import DataTable from '@/components/common/DataTable.vue'
+import { PageHeader, Toolbar, EmptyState, StatusBadge } from '@/components/page'
+import TablePageLayout from '@/components/page/AdminListLayout.vue'
+import DataTable from '@/components/page/AdminDataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
 import Select from '@/components/common/Select.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import GroupOptionItem from '@/components/common/GroupOptionItem.vue'
