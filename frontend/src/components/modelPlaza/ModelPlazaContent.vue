@@ -4,26 +4,28 @@
     <!-- 全局价格说明(管理员配置,Markdown) -->
     <div
       v-if="descriptionHtml"
-      class="plaza-description rounded-2xl border border-gray-100 bg-white px-5 py-4 text-sm shadow-card dark:border-dark-700/50 dark:bg-dark-800/50"
+      class="plaza-description rounded-lg border border-border bg-card px-4 py-3 text-sm"
       v-html="descriptionHtml"
     ></div>
 
     <!-- 未登录提示 -->
     <p
       v-if="!isAuthenticated"
-      class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-dark-500"
+      class="flex items-center gap-1.5 text-xs text-muted-foreground"
     >
       <Icon name="infoCircle" size="xs" class="h-3.5 w-3.5" />
       {{ t('modelPlaza.anonymousHint') }}
     </p>
 
     <!-- 加载/错误/空 -->
-    <div v-if="loading" class="flex min-h-[240px] items-center justify-center">
-      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary-600/25 border-t-primary-600 dark:border-primary-400/25 dark:border-t-primary-400"></div>
+    <div v-if="loading" class="flex min-h-[220px] items-center justify-center rounded-lg border border-border bg-card" role="status">
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-brand"></div>
+      <span class="sr-only">{{ t('common.loading') }}</span>
     </div>
     <div
       v-else-if="error"
-      class="rounded-2xl border border-red-200 bg-red-50 px-5 py-8 text-center text-sm text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
+      role="alert"
+      class="rounded-lg border border-danger/25 bg-danger/5 px-5 py-8 text-center text-sm text-danger"
     >
       {{ t('modelPlaza.loadFailed') }}
     </div>
@@ -49,12 +51,7 @@
           <PlazaGroupSection v-for="group in groups" :key="group.id" :group="group" prices-only />
         </section>
       </div>
-      <div
-        v-else
-        class="rounded-2xl border border-dashed border-gray-300 px-5 py-12 text-center text-sm text-muted-foreground dark:border-dark-600"
-      >
-        {{ searchActive ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}
-      </div>
+      <EmptyState v-else class="rounded-lg border border-dashed border-border bg-card" :title="searchActive ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty')" />
     </template>
   </div>
 </template>
@@ -65,6 +62,7 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import Icon from '@/components/icons/Icon.vue'
+import { EmptyState } from '@/components/page'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import PlazaFilterBar from './PlazaFilterBar.vue'
 import PlazaGroupSection from './PlazaGroupSection.vue'
@@ -152,11 +150,11 @@ const providerSections = computed(() => {
 }
 
 .plaza-description :deep(p) {
-  @apply mb-2 text-gray-700 last:mb-0 dark:text-dark-200;
+  @apply mb-2 text-foreground last:mb-0;
 }
 
 .plaza-description :deep(a) {
-  @apply text-primary-600 underline underline-offset-4 hover:text-brand dark:text-primary-300;
+  @apply text-brand underline underline-offset-4 hover:text-brand/80;
 }
 
 .plaza-description :deep(ul) {
@@ -168,7 +166,7 @@ const providerSections = computed(() => {
 }
 
 .plaza-description :deep(li) {
-  @apply mb-0.5 text-gray-700 dark:text-dark-200;
+  @apply mb-0.5 text-foreground;
 }
 
 .plaza-description :deep(code) {
@@ -176,6 +174,6 @@ const providerSections = computed(() => {
 }
 
 .plaza-description :deep(blockquote) {
-  @apply my-2 border-l-4 border-gray-300 pl-3 text-gray-600 dark:border-dark-600 dark:text-dark-300;
+  @apply my-2 border-l-2 border-brand pl-3 text-muted-foreground;
 }
 </style>

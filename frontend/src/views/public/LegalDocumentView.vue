@@ -21,47 +21,27 @@
         <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-brand"></div>
       </div>
 
-      <section
-        v-else-if="loadError"
-        class="rounded-lg border border-red-200 bg-red-50 p-6 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200"
-      >
-        <h1 class="text-lg font-semibold">{{ t('legal.loadFailed') }}</h1>
-        <p class="mt-2 text-sm">{{ t('legal.retryLater') }}</p>
-      </section>
+      <SectionCard v-else-if="loadError" class="border-danger/25 bg-danger/5" role="alert">
+        <PageHeader :title="t('legal.loadFailed')" :description="t('legal.retryLater')" />
+      </SectionCard>
 
-      <section
-        v-else-if="!currentDocument"
-        class="rounded-lg border border-border bg-background p-6"
-      >
+      <SectionCard v-else-if="!currentDocument">
         <div class="flex items-start gap-3">
-          <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-muted text-gray-600 dark:text-dark-300">
-            <Icon name="document" size="sm" />
+          <span class="grid size-9 shrink-0 place-items-center rounded-md border border-border bg-muted text-muted-foreground">
+            <Icon name="document" size="sm" aria-hidden="true" />
           </span>
-          <div>
-            <h1 class="text-lg font-semibold text-foreground">{{ t('legal.notFound') }}</h1>
-            <p class="mt-2 text-sm leading-6 text-gray-600 dark:text-dark-300">
-              {{ t('legal.notFoundDescription') }}
-            </p>
-          </div>
+          <PageHeader :title="t('legal.notFound')" :description="t('legal.notFoundDescription')" />
         </div>
-      </section>
+      </SectionCard>
 
-      <article v-else>
-        <div class="mb-8 border-b border-border pb-6">
-          <div class="flex items-start gap-4">
-            <span class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-brand/10 text-brand">
-              <Icon :name="documentIcon" size="md" />
-            </span>
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-brand">{{ documentTypeLabel }}</p>
-              <h1 class="mt-2 break-words text-2xl font-bold tracking-normal text-gray-950 dark:text-white sm:text-3xl">
-                {{ currentDocument.title }}
-              </h1>
-              <p v-if="updatedAt" class="mt-3 text-sm text-muted-foreground">
-                {{ t('legal.updatedAt', { date: updatedAt }) }}
-              </p>
-            </div>
-          </div>
+      <article v-else class="rounded-lg border border-border bg-card p-4 sm:p-7 md:p-9">
+        <div class="mb-7 flex items-start gap-3 border-b border-border pb-6">
+          <span class="grid size-10 shrink-0 place-items-center rounded-md border border-border bg-brand/10 text-brand">
+            <Icon :name="documentIcon" size="md" aria-hidden="true" />
+          </span>
+          <PageHeader :title="currentDocument.title" :eyebrow="documentTypeLabel"
+            :description="updatedAt ? t('legal.updatedAt', { date: updatedAt }) : undefined"
+          />
         </div>
 
         <div
@@ -69,12 +49,7 @@
           class="legal-document-content"
           v-html="renderedHtml"
         ></div>
-        <div
-          v-else
-          class="rounded-lg border border-dashed border-gray-300 bg-background px-6 py-14 text-center text-sm text-muted-foreground dark:border-dark-700"
-        >
-          {{ t('legal.empty') }}
-        </div>
+        <EmptyState v-else :title="t('legal.empty')" class="rounded-lg border border-dashed border-border" />
       </article>
     </main>
     <template #footer><SiteMetaFooter :site-name="siteName" /></template>
@@ -90,6 +65,7 @@ import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import { getLocale } from '@/i18n'
 import { Button } from '@/components/ui/button'
+import { EmptyState, PageHeader, SectionCard } from '@/components/page'
 import SiteBrand from '@/components/site-shell/SiteBrand.vue'
 import SiteHeader from '@/components/site-shell/SiteHeader.vue'
 import SiteLayout from '@/components/site-shell/SiteLayout.vue'
@@ -200,11 +176,11 @@ onMounted(async () => {
 }
 
 .legal-document-content :deep(p) {
-  @apply mb-4 text-gray-700 dark:text-dark-200;
+  @apply mb-4 text-foreground;
 }
 
 .legal-document-content :deep(a) {
-  @apply text-primary-600 underline underline-offset-4 hover:text-primary-700 dark:text-primary-300 dark:hover:text-primary-200;
+  @apply text-brand underline underline-offset-4 hover:text-brand/80;
 }
 
 .legal-document-content :deep(ul) {
@@ -216,11 +192,11 @@ onMounted(async () => {
 }
 
 .legal-document-content :deep(li) {
-  @apply mb-1 text-gray-700 dark:text-dark-200;
+  @apply mb-1 text-foreground;
 }
 
 .legal-document-content :deep(blockquote) {
-  @apply my-5 border-l-4 border-gray-300 pl-4 text-gray-600 dark:border-dark-600 dark:text-dark-300;
+  @apply my-5 border-l-2 border-brand bg-muted/40 py-2 pl-4 text-muted-foreground;
 }
 
 .legal-document-content :deep(code) {
@@ -228,7 +204,7 @@ onMounted(async () => {
 }
 
 .legal-document-content :deep(pre) {
-  @apply my-5 overflow-x-auto rounded-lg bg-gray-950 p-4 text-gray-100;
+  @apply my-5 overflow-x-auto rounded-lg border border-border bg-muted p-4 text-foreground;
 }
 
 .legal-document-content :deep(pre code) {
@@ -240,11 +216,11 @@ onMounted(async () => {
 }
 
 .legal-document-content :deep(th) {
-  @apply border border-gray-300 bg-gray-50 px-3 py-2 text-left font-semibold dark:border-dark-600 dark:bg-dark-800;
+  @apply border border-border bg-muted px-3 py-2 text-left font-semibold;
 }
 
 .legal-document-content :deep(td) {
-  @apply border border-gray-300 px-3 py-2 dark:border-dark-600;
+  @apply border border-border px-3 py-2;
 }
 
 .legal-document-content :deep(img) {

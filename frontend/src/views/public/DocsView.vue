@@ -1,5 +1,5 @@
 <template>
-  <SiteLayout class="docs-page">
+  <SiteLayout surface="canvas" class="docs-page">
     <template #header>
       <SiteHeader sticky>
         <div class="mx-auto flex h-16 max-w-[1500px] items-center gap-2 px-4 sm:gap-4 sm:px-7">
@@ -27,34 +27,37 @@
       </SiteHeader>
     </template>
 
-    <div class="docs-grid mx-auto grid w-full max-w-[1500px] flex-1 px-4 sm:px-7">
-      <aside class="docs-left hidden border-r border-border pr-5 lg:block" :aria-label="t('docs.categories')">
+    <div class="docs-grid mx-auto grid w-full max-w-[1500px] flex-1 gap-5 px-4 py-6 sm:px-7 lg:py-8">
+      <aside class="docs-left hidden rounded-lg border border-border bg-card p-3 lg:block" :aria-label="t('docs.categories')">
         <DocsNavigation :navigation="navigation" :active="article?.slug" />
       </aside>
 
-      <main id="docs-content" class="mx-auto w-full min-w-0 max-w-[800px] py-8 md:py-12 lg:px-10 2xl:px-14">
-        <section v-if="loading" class="space-y-4" aria-busy="true">
-          <div class="h-4 w-28 animate-pulse rounded bg-muted"></div><div class="h-11 w-4/5 animate-pulse rounded bg-muted"></div>
-          <div class="h-4 w-3/5 animate-pulse rounded bg-muted"></div>
-        </section>
-        <section v-else-if="problem || !article" class="rounded-xl border border-border p-6 sm:p-8">
-          <BookOpen class="mb-4 size-6 text-muted-foreground" />
-          <h1 class="text-xl font-semibold">{{ t(problem || 'docs.empty') }}</h1>
+      <main id="docs-content" class="mx-auto w-full min-w-0 max-w-[860px]">
+        <SectionCard v-if="loading" class="docs-article" aria-busy="true">
+          <div class="space-y-4">
+            <div class="h-4 w-28 animate-pulse rounded bg-muted"></div>
+            <div class="h-11 w-4/5 animate-pulse rounded bg-muted"></div>
+            <div class="h-4 w-3/5 animate-pulse rounded bg-muted"></div>
+          </div>
+        </SectionCard>
+        <SectionCard v-else-if="problem || !article" class="docs-article">
+          <span class="mb-3 grid size-9 place-items-center rounded-md border border-border bg-muted text-muted-foreground">
+            <BookOpen class="size-4" aria-hidden="true" />
+          </span>
+          <PageHeader :title="t(problem || 'docs.empty')" />
           <div class="mt-5 flex flex-wrap gap-2">
             <Button v-if="problem === 'docs.loadFailed'" variant="outline" @click="reload">{{ t('docs.retry') }}</Button>
             <Button v-if="!auth.isAuthenticated" as-child><RouterLink :to="loginPath">{{ t('home.login') }}</RouterLink></Button>
             <Button v-if="slug" as-child variant="outline"><RouterLink to="/docs">{{ t('docs.back') }}</RouterLink></Button>
           </div>
-        </section>
-        <article v-else>
-          <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <BookOpen class="size-3.5" aria-hidden="true" />
-            <span>{{ categoryName }}</span>
-            <span v-if="article.visibility === 'authenticated'" class="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5"><LockKeyhole class="size-3" />{{ t('docs.authenticated') }}</span>
-          </div>
-          <h1 class="mt-4 text-[2rem] font-semibold leading-tight tracking-tight sm:text-[2.65rem]">{{ article.title }}</h1>
-          <p v-if="article.description" class="mt-4 text-base leading-7 text-muted-foreground">{{ article.description }}</p>
-          <div class="my-7 border-t border-border"></div>
+        </SectionCard>
+        <article v-else class="docs-article rounded-lg border border-border bg-card">
+          <PageHeader :title="article.title" :description="article.description" :eyebrow="categoryName">
+            <template #badge>
+              <StatusBadge v-if="article.visibility === 'authenticated'" :label="t('docs.authenticated')" :icon="LockKeyhole" />
+            </template>
+          </PageHeader>
+          <div class="my-6 border-t border-border"></div>
           <DocsMarkdown :key="article.id" :markdown="article.markdown" @headings="headings = $event" />
           <nav v-if="previous || next" :aria-label="t('docs.more')" class="mt-12 grid gap-3 sm:grid-cols-2">
             <RouterLink v-if="previous" :to="articleRoute(previous.slug)" class="docs-neighbor">
@@ -69,22 +72,20 @@
         </article>
       </main>
 
-      <aside class="docs-right hidden pl-5 xl:block" :aria-label="t('docs.onThisPage')">
-        <template v-if="headings.length">
+      <aside class="docs-right hidden rounded-lg border border-border bg-card p-3 xl:block" v-show="headings.length" :aria-label="t('docs.onThisPage')">
           <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold"><ListTree class="size-4" /> {{ t('docs.onThisPage') }}</h2>
           <nav class="border-l border-border">
             <a v-for="heading in headings" :key="heading.id" :href="headingHref(heading.id)" :aria-current="activeHeading === heading.id ? 'location' : undefined"
               :class="['docs-heading-link', { 'is-active': activeHeading === heading.id }]" :style="{ paddingInlineStart: `${12 + Math.max(0, heading.level - 2) * 10}px` }"
               @click.prevent="jumpTo(heading.id)">{{ heading.text }}</a>
           </nav>
-        </template>
       </aside>
     </div>
 
-    <BaseDialog :show="navigationOpen" :title="t('docs.categories')" close-on-click-outside @close="navigationOpen = false">
+    <BaseDialog :show="navigationOpen" :title="t('docs.categories')" panel-class="rounded-lg border border-border" close-on-click-outside @close="navigationOpen = false">
       <DocsNavigation :navigation="navigation" :active="article?.slug" @navigate="navigationOpen = false" />
     </BaseDialog>
-    <BaseDialog :show="outlineOpen" :title="t('docs.onThisPage')" close-on-click-outside @close="outlineOpen = false">
+    <BaseDialog :show="outlineOpen" :title="t('docs.onThisPage')" panel-class="rounded-lg border border-border" close-on-click-outside @close="outlineOpen = false">
       <nav>
         <a v-for="heading in headings" :key="heading.id" :href="headingHref(heading.id)" class="docs-heading-link"
           :style="{ paddingInlineStart: `${Math.max(0, heading.level - 2) * 12}px` }" @click.prevent="jumpTo(heading.id)">{{ heading.text }}</a>
@@ -104,6 +105,7 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import { PageHeader, SectionCard, StatusBadge } from '@/components/page'
 import { docsAPI, type DocNavigation, type DocPublication } from '@/api/docs'
 import SiteBrand from '@/components/site-shell/SiteBrand.vue'
 import SiteHeader from '@/components/site-shell/SiteHeader.vue'
@@ -249,12 +251,17 @@ onUnmounted(() => {
 @media (min-width: 1280px) {
   .docs-grid { grid-template-columns: 225px minmax(0, 1fr) 205px; }
 }
-.docs-left, .docs-right { position: sticky; top: 4rem; align-self: start; max-height: calc(100dvh - 4rem); overflow-y: auto; padding-top: 2rem; padding-bottom: 2rem; }
-.docs-left { min-height: calc(100dvh - 4rem); }
+.docs-left, .docs-right { position: sticky; top: 7rem; align-self: start; max-height: calc(100dvh - 8rem); overflow-y: auto; }
+.docs-article { padding: clamp(1rem, 3vw, 2.5rem); }
+.docs-article :deep([data-slot="page-section-body"]) { padding: 0; }
+.docs-article :deep([data-slot="page-header"] h1) { font-size: clamp(1.45rem, 3vw, 2.1rem); }
+@media (min-width: 1280px) {
+  .docs-left, .docs-right { top: 5.5rem; max-height: calc(100dvh - 6.5rem); }
+}
 .docs-heading-link { display: block; padding: .36rem .4rem; font-size: .81rem; color: hsl(var(--muted-foreground)); overflow-wrap: anywhere; }
 .docs-heading-link:hover, .docs-heading-link.is-active { color: hsl(var(--foreground)); }
-.docs-heading-link.is-active { font-weight: 600; box-shadow: -2px 0 hsl(var(--foreground)); }
-.docs-neighbor { display: flex; min-width: 0; flex-direction: column; gap: .4rem; border: 1px solid hsl(var(--border)); border-radius: .75rem; padding: .85rem 1rem; transition: background .15s; }
+.docs-heading-link.is-active { font-weight: 600; box-shadow: -2px 0 hsl(var(--brand)); }
+.docs-neighbor { display: flex; min-width: 0; flex-direction: column; gap: .4rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius); padding: .85rem 1rem; transition: background .15s; }
 .docs-neighbor:hover { background: hsl(var(--muted)); }
 .docs-neighbor span { display: flex; align-items: center; gap: .35rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
 .docs-neighbor strong { font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }

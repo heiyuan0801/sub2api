@@ -79,12 +79,13 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.public-header { min-height: 60px; z-index: 40; }
-.public-header-inner { display: flex; align-items: center; gap: 16px; max-width: 1536px; min-height: 59px; margin: 0 auto; padding: 0 24px; }
+.public-header { min-height: 56px; z-index: 40; }
+.public-header-inner { display: flex; align-items: center; gap: 16px; max-width: 1440px; min-height: 55px; margin: 0 auto; padding: 0 40px; }
 .public-brand { flex-shrink: 0; }
 .public-navigation { display: flex; align-items: center; gap: 2px; min-width: 0; margin-right: auto; }
 .public-navigation a { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: calc(var(--radius) - 2px); color: hsl(var(--muted-foreground)); font-size: 13px; font-weight: 500; line-height: 20px; white-space: nowrap; }
-.public-navigation a:hover, .public-navigation a.router-link-active { color: hsl(var(--accent-foreground)); background: hsl(var(--accent)); }
+.public-navigation a:hover { color: hsl(var(--foreground)); background: hsl(var(--muted)); }
+.public-navigation a.router-link-active { color: hsl(var(--brand)); background: hsl(var(--brand) / .09); }
 .public-navigation a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .public-header-actions { display: flex; align-items: center; gap: 6px; }
 .public-language :deep(button) { color: inherit; }
@@ -94,7 +95,7 @@ onMounted(() => {
 .public-search:focus-within { outline: 2px solid hsl(var(--ring)); outline-offset: 1px; }
 .public-menu-toggle { display: none; }
 @media (max-width: 1150px) {
-  .public-header-inner { gap: 10px; }
+  .public-header-inner { gap: 10px; padding-inline: 24px; }
   .public-search { display: none; }
 }
 @media (max-width: 960px) {

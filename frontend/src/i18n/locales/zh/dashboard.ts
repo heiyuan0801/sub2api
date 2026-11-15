@@ -1076,6 +1076,7 @@ export default {
   errors: {
     somethingWentWrong: '出错了',
     pageNotFound: '页面未找到',
+    pageNotFoundDescription: '您访问的页面不存在，或已被移到其他位置。',
     unauthorized: '未授权',
     forbidden: '禁止访问',
     serverError: '服务器错误',
