@@ -56,7 +56,14 @@ func TestClusterConcurrentBillingPostgres(t *testing.T) {
 	rewardConfig := service.DefaultRewardActivityConfig()
 	rewardConfig.CheckIn.Enabled = true
 	require.NoError(t, NewRewardActivityRepository(db).SaveConfig(ctx, rewardConfig))
-	repos := []*usageBillingRepository{{db: pools[0]}, {db: pools[1]}}
+	billingRepo := &usageBillingRepository{db: pools[0]}
+	repos := []*service.UsageBillingLaneCombiner{
+		service.NewUsageBillingLaneCombiner(billingRepo),
+		service.NewUsageBillingLaneCombiner(&usageBillingRepository{db: pools[1]}),
+	}
+	for _, repo := range repos {
+		defer repo.Stop()
+	}
 	attempt := uuid.NewString()
 	cmd := service.UsageBillingCommand{RequestID: "concurrent", APIKeyID: 2, UserID: 1, AccountID: 3, BalanceCost: 1.25}
 	cmd.Normalize()
@@ -117,6 +124,23 @@ func TestClusterConcurrentBillingPostgres(t *testing.T) {
 	var activitySpend float64
 	require.NoError(t, db.QueryRow(`SELECT amount FROM reward_activity_spend WHERE user_id=1`).Scan(&activitySpend))
 	require.Equal(t, 1.25, activitySpend)
+
+	batch := []*service.UsageBillingCommand{
+		{RequestID: "batch-a", APIKeyID: 2, UserID: 1, BalanceCost: 0.50},
+		{RequestID: "batch-b", APIKeyID: 2, UserID: 1, BalanceCost: 0.75},
+	}
+	outcomes, err := billingRepo.ApplyBatch(ctx, batch)
+	require.NoError(t, err)
+	require.Len(t, outcomes, 2)
+	for _, outcome := range outcomes {
+		require.NoError(t, outcome.Err)
+		require.True(t, outcome.Result.Applied)
+	}
+	require.NoError(t, db.QueryRow(`SELECT balance::text FROM users WHERE id=1`).Scan(&balance))
+	require.Equal(t, "97.5000000000", balance)
+	require.NoError(t, db.QueryRow(`SELECT amount FROM reward_activity_spend WHERE user_id=1`).Scan(&activitySpend))
+	require.Equal(t, 2.50, activitySpend)
+
 	cmd.BalanceCost = 2
 	cmd.RequestFingerprint = "different"
 	_, err = repos[1].Apply(ctx, &cmd)
