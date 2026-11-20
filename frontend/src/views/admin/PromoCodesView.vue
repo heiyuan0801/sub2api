@@ -2,14 +2,19 @@
   <AppLayout>
     <TablePageLayout>
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
           <!-- Left: Search + Filters -->
-          <div class="flex-1 sm:max-w-64">
+          <div class="relative flex-1 sm:max-w-64">
+            <Icon
+              name="search"
+              size="sm"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               v-model="searchQuery"
               type="text"
               :placeholder="t('admin.promo.searchCodes')"
-              class="input"
+              class="input pl-9"
               @input="handleSearch"
             />
           </div>
@@ -25,13 +30,13 @@
             <button
               @click="loadCodes"
               :disabled="loading"
-              class="btn btn-secondary"
+              class="btn btn-secondary px-2.5"
               :title="t('common.refresh')"
             >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+              <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
             </button>
             <button @click="showCreateDialog = true" class="btn btn-primary">
-              <Icon name="plus" size="md" class="mr-1" />
+              <Icon name="plus" size="sm" />
               {{ t('admin.promo.createCode') }}
             </button>
           </div>
@@ -49,40 +54,36 @@
           @sort="handleSort"
         >
           <template #cell-code="{ value }">
-            <div class="flex items-center space-x-2">
-              <code class="font-mono text-sm text-gray-900 dark:text-gray-100">{{ value }}</code>
+            <div class="flex items-center gap-1.5">
+              <code
+                class="rounded border border-border/60 bg-muted px-2 py-0.5 font-mono text-xs tabular-nums text-foreground"
+              >{{ value }}</code>
               <button
                 @click="copyToClipboard(value)"
                 :class="[
-                  'flex items-center transition-colors',
+                  'inline-flex items-center justify-center rounded-md p-1 transition-colors',
                   copiedCode === value
-                    ? 'text-green-500'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 ]"
                 :title="copiedCode === value ? t('admin.promo.copied') : t('keys.copyToClipboard')"
               >
-                <Icon v-if="copiedCode !== value" name="copy" size="sm" :stroke-width="2" />
-                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
+                <Icon v-if="copiedCode !== value" name="copy" size="xs" :stroke-width="2" />
+                <Icon v-else name="check" size="xs" :stroke-width="2" />
               </button>
             </div>
           </template>
 
           <template #cell-bonus_amount="{ value }">
-            <span class="text-sm font-medium text-gray-900 dark:text-white">
+            <span class="text-sm font-medium tabular-nums text-foreground">
               ${{ value.toFixed(2) }}
             </span>
           </template>
 
           <template #cell-usage="{ row }">
-            <span class="text-sm text-gray-600 dark:text-gray-300">
-              {{ row.used_count }} / {{ row.max_uses === 0 ? '∞' : row.max_uses }}
+            <span class="text-sm tabular-nums text-muted-foreground">
+              <span class="font-medium text-foreground">{{ row.used_count }}</span>
+              / {{ row.max_uses === 0 ? '∞' : row.max_uses }}
             </span>
           </template>
 
@@ -98,43 +99,43 @@
           </template>
 
           <template #cell-expires_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">
+            <span class="text-sm tabular-nums text-muted-foreground">
               {{ value ? formatDateTime(value) : t('admin.promo.neverExpires') }}
             </span>
           </template>
 
           <template #cell-created_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">
+            <span class="text-sm tabular-nums text-muted-foreground">
               {{ formatDateTime(value) }}
             </span>
           </template>
 
           <template #cell-actions="{ row }">
-            <div class="flex items-center space-x-1">
+            <div class="flex items-center gap-1">
               <button
                 @click="copyRegisterLink(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
                 :title="t('admin.promo.copyRegisterLink')"
               >
                 <Icon name="link" size="sm" />
               </button>
               <button
                 @click="handleViewUsages(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 :title="t('admin.promo.viewUsages')"
               >
                 <Icon name="eye" size="sm" />
               </button>
               <button
                 @click="handleEdit(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-dark-600 dark:hover:text-gray-300"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 :title="t('common.edit')"
               >
                 <Icon name="edit" size="sm" />
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 :title="t('common.delete')"
               >
                 <Icon name="trash" size="sm" />
@@ -167,7 +168,7 @@
         <div>
           <label class="input-label">
             {{ t('admin.promo.code') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('admin.promo.autoGenerate') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('admin.promo.autoGenerate') }})</span>
           </label>
           <input
             v-model="createForm.code"
@@ -184,26 +185,26 @@
             step="0.01"
             min="0"
             required
-            class="input"
+            class="input tabular-nums"
           />
           <p class="input-hint">{{ t('operations.zeroBonusHint') }}</p>
         </div>
         <div>
           <label class="input-label">
             {{ t('admin.promo.maxUses') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('admin.promo.zeroUnlimited') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('admin.promo.zeroUnlimited') }})</span>
           </label>
           <input
             v-model.number="createForm.max_uses"
             type="number"
             min="0"
-            class="input"
+            class="input tabular-nums"
           />
         </div>
         <div>
           <label class="input-label">
             {{ t('admin.promo.expiresAt') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('common.optional') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('common.optional') }})</span>
           </label>
           <input
             v-model="createForm.expires_at_str"
@@ -214,18 +215,18 @@
         <div>
           <label class="input-label">
             {{ t('admin.promo.notes') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('common.optional') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('common.optional') }})</span>
           </label>
           <textarea
             v-model="createForm.notes"
             rows="2"
-            class="input"
+            class="input h-auto py-2"
             :placeholder="t('admin.promo.notesPlaceholder')"
           ></textarea>
         </div>
       </form>
       <template #footer>
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-2.5">
           <button type="button" @click="showCreateDialog = false" class="btn btn-secondary">
             {{ t('common.cancel') }}
           </button>
@@ -260,20 +261,20 @@
             step="0.01"
             min="0"
             required
-            class="input"
+            class="input tabular-nums"
           />
           <p class="input-hint">{{ t('operations.zeroBonusHint') }}</p>
         </div>
         <div>
           <label class="input-label">
             {{ t('admin.promo.maxUses') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('admin.promo.zeroUnlimited') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('admin.promo.zeroUnlimited') }})</span>
           </label>
           <input
             v-model.number="editForm.max_uses"
             type="number"
             min="0"
-            class="input"
+            class="input tabular-nums"
           />
         </div>
         <div>
@@ -283,7 +284,7 @@
         <div>
           <label class="input-label">
             {{ t('admin.promo.expiresAt') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('common.optional') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('common.optional') }})</span>
           </label>
           <input
             v-model="editForm.expires_at_str"
@@ -294,17 +295,17 @@
         <div>
           <label class="input-label">
             {{ t('admin.promo.notes') }}
-            <span class="ml-1 text-xs font-normal text-gray-400">({{ t('common.optional') }})</span>
+            <span class="ml-1 text-xs font-normal text-muted-foreground/80">({{ t('common.optional') }})</span>
           </label>
           <textarea
             v-model="editForm.notes"
             rows="2"
-            class="input"
+            class="input h-auto py-2"
           ></textarea>
         </div>
       </form>
       <template #footer>
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-2.5">
           <button type="button" @click="closeEditDialog" class="btn btn-secondary">
             {{ t('common.cancel') }}
           </button>
@@ -322,33 +323,46 @@
       width="wide"
       @close="showUsagesDialog = false"
     >
-      <div v-if="usagesLoading" class="flex items-center justify-center py-8">
-        <Icon name="refresh" size="lg" class="animate-spin text-gray-400" />
+      <div v-if="usagesLoading" class="space-y-2.5 py-2">
+        <div
+          v-for="i in 3"
+          :key="`usage-sk-${i}`"
+          class="flex items-center justify-between rounded-xl border border-border/80 bg-card p-3.5"
+        >
+          <div class="flex items-center gap-3">
+            <Skeleton class="size-9 rounded-full" />
+            <div class="space-y-1.5">
+              <Skeleton class="h-3.5 w-40" />
+              <Skeleton class="h-3 w-28" />
+            </div>
+          </div>
+          <Skeleton class="h-4 w-16" />
+        </div>
       </div>
-      <div v-else-if="usages.length === 0" class="py-8 text-center text-gray-500 dark:text-gray-400">
+      <div v-else-if="usages.length === 0" class="py-10 text-center text-sm text-muted-foreground">
         {{ t('admin.promo.noUsages') }}
       </div>
-      <div v-else class="space-y-3">
+      <div v-else class="space-y-2.5">
         <div
           v-for="usage in usages"
           :key="usage.id"
-          class="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-dark-600"
+          class="flex items-center justify-between rounded-xl border border-border/80 bg-card p-3.5 transition-colors hover:bg-muted/30"
         >
           <div class="flex items-center gap-3">
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <Icon name="user" size="sm" class="text-green-600 dark:text-green-400" />
+            <div class="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <Icon name="user" size="sm" />
             </div>
             <div>
-              <p class="text-sm font-medium text-gray-900 dark:text-white">
+              <p class="text-sm font-medium text-foreground">
                 {{ usage.user?.email || t('admin.promo.userPrefix', { id: usage.user_id }) }}
               </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
+              <p class="text-xs tabular-nums text-muted-foreground">
                 {{ formatDateTime(usage.used_at) }}
               </p>
             </div>
           </div>
           <div class="text-right">
-            <span class="text-sm font-medium text-green-600 dark:text-green-400">
+            <span class="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
               +${{ usage.bonus_amount.toFixed(2) }}
             </span>
           </div>
@@ -405,6 +419,7 @@ import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Select from '@/components/common/Select.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const { t } = useI18n()
 const appStore = useAppStore()

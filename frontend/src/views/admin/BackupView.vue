@@ -1,226 +1,233 @@
 <template>
     <div class="space-y-6">
       <!-- S3 Storage Config -->
-      <div class="card p-6">
+      <div class="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+            <h3 class="text-base font-semibold tracking-tight text-foreground">
               {{ t('admin.backup.s3.title') }}
             </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-sm text-muted-foreground">
               {{ t('admin.backup.s3.descriptionPrefix') }}
-              <button type="button" class="text-primary-600 underline hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300" @click="showR2Guide = true">Cloudflare R2</button>
+              <button type="button" class="font-medium text-foreground underline underline-offset-4 transition-colors hover:text-foreground/80" @click="showR2Guide = true">Cloudflare R2</button>
               {{ t('admin.backup.s3.descriptionSuffix') }}
             </p>
           </div>
         </div>
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2">
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.endpoint') }}</label>
-            <input v-model="s3Form.endpoint" class="input w-full" placeholder="https://<account_id>.r2.cloudflarestorage.com" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.endpoint') }}</label>
+            <input v-model="s3Form.endpoint" class="input h-9 w-full" placeholder="https://<account_id>.r2.cloudflarestorage.com" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.region') }}</label>
-            <input v-model="s3Form.region" class="input w-full" placeholder="auto" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.region') }}</label>
+            <input v-model="s3Form.region" class="input h-9 w-full" placeholder="auto" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.bucket') }}</label>
-            <input v-model="s3Form.bucket" class="input w-full" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.bucket') }}</label>
+            <input v-model="s3Form.bucket" class="input h-9 w-full" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.prefix') }}</label>
-            <input v-model="s3Form.prefix" class="input w-full" placeholder="backups/" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.prefix') }}</label>
+            <input v-model="s3Form.prefix" class="input h-9 w-full" placeholder="backups/" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.accessKeyId') }}</label>
-            <input v-model="s3Form.access_key_id" class="input w-full" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.accessKeyId') }}</label>
+            <input v-model="s3Form.access_key_id" class="input h-9 w-full" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.secretAccessKey') }}</label>
-            <input v-model="s3Form.secret_access_key" type="password" class="input w-full" :placeholder="s3SecretConfigured ? t('admin.backup.s3.secretConfigured') : ''" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.secretAccessKey') }}</label>
+            <input v-model="s3Form.secret_access_key" type="password" class="input h-9 w-full" :placeholder="s3SecretConfigured ? t('admin.backup.s3.secretConfigured') : ''" />
           </div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 md:col-span-2">
-            <input v-model="s3Form.force_path_style" type="checkbox" />
+          <label class="inline-flex items-center gap-2 text-sm text-foreground md:col-span-2">
+            <input v-model="s3Form.force_path_style" type="checkbox" class="accent-foreground" />
             <span>{{ t('admin.backup.s3.forcePathStyle') }}</span>
           </label>
         </div>
         <div class="mt-4 flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary btn-sm" :disabled="testingS3" @click="testS3">
+          <button type="button" class="btn btn-secondary h-9 px-3.5 text-xs" :disabled="testingS3" @click="testS3">
             {{ testingS3 ? t('common.loading') : t('admin.backup.s3.testConnection') }}
           </button>
-          <button type="button" class="btn btn-primary btn-sm" :disabled="savingS3" @click="saveS3Config">
+          <button type="button" class="btn btn-primary h-9 px-3.5 text-xs" :disabled="savingS3" @click="saveS3Config">
             {{ savingS3 ? t('common.loading') : t('common.save') }}
           </button>
         </div>
       </div>
 
       <!-- Async image object storage -->
-      <div class="card p-6">
+      <div class="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+            <h3 class="text-base font-semibold tracking-tight text-foreground">
               {{ t('admin.backup.imageStorage.title') }}
             </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-sm text-muted-foreground">
               {{ t('admin.backup.imageStorage.description') }}
             </p>
           </div>
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <input v-model="imageStorageForm.enabled" type="checkbox" />
+          <label class="inline-flex items-center gap-2 text-sm text-foreground">
+            <input v-model="imageStorageForm.enabled" type="checkbox" class="accent-foreground" />
             <span>{{ t('admin.backup.imageStorage.enabled') }}</span>
           </label>
         </div>
 
-        <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-          <input v-model="imageStorageForm.reuse_backup_s3" type="checkbox" />
+        <label class="inline-flex items-center gap-2 text-sm text-foreground">
+          <input v-model="imageStorageForm.reuse_backup_s3" type="checkbox" class="accent-foreground" />
           <span>{{ t('admin.backup.imageStorage.reuseBackupS3') }}</span>
         </label>
 
-        <div class="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div class="mt-3.5 grid grid-cols-1 gap-3.5 md:grid-cols-2">
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.imageStorage.bucket') }}</label>
-            <input v-model="imageStorageForm.bucket" class="input w-full" :placeholder="imageStorageForm.reuse_backup_s3 ? t('admin.backup.imageStorage.bucketInherited') : ''" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.imageStorage.bucket') }}</label>
+            <input v-model="imageStorageForm.bucket" class="input h-9 w-full" :placeholder="imageStorageForm.reuse_backup_s3 ? t('admin.backup.imageStorage.bucketInherited') : ''" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.imageStorage.prefix') }}</label>
-            <input v-model="imageStorageForm.prefix" class="input w-full" placeholder="images/" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.imageStorage.prefix') }}</label>
+            <input v-model="imageStorageForm.prefix" class="input h-9 w-full" placeholder="images/" />
           </div>
 
           <template v-if="!imageStorageForm.reuse_backup_s3">
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.endpoint') }}</label>
-              <input v-model="imageStorageForm.endpoint" class="input w-full" placeholder="https://<account_id>.r2.cloudflarestorage.com" />
+              <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.endpoint') }}</label>
+              <input v-model="imageStorageForm.endpoint" class="input h-9 w-full" placeholder="https://<account_id>.r2.cloudflarestorage.com" />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.region') }}</label>
-              <input v-model="imageStorageForm.region" class="input w-full" placeholder="auto" />
+              <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.region') }}</label>
+              <input v-model="imageStorageForm.region" class="input h-9 w-full" placeholder="auto" />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.accessKeyId') }}</label>
-              <input v-model="imageStorageForm.access_key_id" class="input w-full" />
+              <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.accessKeyId') }}</label>
+              <input v-model="imageStorageForm.access_key_id" class="input h-9 w-full" />
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.s3.secretAccessKey') }}</label>
-              <input v-model="imageStorageForm.secret_access_key" type="password" class="input w-full" :placeholder="imageStorageSecretConfigured ? t('admin.backup.s3.secretConfigured') : ''" />
+              <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.s3.secretAccessKey') }}</label>
+              <input v-model="imageStorageForm.secret_access_key" type="password" class="input h-9 w-full" :placeholder="imageStorageSecretConfigured ? t('admin.backup.s3.secretConfigured') : ''" />
             </div>
-            <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 md:col-span-2">
-              <input v-model="imageStorageForm.force_path_style" type="checkbox" />
+            <label class="inline-flex items-center gap-2 text-sm text-foreground md:col-span-2">
+              <input v-model="imageStorageForm.force_path_style" type="checkbox" class="accent-foreground" />
               <span>{{ t('admin.backup.s3.forcePathStyle') }}</span>
             </label>
           </template>
 
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.imageStorage.publicBaseUrl') }}</label>
-            <input v-model="imageStorageForm.public_base_url" class="input w-full" :placeholder="t('admin.backup.imageStorage.publicBaseUrlPlaceholder')" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.imageStorage.publicBaseUrl') }}</label>
+            <input v-model="imageStorageForm.public_base_url" class="input h-9 w-full" :placeholder="t('admin.backup.imageStorage.publicBaseUrlPlaceholder')" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.imageStorage.presignExpiryHours') }}</label>
-            <input v-model.number="imageStorageForm.presign_expiry_hours" type="number" min="1" class="input w-full" />
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.imageStorage.presignExpiryHours') }}</label>
+            <input v-model.number="imageStorageForm.presign_expiry_hours" type="number" min="1" class="input h-9 w-full tabular-nums" />
           </div>
         </div>
 
         <div class="mt-4 flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary btn-sm" :disabled="testingImageStorage" @click="testImageStorage">
+          <button type="button" class="btn btn-secondary h-9 px-3.5 text-xs" :disabled="testingImageStorage" @click="testImageStorage">
             {{ testingImageStorage ? t('common.loading') : t('admin.backup.s3.testConnection') }}
           </button>
-          <button type="button" class="btn btn-primary btn-sm" :disabled="savingImageStorage" @click="saveImageStorageConfig">
+          <button type="button" class="btn btn-primary h-9 px-3.5 text-xs" :disabled="savingImageStorage" @click="saveImageStorageConfig">
             {{ savingImageStorage ? t('common.loading') : t('common.save') }}
           </button>
         </div>
       </div>
 
       <!-- Schedule Config -->
-      <div class="card p-6" data-testid="backup-schedule">
+      <div class="rounded-2xl border border-border/80 bg-card p-6 shadow-sm" data-testid="backup-schedule">
         <div class="mb-4">
-          <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+          <h3 class="text-base font-semibold tracking-tight text-foreground">
             {{ t('admin.backup.schedule.title') }}
           </h3>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p class="mt-1 text-sm text-muted-foreground">
             {{ t('admin.backup.schedule.description') }}
           </p>
         </div>
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 md:col-span-2">
-            <input v-model="scheduleForm.enabled" type="checkbox" />
+        <div class="grid grid-cols-1 gap-3.5 md:grid-cols-2">
+          <label class="inline-flex items-center gap-2 text-sm text-foreground md:col-span-2">
+            <input v-model="scheduleForm.enabled" type="checkbox" class="accent-foreground" />
             <span>{{ t('admin.backup.schedule.enabled') }}</span>
           </label>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.schedule.cronExpr') }}</label>
-            <input v-model="scheduleForm.cron_expr" class="input w-full" placeholder="0 2 * * *" />
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.schedule.cronHint') }}</p>
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.schedule.cronExpr') }}</label>
+            <input v-model="scheduleForm.cron_expr" class="input h-9 w-full font-mono" placeholder="0 2 * * *" />
+            <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.backup.schedule.cronHint') }}</p>
           </div>
-          <h4 class="mt-2 text-sm font-medium text-gray-900 dark:text-white md:col-span-2">{{ t('admin.backup.schedule.ordinaryRetention') }}</h4>
+          <h4 class="mt-2 text-sm font-semibold text-foreground md:col-span-2">{{ t('admin.backup.schedule.ordinaryRetention') }}</h4>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.schedule.retainDays') }}</label>
-            <input v-model.number="scheduleForm.retain_days" data-testid="backup-retain-days" type="number" min="0" step="1" class="input w-full" />
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.schedule.retainDaysHint') }}</p>
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.schedule.retainDays') }}</label>
+            <input v-model.number="scheduleForm.retain_days" data-testid="backup-retain-days" type="number" min="0" step="1" class="input h-9 w-full tabular-nums" />
+            <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.backup.schedule.retainDaysHint') }}</p>
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.schedule.retainCount') }}</label>
-            <input v-model.number="scheduleForm.retain_count" data-testid="backup-retain-count" type="number" min="0" step="1" class="input w-full" />
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.schedule.retainCountHint') }}</p>
+            <label class="mb-1.5 block text-xs font-medium text-muted-foreground">{{ t('admin.backup.schedule.retainCount') }}</label>
+            <input v-model.number="scheduleForm.retain_count" data-testid="backup-retain-count" type="number" min="0" step="1" class="input h-9 w-full tabular-nums" />
+            <p class="mt-1 text-xs text-muted-foreground">{{ t('admin.backup.schedule.retainCountHint') }}</p>
           </div>
         </div>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.backup.schedule.ordinaryHint') }}</p>
+        <p class="mt-2 text-xs text-muted-foreground">{{ t('admin.backup.schedule.ordinaryHint') }}</p>
         <BackupArchiveSettings v-model="archiveForm" />
-        <p v-if="scheduleValidationError" class="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">{{ scheduleValidationError }}</p>
-        <div class="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 dark:bg-dark-800 dark:text-gray-300" aria-live="polite">
+        <p v-if="scheduleValidationError" class="mt-3 text-sm text-destructive" role="alert">{{ scheduleValidationError }}</p>
+        <div class="mt-4 rounded-xl border border-border/70 bg-muted/40 p-3.5 text-sm text-foreground" aria-live="polite">
           <p class="font-medium">{{ t('admin.backup.schedule.preview') }}</p>
-          <p>{{ retentionPreview }}</p>
+          <p class="mt-0.5 text-muted-foreground">{{ retentionPreview }}</p>
         </div>
         <div class="mt-4">
-          <button type="button" class="btn btn-primary btn-sm" :disabled="savingSchedule || !!scheduleValidationError" @click="saveSchedule">
+          <button type="button" class="btn btn-primary h-9 px-3.5 text-xs" :disabled="savingSchedule || !!scheduleValidationError" @click="saveSchedule">
             {{ savingSchedule ? t('common.loading') : t('common.save') }}
           </button>
         </div>
       </div>
 
       <!-- Backup Operations -->
-      <div class="card p-6">
+      <div class="rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+            <h3 class="text-base font-semibold tracking-tight text-foreground">
               {{ t('admin.backup.operations.title') }}
             </h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p class="mt-1 text-sm text-muted-foreground">
               {{ t('admin.backup.operations.description') }}
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <div class="flex items-center gap-1">
-              <label class="text-xs text-gray-600 dark:text-gray-400">{{ t('admin.backup.operations.expireDays') }}</label>
-              <input v-model.number="manualExpireDays" type="number" min="0" class="input w-20 text-xs" />
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-medium text-muted-foreground">{{ t('admin.backup.operations.expireDays') }}</label>
+              <input v-model.number="manualExpireDays" type="number" min="0" class="input h-9 w-20 text-xs tabular-nums" />
             </div>
-            <button type="button" class="btn btn-primary btn-sm" :disabled="creatingBackup" @click="createBackup">
+            <button type="button" class="btn btn-primary h-9 px-3.5 text-xs" :disabled="creatingBackup" @click="createBackup">
               {{ creatingBackup ? t('admin.backup.operations.backing') : t('admin.backup.operations.createBackup') }}
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" :disabled="loadingBackups" @click="loadBackups">
+            <button type="button" class="btn btn-secondary h-9 px-3.5 text-xs" :disabled="loadingBackups" @click="loadBackups">
               {{ loadingBackups ? t('common.loading') : t('common.refresh') }}
             </button>
           </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto rounded-xl border border-border/80">
           <table class="w-full min-w-[800px] text-sm">
             <thead>
-              <tr class="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500 dark:border-dark-700 dark:text-gray-400">
-                <th class="py-2 pr-4">ID</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.status') }}</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.fileName') }}</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.size') }}</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.parts') }}</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.expiresAt') }}</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.triggeredBy') }}</th>
-                <th class="py-2 pr-4">{{ t('admin.backup.columns.startedAt') }}</th>
-                <th class="py-2">{{ t('admin.backup.columns.actions') }}</th>
+              <tr class="border-b border-border/70 bg-muted/40 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <th class="px-4 py-3 font-medium">ID</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.status') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.fileName') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.size') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.parts') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.expiresAt') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.triggeredBy') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.startedAt') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.backup.columns.actions') }}</th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="record in backups" :key="record.id" class="border-b border-gray-100 align-top dark:border-dark-800">
-                <td class="py-3 pr-4 font-mono text-xs">{{ record.id }}</td>
-                <td class="py-3 pr-4">
+            <tbody class="divide-y divide-border/70 bg-card">
+              <tr v-if="loadingBackups && backups.length === 0">
+                <td colspan="9" class="p-4">
+                  <div class="space-y-2.5">
+                    <Skeleton v-for="i in 3" :key="`backup-row-sk-${i}`" class="h-10 w-full rounded-lg" />
+                  </div>
+                </td>
+              </tr>
+              <tr v-for="record in backups" :key="record.id" class="align-top transition-colors hover:bg-muted/30">
+                <td class="px-4 py-3 font-mono text-xs text-foreground">{{ record.id }}</td>
+                <td class="px-4 py-3">
                   <span
-                    class="rounded px-2 py-0.5 text-xs"
+                    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                     :class="statusClass(record.status)"
                   >
                     {{ record.status === 'running' && record.progress
@@ -228,24 +235,24 @@
                       : t(`admin.backup.status.${record.status}`) }}
                   </span>
                 </td>
-                <td class="py-3 pr-4 text-xs">
+                <td class="px-4 py-3 text-xs text-foreground">
                   {{ record.file_name }}
-                  <span v-if="record.monthly_archive" class="ml-1 inline-block rounded bg-primary-50 px-1.5 py-0.5 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">{{ t('admin.backup.archive.badge') }}</span>
-                  <div v-if="record.monthly_archive" class="mt-1 text-gray-500 dark:text-gray-400">{{ record.monthly_archive.dates.join(' / ') }}</div>
+                  <span v-if="record.monthly_archive" class="ml-1.5 inline-block rounded-full border border-border bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">{{ t('admin.backup.archive.badge') }}</span>
+                  <div v-if="record.monthly_archive" class="mt-1 tabular-nums text-muted-foreground">{{ record.monthly_archive.dates.join(' / ') }}</div>
                 </td>
-                <td class="py-3 pr-4 text-xs">{{ formatSize(record.size_bytes) }}</td>
-                <td class="py-3 pr-4 text-xs">{{ record.parts?.length || (record.status === 'running' ? '-' : 1) }}</td>
-                <td class="py-3 pr-4 text-xs">
+                <td class="px-4 py-3 text-xs tabular-nums text-muted-foreground">{{ formatSize(record.size_bytes) }}</td>
+                <td class="px-4 py-3 text-xs tabular-nums text-foreground">{{ record.parts?.length || (record.status === 'running' ? '-' : 1) }}</td>
+                <td class="px-4 py-3 text-xs tabular-nums text-muted-foreground">
                   {{ record.monthly_archive
                     ? record.monthly_archive.retain_count === 0 ? t('admin.backup.archive.forever') : t('admin.backup.archive.retainLatest', { count: record.monthly_archive.retain_count })
                     : record.expires_at ? formatDate(record.expires_at) : t('admin.backup.neverExpire') }}
                 </td>
-                <td class="py-3 pr-4 text-xs">
+                <td class="px-4 py-3 text-xs text-muted-foreground">
                   {{ record.triggered_by === 'scheduled' ? t('admin.backup.trigger.scheduled') : t('admin.backup.trigger.manual') }}
                 </td>
-                <td class="py-3 pr-4 text-xs">{{ formatDate(record.started_at) }}</td>
-                <td class="py-3 text-xs">
-                  <div class="flex flex-wrap gap-1">
+                <td class="px-4 py-3 text-xs tabular-nums text-muted-foreground">{{ formatDate(record.started_at) }}</td>
+                <td class="px-4 py-3 text-xs">
+                  <div class="flex flex-wrap gap-1.5">
                     <button
                       v-if="record.status === 'completed'"
                       type="button"
@@ -274,8 +281,8 @@
                   </div>
                 </td>
               </tr>
-              <tr v-if="backups.length === 0">
-                <td colspan="9" class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              <tr v-if="!loadingBackups && backups.length === 0">
+                <td colspan="9" class="py-8 text-center text-sm text-muted-foreground">
                   {{ t('admin.backup.empty') }}
                 </td>
               </tr>
@@ -289,22 +296,22 @@
     <teleport to="body">
       <transition name="modal">
         <div v-if="showR2Guide" class="fixed inset-0 z-50 flex items-center justify-center p-4" @mousedown.self="showR2Guide = false">
-          <div class="fixed inset-0 bg-black/50" @click="showR2Guide = false"></div>
-          <div class="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl dark:bg-dark-800">
-            <button type="button" class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" @click="showR2Guide = false">
+          <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" @click="showR2Guide = false"></div>
+          <div class="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
+            <button type="button" class="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="showR2Guide = false">
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
 
-            <h2 class="mb-4 text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.backup.r2Guide.title') }}</h2>
-            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">{{ t('admin.backup.r2Guide.intro') }}</p>
+            <h2 class="mb-2 text-lg font-semibold tracking-tight text-foreground">{{ t('admin.backup.r2Guide.title') }}</h2>
+            <p class="mb-5 text-sm text-muted-foreground">{{ t('admin.backup.r2Guide.intro') }}</p>
 
             <!-- Step 1 -->
             <div class="mb-5">
-              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">1</span>
+              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">1</span>
                 {{ t('admin.backup.r2Guide.step1.title') }}
               </h3>
-              <ol class="ml-8 list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-300">
+              <ol class="ml-8 list-decimal space-y-1 text-sm text-muted-foreground">
                 <li>{{ t('admin.backup.r2Guide.step1.line1') }}</li>
                 <li>{{ t('admin.backup.r2Guide.step1.line2') }}</li>
                 <li>{{ t('admin.backup.r2Guide.step1.line3') }}</li>
@@ -313,43 +320,43 @@
 
             <!-- Step 2 -->
             <div class="mb-5">
-              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">2</span>
+              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">2</span>
                 {{ t('admin.backup.r2Guide.step2.title') }}
               </h3>
-              <ol class="ml-8 list-decimal space-y-1 text-sm text-gray-600 dark:text-gray-300">
+              <ol class="ml-8 list-decimal space-y-1 text-sm text-muted-foreground">
                 <li>{{ t('admin.backup.r2Guide.step2.line1') }}</li>
                 <li>{{ t('admin.backup.r2Guide.step2.line2') }}</li>
                 <li>{{ t('admin.backup.r2Guide.step2.line3') }}</li>
                 <li>{{ t('admin.backup.r2Guide.step2.line4') }}</li>
               </ol>
-              <div class="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+              <div class="mt-2.5 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
                 {{ t('admin.backup.r2Guide.step2.warning') }}
               </div>
             </div>
 
             <!-- Step 3 -->
             <div class="mb-5">
-              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">3</span>
+              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">3</span>
                 {{ t('admin.backup.r2Guide.step3.title') }}
               </h3>
-              <p class="ml-8 text-sm text-gray-600 dark:text-gray-300">{{ t('admin.backup.r2Guide.step3.desc') }}</p>
-              <code class="ml-8 mt-1 block rounded bg-gray-100 px-3 py-2 text-xs text-gray-800 dark:bg-dark-700 dark:text-gray-200">https://&lt;{{ t('admin.backup.r2Guide.step3.accountId') }}&gt;.r2.cloudflarestorage.com</code>
+              <p class="ml-8 text-sm text-muted-foreground">{{ t('admin.backup.r2Guide.step3.desc') }}</p>
+              <code class="ml-8 mt-1.5 block rounded-lg border border-border bg-muted/60 px-3 py-2 font-mono text-xs text-foreground">https://&lt;{{ t('admin.backup.r2Guide.step3.accountId') }}&gt;.r2.cloudflarestorage.com</code>
             </div>
 
             <!-- Step 4: Fill form -->
             <div class="mb-5">
-              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">4</span>
+              <h3 class="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">4</span>
                 {{ t('admin.backup.r2Guide.step4.title') }}
               </h3>
-              <div class="ml-8 overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600">
+              <div class="ml-8 overflow-hidden rounded-xl border border-border/80">
                 <table class="w-full text-sm">
-                  <tbody>
-                    <tr v-for="(row, i) in r2ConfigRows" :key="i" class="border-b border-gray-100 dark:border-dark-700 last:border-0">
-                      <td class="whitespace-nowrap bg-gray-50 px-3 py-2 font-medium text-gray-700 dark:bg-dark-700 dark:text-gray-300">{{ row.field }}</td>
-                      <td class="px-3 py-2 text-gray-600 dark:text-gray-400"><code class="text-xs">{{ row.value }}</code></td>
+                  <tbody class="divide-y divide-border/70">
+                    <tr v-for="(row, i) in r2ConfigRows" :key="i">
+                      <td class="whitespace-nowrap bg-muted/40 px-3 py-2 font-medium text-foreground">{{ row.field }}</td>
+                      <td class="px-3 py-2 text-muted-foreground"><code class="font-mono text-xs text-foreground/90">{{ row.value }}</code></td>
                     </tr>
                   </tbody>
                 </table>
@@ -357,12 +364,12 @@
             </div>
 
             <!-- Free tier note -->
-            <div class="rounded-lg bg-green-50 p-3 text-xs text-green-700 dark:bg-green-900/20 dark:text-green-300">
+            <div class="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300">
               {{ t('admin.backup.r2Guide.freeTier') }}
             </div>
 
-            <div class="mt-4 text-right">
-              <button type="button" class="btn btn-primary btn-sm" @click="showR2Guide = false">{{ t('common.close') }}</button>
+            <div class="mt-5 text-right">
+              <button type="button" class="btn btn-primary h-9 px-4 text-xs" @click="showR2Guide = false">{{ t('common.close') }}</button>
             </div>
           </div>
         </div>
@@ -376,35 +383,35 @@
           class="fixed inset-0 z-50 flex items-center justify-center p-4"
           @mousedown.self="closeDownloadParts"
         >
-          <div class="fixed inset-0 bg-black/50" @click="closeDownloadParts"></div>
-          <div class="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-2xl dark:bg-dark-800">
+          <div class="fixed inset-0 bg-black/50 backdrop-blur-xs" @click="closeDownloadParts"></div>
+          <div class="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-popover p-6 text-popover-foreground shadow-xl">
             <button
               type="button"
-              class="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              class="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               :aria-label="t('common.close')"
               @click="closeDownloadParts"
             >
               <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <h2 class="mb-1 text-lg font-bold text-gray-900 dark:text-white">{{ t('admin.backup.actions.downloadParts') }}</h2>
-            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">{{ t('admin.backup.actions.downloadPartsHint') }}</p>
+            <h2 class="mb-1 text-lg font-semibold tracking-tight text-foreground">{{ t('admin.backup.actions.downloadParts') }}</h2>
+            <p class="mb-4 text-sm text-muted-foreground">{{ t('admin.backup.actions.downloadPartsHint') }}</p>
             <div class="space-y-2">
               <div
                 v-for="part in downloadParts"
                 :key="part.index"
-                class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 dark:border-dark-600"
+                class="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-muted/30 px-3.5 py-2.5"
               >
-                <span class="text-sm text-gray-700 dark:text-gray-300">
+                <span class="text-sm text-foreground">
                   {{ t('admin.backup.actions.partLabel', { index: part.index }) }}
-                  <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">{{ formatSize(part.size_bytes) }}</span>
+                  <span class="ml-2 text-xs tabular-nums text-muted-foreground">{{ formatSize(part.size_bytes) }}</span>
                 </span>
                 <a :href="part.url" class="btn btn-secondary btn-xs" rel="noopener">
                   {{ t('admin.backup.actions.download') }}
                 </a>
               </div>
             </div>
-            <div class="mt-4 text-right">
-              <button type="button" class="btn btn-primary btn-sm" @click="closeDownloadParts">{{ t('common.close') }}</button>
+            <div class="mt-5 text-right">
+              <button type="button" class="btn btn-primary h-9 px-4 text-xs" @click="closeDownloadParts">{{ t('common.close') }}</button>
             </div>
           </div>
         </div>
@@ -429,6 +436,7 @@ import type {
 import { useStepUp, isStepUpBlocked, isStepUpCancelled, stepUpBlockReason } from '@/composables/useStepUp'
 import TotpStepUpDialog from '@/components/auth/TotpStepUpDialog.vue'
 import BackupArchiveSettings from '@/components/admin/BackupArchiveSettings.vue'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -891,13 +899,13 @@ async function removeBackup(id: string) {
 function statusClass(status: string): string {
   switch (status) {
     case 'completed':
-      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+      return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
     case 'running':
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+      return 'bg-sky-500/15 text-sky-700 dark:text-sky-300'
     case 'failed':
-      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+      return 'bg-destructive/15 text-destructive'
     default:
-      return 'bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-gray-300'
+      return 'bg-muted text-muted-foreground'
   }
 }
 

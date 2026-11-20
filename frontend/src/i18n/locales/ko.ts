@@ -641,7 +641,17 @@ export default {
     "docs": "문서",
     "channelStatus": "채널 상태",
     "recharge": "충전",
-    "mySubscriptions": "내 구독"
+    "mySubscriptions": "내 구독",
+    "sections": {
+      "overview": "개요 및 모니터링",
+      "resources": "사용자 및 리소스",
+      "operations": "운영 및 재무",
+      "system": "보안 및 시스템",
+      "workspace": "워크스페이스",
+      "services": "서비스 및 채널",
+      "billing": "결제 및 혜택",
+      "account": "계정 설정"
+    }
   },
   "seo": {
     "home": {
@@ -655,6 +665,70 @@ export default {
     "docs": {
       "title": "API 문서",
       "description": "AI API 연동, 클라이언트 설정, API 키 관리 가이드를 확인하세요."
+    }
+  },
+  "themeConfig": {
+    "title": "외관 설정",
+    "description": "테마 모드, 색상 프리셋, 모서리 둥글기, 글꼴 및 레이아웃을 사용자 지정합니다.",
+    "openSettings": "테마 설정",
+    "theme": "테마",
+    "appearance": "외관",
+    "modes": {
+      "system": "시스템",
+      "light": "라이트",
+      "dark": "다크"
+    },
+    "colorPreset": "색상 프리셋",
+    "presets": {
+      "default": "기본",
+      "anthropic": "Anthropic",
+      "roseGarden": "로즈 가든",
+      "lakeView": "레이크 뷰",
+      "sunsetGlow": "선셋 글로우",
+      "forestWhisper": "포레스트",
+      "oceanBreeze": "오션 브리즈",
+      "lavenderDream": "라벤더",
+      "neutral": "모노크롬"
+    },
+    "radius": "모서리 둥글기",
+    "radiusOptions": {
+      "none": "0",
+      "sm": "SM",
+      "md": "MD",
+      "lg": "LG"
+    },
+    "font": "글꼴",
+    "fontOptions": {
+      "system": "시스템",
+      "sans": "산세리프",
+      "serif": "세리프"
+    },
+    "sidebarStyle": "사이드바 스타일",
+    "sidebarVariants": {
+      "inset": "인셋",
+      "floating": "플로팅",
+      "sidebar": "클래식"
+    },
+    "reset": "기본값으로 복원"
+  },
+  "commandMenu": {
+    "title": "명령 메뉴",
+    "placeholder": "페이지 또는 명령 검색...",
+    "empty": "일치하는 결과가 없습니다.",
+    "groups": {
+      "navigation": "탐색",
+      "theme": "테마"
+    },
+    "actions": {
+      "switchToLight": "라이트 모드로 전환",
+      "switchToDark": "다크 모드로 전환",
+      "switchToSystem": "시스템 테마 따르기",
+      "openThemeSettings": "외관 설정 열기"
+    },
+    "hints": {
+      "navigate": "이동",
+      "select": "선택",
+      "close": "닫기"
     }
   }
 }

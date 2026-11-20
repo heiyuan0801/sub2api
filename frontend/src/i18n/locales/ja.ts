@@ -641,7 +641,17 @@ export default {
     "docs": "ドキュメント",
     "channelStatus": "チャネルの状態",
     "recharge": "チャージ",
-    "mySubscriptions": "マイサブスクリプション"
+    "mySubscriptions": "マイサブスクリプション",
+    "sections": {
+      "overview": "概要・監視",
+      "resources": "ユーザー・リソース",
+      "operations": "運用・財務",
+      "system": "セキュリティ・システム",
+      "workspace": "ワークスペース",
+      "services": "サービス・チャネル",
+      "billing": "請求・特典",
+      "account": "アカウント設定"
+    }
   },
   "seo": {
     "home": {
@@ -655,6 +665,70 @@ export default {
     "docs": {
       "title": "APIドキュメント",
       "description": "AI APIの接続、クライアントの設定、APIキーの管理方法をご案内します。"
+    }
+  },
+  "themeConfig": {
+    "title": "外観設定",
+    "description": "テーマモード、カラープリセット、角丸、フォント、レイアウトをカスタマイズします。",
+    "openSettings": "テーマ設定",
+    "theme": "テーマ",
+    "appearance": "外観",
+    "modes": {
+      "system": "システム",
+      "light": "ライト",
+      "dark": "ダーク"
+    },
+    "colorPreset": "カラープリセット",
+    "presets": {
+      "default": "デフォルト",
+      "anthropic": "Anthropic",
+      "roseGarden": "ローズガーデン",
+      "lakeView": "レイクビュー",
+      "sunsetGlow": "サンセット",
+      "forestWhisper": "フォレスト",
+      "oceanBreeze": "オーシャン",
+      "lavenderDream": "ラベンダー",
+      "neutral": "モノクロ"
+    },
+    "radius": "角丸",
+    "radiusOptions": {
+      "none": "0",
+      "sm": "SM",
+      "md": "MD",
+      "lg": "LG"
+    },
+    "font": "フォント",
+    "fontOptions": {
+      "system": "システム",
+      "sans": "サンセリフ",
+      "serif": "セリフ"
+    },
+    "sidebarStyle": "サイドバーのスタイル",
+    "sidebarVariants": {
+      "inset": "インセット",
+      "floating": "フローティング",
+      "sidebar": "クラシック"
+    },
+    "reset": "デフォルトに戻す"
+  },
+  "commandMenu": {
+    "title": "コマンドメニュー",
+    "placeholder": "ページやコマンドを検索...",
+    "empty": "一致する結果が見つかりません。",
+    "groups": {
+      "navigation": "ナビゲーション",
+      "theme": "テーマ"
+    },
+    "actions": {
+      "switchToLight": "ライトモードに切り替え",
+      "switchToDark": "ダークモードに切り替え",
+      "switchToSystem": "システムテーマに従う",
+      "openThemeSettings": "外観設定を開く"
+    },
+    "hints": {
+      "navigate": "移動",
+      "select": "選択",
+      "close": "閉じる"
     }
   }
 }

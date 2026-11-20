@@ -1,80 +1,156 @@
 <template>
   <AppLayout>
-    <div class="space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-semibold">{{ t('operations.registrationSources') }}</h1>
-          <p class="mt-1 text-sm text-muted-foreground">{{ t('operations.registrationDescription') }}</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary gap-2" @click="showCampaignLink = true">
+    <div class="space-y-6">
+      <PageHeader
+        :title="t('operations.registrationSources')"
+        :description="t('operations.registrationDescription')"
+      >
+        <template #actions>
+          <button type="button" class="btn btn-secondary" @click="showCampaignLink = true">
             <Icon name="link" size="sm" aria-hidden="true" />
             {{ t('operations.campaignLink.title') }}
           </button>
           <button type="button" class="btn btn-secondary" :disabled="exporting || loading" @click="downloadCSV">
+            <Icon name="download" size="sm" aria-hidden="true" />
             {{ t('operations.exportCSV') }}
+          </button>
+        </template>
+      </PageHeader>
+
+      <!-- Filter Toolbar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="inline-flex flex-wrap items-center rounded-full border border-border bg-background p-0.5">
+            <button
+              v-for="opt in rangeOptions"
+              :key="opt.value"
+              type="button"
+              :class="[
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                range === opt.value
+                  ? 'bg-foreground text-background shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              ]"
+              @click="selectRange(opt.value)"
+            >
+              {{ t(opt.label) }}
+            </button>
+          </div>
+          <DateRangePicker
+            v-if="range === 'custom'"
+            v-model:start-date="startDate"
+            v-model:end-date="endDate"
+            @change="reload"
+          />
+        </div>
+
+        <div class="inline-flex items-center rounded-full border border-border bg-background p-0.5">
+          <button
+            v-for="opt in dimensionOptions"
+            :key="opt.value"
+            type="button"
+            :class="[
+              'rounded-full px-3 py-1 text-xs font-medium transition-colors',
+              dimension === opt.value
+                ? 'bg-foreground text-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            ]"
+            @click="selectDimension(opt.value)"
+          >
+            {{ t(opt.label) }}
           </button>
         </div>
       </div>
 
-      <div class="card flex flex-wrap items-end gap-4 p-4">
-        <div>
-          <label for="source-range" class="input-label">{{ t('admin.dashboard.timeRange') }}</label>
-          <select id="source-range" v-model="range" class="input" @change="reload">
-            <option value="today">{{ t('dates.today') }}</option>
-            <option value="7d">{{ t('dates.last7Days') }}</option>
-            <option value="30d">{{ t('dates.last30Days') }}</option>
-            <option value="custom">{{ t('operations.customRange') }}</option>
-          </select>
+      <!-- KPI Metric Cards -->
+      <div v-if="loading && !summary" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          v-for="i in 4"
+          :key="`reg-kpi-sk-${i}`"
+          class="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <Skeleton class="h-3.5 w-24" />
+            <Skeleton class="size-9 rounded-full" />
+          </div>
+          <Skeleton class="mt-3 h-7 w-20" />
         </div>
-        <DateRangePicker v-if="range === 'custom'" v-model:start-date="startDate" v-model:end-date="endDate" @change="reload" />
-        <div>
-          <label for="source-dimension" class="input-label">{{ t('operations.registrationSources') }}</label>
-          <select id="source-dimension" v-model="dimension" class="input" @change="reload">
-            <option value="selected">{{ t('operations.selectedSource') }}</option>
-            <option value="utm">{{ t('operations.utmSource') }}</option>
-          </select>
+      </div>
+      <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          v-for="metric in metrics"
+          :key="metric.label"
+          class="flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-5 shadow-sm"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <p class="truncate text-xs font-medium text-muted-foreground">{{ t(metric.label) }}</p>
+            <div
+              :class="[
+                'flex size-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm',
+                metric.iconBg
+              ]"
+            >
+              <Icon :name="metric.icon" size="sm" :stroke-width="2" />
+            </div>
+          </div>
+          <p class="mt-3 truncate text-2xl font-bold tracking-tight tabular-nums text-foreground">
+            {{ metric.value == null ? '—' : number(metric.value) }}
+          </p>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <div v-for="metric in metrics" :key="metric.label" class="card min-w-0 p-4">
-          <div class="text-sm text-muted-foreground">{{ t(metric.label) }}</div>
-          <div class="mt-2 text-2xl font-semibold tabular-nums">{{ metric.value == null ? '—' : number(metric.value) }}</div>
-        </div>
-      </div>
-
+      <!-- Charts -->
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div class="card min-w-0 p-4 lg:col-span-2">
-          <h2 class="mb-3 font-medium">{{ t('operations.signupTrend') }}</h2>
-          <div v-if="trend.labels.length" class="h-64">
+        <div class="min-w-0 rounded-2xl border border-border/80 bg-card p-5 shadow-sm lg:col-span-2">
+          <h2 class="mb-4 text-sm font-semibold tracking-tight text-foreground">{{ t('operations.signupTrend') }}</h2>
+          <Skeleton v-if="loading && !trend.labels.length" class="h-64 w-full rounded-xl" />
+          <div v-else-if="trend.labels.length" class="h-64">
             <Line :data="trend" :options="trendOptions" :aria-label="t('operations.signupTrend')" />
           </div>
-          <p v-else class="py-10 text-center text-sm text-muted-foreground">{{ loading ? t('common.loading') : t('empty.noData') }}</p>
+          <p v-else class="flex h-64 items-center justify-center text-sm text-muted-foreground">
+            {{ t('empty.noData') }}
+          </p>
         </div>
-        <div class="card min-w-0 p-4">
-          <h2 class="mb-3 font-medium">{{ t('operations.sourceShare') }}</h2>
-          <div v-if="rankings.length" class="mx-auto h-64 max-w-72">
+        <div class="min-w-0 rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
+          <h2 class="mb-4 text-sm font-semibold tracking-tight text-foreground">{{ t('operations.sourceShare') }}</h2>
+          <Skeleton v-if="loading && !rankings.length" class="mx-auto size-56 rounded-full" />
+          <div v-else-if="rankings.length" class="mx-auto h-64 max-w-72">
             <Doughnut :data="distribution" :options="distributionOptions" :aria-label="t('operations.sourceShare')" />
           </div>
-          <p v-else class="py-10 text-center text-sm text-muted-foreground">{{ loading ? t('common.loading') : t('empty.noData') }}</p>
+          <p v-else class="flex h-64 items-center justify-center text-sm text-muted-foreground">
+            {{ t('empty.noData') }}
+          </p>
         </div>
       </div>
 
-      <div class="space-y-2">
-        <h2 class="font-medium">{{ t('operations.rankings') }}</h2>
-        <DataTable :columns="rankColumns" :data="rankings" row-key="source" :loading="loading">
-          <template #cell-source="{ value }">
-            <button type="button" class="font-medium text-primary-600 hover:underline dark:text-primary-400" @click="selectSource(value)">{{ sourceLabel(value) }}</button>
-          </template>
-          <template #cell-count="{ value }">{{ number(value) }}</template>
-          <template #cell-percentage="{ value }">{{ number(value, 2) }}%</template>
-        </DataTable>
-      </div>
+      <!-- Rankings Table -->
+      <section class="space-y-3">
+        <h2 class="text-sm font-semibold tracking-tight text-foreground">{{ t('operations.rankings') }}</h2>
+        <div class="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <DataTable :columns="rankColumns" :data="rankings" row-key="source" :loading="loading">
+            <template #cell-source="{ value }">
+              <button
+                type="button"
+                class="font-medium text-foreground underline-offset-4 transition-colors hover:underline"
+                @click="selectSource(value)"
+              >
+                {{ sourceLabel(value) }}
+              </button>
+            </template>
+            <template #cell-count="{ value }">
+              <span class="font-medium tabular-nums text-foreground">{{ number(value) }}</span>
+            </template>
+            <template #cell-percentage="{ value }">
+              <span class="tabular-nums text-muted-foreground">{{ number(value, 2) }}%</span>
+            </template>
+          </DataTable>
+        </div>
+      </section>
 
+      <!-- Users Table -->
       <section ref="usersSection" class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="font-medium">{{ t('operations.usersInRange') }}</h2>
+          <h2 class="text-sm font-semibold tracking-tight text-foreground">{{ t('operations.usersInRange') }}</h2>
           <label class="min-w-48">
             <span class="sr-only">{{ t('operations.allSources') }}</span>
             <select v-model="source" class="input" @change="setPage(1)">
@@ -83,17 +159,31 @@
             </select>
           </label>
         </div>
-        <DataTable :columns="userColumns" :data="userRows" :loading="usersLoading">
-          <template #cell-selected_source="{ row }">
-            {{ selectedLabel(row.selected_source) }}
-            <div v-if="row.source_note" class="mt-0.5 break-words text-xs text-muted-foreground">{{ row.source_note }}</div>
-          </template>
-          <template #cell-utm_source="{ row }">
-            {{ row.utm_source || '—' }}
-            <div v-if="row.utm_campaign" class="mt-0.5 break-words text-xs text-muted-foreground">{{ row.utm_campaign }}</div>
-          </template>
-          <template #cell-created_at="{ value }">{{ formatDateTime(value) }}</template>
-        </DataTable>
+        <div class="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+          <DataTable :columns="userColumns" :data="userRows" :loading="usersLoading">
+            <template #cell-id="{ value }">
+              <span class="font-mono text-xs tabular-nums text-muted-foreground">{{ value }}</span>
+            </template>
+            <template #cell-selected_source="{ row }">
+              <span class="text-foreground">{{ selectedLabel(row.selected_source) }}</span>
+              <div v-if="row.source_note" class="mt-0.5 break-words text-xs text-muted-foreground">{{ row.source_note }}</div>
+            </template>
+            <template #cell-utm_source="{ row }">
+              <span class="text-foreground">{{ row.utm_source || '—' }}</span>
+              <div v-if="row.utm_campaign" class="mt-0.5 break-words text-xs text-muted-foreground">{{ row.utm_campaign }}</div>
+            </template>
+            <template #cell-promo_code="{ value }">
+              <code
+                v-if="value"
+                class="rounded border border-border/60 bg-muted px-2 py-0.5 font-mono text-xs tabular-nums text-foreground"
+              >{{ value }}</code>
+              <span v-else class="text-muted-foreground">—</span>
+            </template>
+            <template #cell-created_at="{ value }">
+              <span class="tabular-nums text-muted-foreground">{{ formatDateTime(value) }}</span>
+            </template>
+          </DataTable>
+        </div>
         <Pagination
           v-if="total"
           :page="page"
@@ -117,8 +207,10 @@ import {
 import { Doughnut, Line } from 'vue-chartjs'
 import { getRegistrationSources, listRegistrationSourceUsers, exportRegistrationSources } from '@/api/admin/registrationSources'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import RegistrationCampaignLinkDialog from '@/components/admin/registration/RegistrationCampaignLinkDialog.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { Skeleton } from '@/components/ui/skeleton'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
@@ -133,6 +225,16 @@ const { t, locale } = useI18n()
 const app = useAppStore()
 const range = ref<RegistrationSourceQuery['range']>('7d')
 const dimension = ref<RegistrationSourceQuery['dimension']>('selected')
+const rangeOptions: Array<{ value: RegistrationSourceQuery['range']; label: string }> = [
+  { value: 'today', label: 'dates.today' },
+  { value: '7d', label: 'dates.last7Days' },
+  { value: '30d', label: 'dates.last30Days' },
+  { value: 'custom', label: 'operations.customRange' },
+]
+const dimensionOptions: Array<{ value: RegistrationSourceQuery['dimension']; label: string }> = [
+  { value: 'selected', label: 'operations.selectedSource' },
+  { value: 'utm', label: 'operations.utmSource' },
+]
 const today = new Date()
 const weekStart = new Date(today)
 weekStart.setDate(today.getDate() - 6)
@@ -153,11 +255,23 @@ let summaryRequest: AbortController | undefined
 let usersRequest: AbortController | undefined
 
 const metrics = computed(() => [
-  { label: 'operations.totalRegistrations', value: summary.value?.total_registrations },
-  { label: 'operations.todayRegistrations', value: summary.value?.today_registrations },
-  { label: 'operations.rangeRegistrations', value: summary.value?.range_registrations },
-  { label: 'operations.unreported', value: summary.value?.unreported_count },
+  { label: 'operations.totalRegistrations', value: summary.value?.total_registrations, icon: 'users' as const, iconBg: 'bg-blue-500' },
+  { label: 'operations.todayRegistrations', value: summary.value?.today_registrations, icon: 'userPlus' as const, iconBg: 'bg-emerald-500' },
+  { label: 'operations.rangeRegistrations', value: summary.value?.range_registrations, icon: 'trendingUp' as const, iconBg: 'bg-violet-500' },
+  { label: 'operations.unreported', value: summary.value?.unreported_count, icon: 'questionCircle' as const, iconBg: 'bg-amber-500' },
 ])
+
+function selectRange(value: RegistrationSourceQuery['range']) {
+  if (range.value === value) return
+  range.value = value
+  void reload()
+}
+
+function selectDimension(value: RegistrationSourceQuery['dimension']) {
+  if (dimension.value === value) return
+  dimension.value = value
+  void reload()
+}
 const rankings = computed(() => [...(summary.value?.channels ?? [])].sort((a, b) => b.count - a.count || a.source.localeCompare(b.source)))
 const rankColumns = computed(() => [
   { key: 'source', label: t('operations.registrationSources') },

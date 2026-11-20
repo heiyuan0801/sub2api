@@ -1,15 +1,33 @@
 <template>
   <AppLayout>
-    <div class="space-y-4">
+    <div class="space-y-6">
+      <PageHeader :title="t('nav.myOrders')">
+        <template #actions>
+          <button
+            type="button"
+            class="btn btn-primary h-9 px-3.5 text-sm"
+            @click="router.push('/purchase')"
+          >
+            {{ t('payment.result.backToRecharge') }}
+          </button>
+        </template>
+      </PageHeader>
+
       <!-- Filters -->
-      <div class="card p-4">
-        <div class="flex flex-wrap items-center gap-3">
-          <Select v-model="currentFilter" :options="statusFilters" class="w-36" @change="handlePageChange(1)" />
-          <div class="flex flex-1 items-center justify-end gap-2">
-            <button @click="fetchOrders" :disabled="loading" class="btn btn-secondary" :title="t('common.refresh')">
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+      <div class="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <Select v-model="currentFilter" :options="statusFilters" class="w-40" @change="handlePageChange(1)" />
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="fetchOrders"
+              :disabled="loading"
+              class="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50"
+              :title="t('common.refresh')"
+            >
+              <Icon name="refresh" size="xs" :stroke-width="1.75" :class="loading ? 'animate-spin' : ''" />
+              <span>{{ t('common.refresh') }}</span>
             </button>
-            <button class="btn btn-primary" @click="router.push('/purchase')">{{ t('payment.result.backToRecharge') }}</button>
           </div>
         </div>
       </div>
@@ -18,12 +36,22 @@
       <OrderTable :orders="orders" :loading="loading">
         <template #actions="{ row }">
           <div class="flex items-center gap-2">
-            <button v-if="row.status === 'PENDING'" @click="handleCancel(row.id)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
-              <Icon name="x" size="sm" />
+            <button
+              v-if="row.status === 'PENDING'"
+              type="button"
+              @click="handleCancel(row.id)"
+              class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+            >
+              <Icon name="x" size="xs" />
               <span>{{ t('payment.orders.cancel') }}</span>
             </button>
-            <button v-if="canRequestRefund(row)" @click="openRefundDialog(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
-              <Icon name="dollar" size="sm" />
+            <button
+              v-if="canRequestRefund(row)"
+              type="button"
+              @click="openRefundDialog(row)"
+              class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-violet-600 transition-colors hover:bg-violet-500/10 dark:text-violet-400"
+            >
+              <Icon name="dollar" size="xs" />
               <span>{{ t('payment.orders.requestRefund') }}</span>
             </button>
           </div>
@@ -43,11 +71,11 @@
 
     <!-- Cancel Confirm Dialog -->
     <BaseDialog :show="!!cancelTargetId" :title="t('payment.orders.cancel')" width="narrow" @close="cancelTargetId = null">
-      <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('payment.confirmCancel') }}</p>
+      <p class="text-sm text-muted-foreground">{{ t('payment.confirmCancel') }}</p>
       <template #footer>
-        <div class="flex justify-end gap-3">
-          <button class="btn btn-secondary" @click="cancelTargetId = null">{{ t('common.cancel') }}</button>
-          <button class="btn btn-danger" :disabled="actionLoading" @click="confirmCancel">{{ actionLoading ? t('common.processing') : t('payment.orders.cancel') }}</button>
+        <div class="flex justify-end gap-2.5">
+          <button type="button" class="btn btn-secondary h-9 px-3.5 text-sm" @click="cancelTargetId = null">{{ t('common.cancel') }}</button>
+          <button type="button" class="btn btn-danger h-9 px-3.5 text-sm" :disabled="actionLoading" @click="confirmCancel">{{ actionLoading ? t('common.processing') : t('payment.orders.cancel') }}</button>
         </div>
       </template>
     </BaseDialog>
@@ -55,25 +83,30 @@
     <!-- Refund Dialog -->
     <BaseDialog :show="!!refundTarget" :title="t('payment.orders.requestRefund')" @close="refundTarget = null">
       <div v-if="refundTarget" class="space-y-4">
-        <div class="rounded-xl bg-gray-50 p-4 dark:bg-dark-800">
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.orderId') }}</span>
-            <span class="font-mono text-gray-900 dark:text-white">#{{ refundTarget.id }}</span>
+        <div class="divide-y divide-border/70 rounded-xl border border-border/80 bg-muted/40 px-4">
+          <div class="flex justify-between py-3 text-sm">
+            <span class="text-muted-foreground">{{ t('payment.orders.orderId') }}</span>
+            <span class="font-mono font-medium tabular-nums text-foreground">#{{ refundTarget.id }}</span>
           </div>
-          <div class="mt-2 flex justify-between text-sm">
-            <span class="text-gray-500 dark:text-gray-400">{{ t('payment.orders.amount') }}</span>
-            <span class="text-gray-900 dark:text-white">${{ refundTarget.amount.toFixed(2) }}</span>
+          <div class="flex justify-between py-3 text-sm">
+            <span class="text-muted-foreground">{{ t('payment.orders.amount') }}</span>
+            <span class="font-semibold tabular-nums text-foreground">${{ refundTarget.amount.toFixed(2) }}</span>
           </div>
         </div>
         <div>
-          <label class="input-label">{{ t('payment.refundReason') }}</label>
-          <textarea v-model="refundReason" rows="3" class="input mt-1 w-full" :placeholder="t('payment.refundReasonPlaceholder')" />
+          <label class="mb-1.5 block text-sm font-medium text-foreground">{{ t('payment.refundReason') }}</label>
+          <textarea
+            v-model="refundReason"
+            rows="3"
+            class="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            :placeholder="t('payment.refundReasonPlaceholder')"
+          />
         </div>
       </div>
       <template #footer>
-        <div class="flex justify-end gap-3">
-          <button class="btn btn-secondary" @click="refundTarget = null">{{ t('common.cancel') }}</button>
-          <button class="btn btn-primary" :disabled="actionLoading || !refundReason.trim()" @click="confirmRefund">{{ actionLoading ? t('common.processing') : t('payment.orders.requestRefund') }}</button>
+        <div class="flex justify-end gap-2.5">
+          <button type="button" class="btn btn-secondary h-9 px-3.5 text-sm" @click="refundTarget = null">{{ t('common.cancel') }}</button>
+          <button type="button" class="btn btn-primary h-9 px-3.5 text-sm" :disabled="actionLoading || !refundReason.trim()" @click="confirmRefund">{{ actionLoading ? t('common.processing') : t('payment.orders.requestRefund') }}</button>
         </div>
       </template>
     </BaseDialog>
@@ -89,6 +122,7 @@ import { paymentAPI } from '@/api/payment'
 import { extractI18nErrorMessage } from '@/utils/apiError'
 import type { PaymentOrder } from '@/types/payment'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Select from '@/components/common/Select.vue'

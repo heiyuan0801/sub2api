@@ -1,21 +1,36 @@
 <template>
-  <header class="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur-xl lg:rounded-t-xl">
-    <div class="flex h-16 items-center justify-between gap-2 px-2 sm:px-4 md:px-6">
-      <!-- Left: Mobile Menu Toggle + Page Title -->
-      <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+  <header
+    class="sticky top-0 z-30 h-12 w-full shrink-0 bg-background/90 backdrop-blur-md"
+    :class="themeStore.sidebarVariant === 'inset' ? 'lg:rounded-t-xl' : ''"
+  >
+    <div class="flex h-full items-center justify-between gap-2 px-3 sm:px-5 md:px-6">
+      <!-- Left: Sidebar Trigger + Divider + Page Title -->
+      <div class="flex min-w-0 items-center gap-2">
         <button
+          type="button"
           @click="toggleMobileSidebar"
-          class="btn-ghost btn-icon lg:hidden"
+          class="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground lg:hidden"
           :aria-label="t('common.toggleMenu')"
         >
-          <Icon name="menu" size="md" />
+          <Icon name="menu" size="sm" />
         </button>
 
-        <Button type="button" variant="ghost" size="icon-sm" class="hidden lg:inline-flex" :aria-label="t('common.toggleMenu')" @click="appStore.toggleSidebar()"><PanelLeft :size="17" /></Button>
-        <span class="hidden h-4 w-px bg-border lg:block" aria-hidden="true"></span>
-        <span class="hidden text-xs text-muted-foreground xl:block">{{ t('design.workspace') }}</span><ChevronRight :size="13" class="hidden text-muted-foreground xl:block" />
-        <div class="hidden lg:block">
-          <h1 class="text-sm font-medium text-foreground">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          class="hidden size-8 shrink-0 text-muted-foreground hover:text-foreground lg:inline-flex"
+          :aria-label="t('common.toggleMenu')"
+          :title="sidebarShortcutTitle"
+          @click="appStore.toggleSidebar()"
+        >
+          <PanelLeft :size="16" :stroke-width="1.75" />
+        </Button>
+
+        <span class="h-3.5 w-px shrink-0 bg-border" aria-hidden="true"></span>
+
+        <div class="min-w-0 pl-1">
+          <h1 class="truncate text-sm font-medium text-foreground">
             {{ pageTitle }}
           </h1>
           <p v-if="pageDescription" class="sr-only">
@@ -24,7 +39,22 @@
         </div>
       </div>
 
-      <div class="flex min-w-0 items-center gap-1 sm:gap-3">
+      <div class="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <!-- Command Menu Trigger -->
+        <button
+          type="button"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input bg-muted/40 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground md:w-auto md:gap-2 md:px-2.5"
+          :aria-label="t('common.search')"
+          :title="t('common.search')"
+          @click="themeStore.setCommandMenuOpen(true)"
+        >
+          <Search :size="14" class="shrink-0" />
+          <span class="hidden md:inline">{{ t('common.search') }}</span>
+          <kbd class="pointer-events-none hidden h-5 select-none items-center rounded border border-border bg-background px-1.5 font-mono text-[10px] font-medium text-muted-foreground md:inline-flex">
+            {{ commandShortcut }}
+          </kbd>
+        </button>
+
         <WebsiteStatusLink v-if="user" live />
 
         <!-- Announcement Bell -->
@@ -36,13 +66,18 @@
           :href="docUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white sm:flex"
+          class="hidden h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:inline-flex"
         >
           <Icon name="book" size="sm" />
           <span class="hidden sm:inline">{{ t('nav.docs') }}</span>
         </a>
 
-        <RouterLink v-else to="/docs" :aria-label="t('docs.title')" class="btn-ghost btn-icon hidden sm:inline-flex">
+        <RouterLink
+          v-else
+          to="/docs"
+          :aria-label="t('docs.title')"
+          class="hidden h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:inline-flex"
+        >
           <Icon name="book" size="sm" />
         </RouterLink>
 
@@ -52,7 +87,7 @@
           :to="{ path: '/model-plaza', query: { embedded: '1' } }"
           :title="t('nav.modelPlaza')"
           :aria-label="t('nav.modelPlaza')"
-          class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 dark:text-dark-400 dark:hover:bg-dark-800 dark:hover:text-white"
+          class="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:px-2.5"
         >
           <Icon name="grid" size="sm" />
           <span class="hidden sm:inline">{{ t('nav.modelPlaza') }}</span>
@@ -67,10 +102,10 @@
         <!-- Balance Display -->
         <div
           v-if="user"
-          class="group relative hidden items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 dark:border-dark-700 dark:bg-dark-800 sm:flex"
+          class="group relative hidden h-8 items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2.5 text-xs font-semibold tabular-nums text-foreground transition-colors hover:bg-muted/70 sm:flex"
         >
           <svg
-            class="h-4 w-4 text-gray-500 dark:text-gray-400"
+            class="size-3.5 shrink-0 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -82,43 +117,47 @@
               d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
             />
           </svg>
-          <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <span>
             {{ formatHeaderMoney(availableBalance) }}
           </span>
           <span
             v-if="frozenBalance > 0"
-            class="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-200"
+            class="rounded bg-amber-500/15 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300"
           >
             {{ balanceFrozenLabel }}
           </span>
           <div
-            class="pointer-events-none absolute right-0 top-full mt-2 hidden w-56 rounded-lg border border-gray-200 bg-white p-3 text-xs shadow-lg group-hover:block dark:border-dark-700 dark:bg-dark-800"
+            class="pointer-events-none absolute right-0 top-full z-50 mt-2 hidden w-56 rounded-lg border border-border bg-popover p-3 text-xs text-popover-foreground shadow-md group-hover:block"
           >
             <div class="flex items-center justify-between">
-              <span class="text-gray-500 dark:text-dark-400">{{ balanceAvailableText }}</span>
-              <span class="font-medium text-gray-900 dark:text-white">{{ formatHeaderMoney(availableBalance) }}</span>
+              <span class="text-muted-foreground">{{ balanceAvailableText }}</span>
+              <span class="font-medium tabular-nums text-popover-foreground">{{ formatHeaderMoney(availableBalance) }}</span>
             </div>
             <div class="mt-2 flex items-center justify-between">
-              <span class="text-gray-500 dark:text-dark-400">{{ balanceFrozenText }}</span>
-              <span class="font-medium text-amber-700 dark:text-amber-200">{{ formatHeaderMoney(frozenBalance) }}</span>
+              <span class="text-muted-foreground">{{ balanceFrozenText }}</span>
+              <span class="font-medium tabular-nums text-amber-700 dark:text-amber-300">{{ formatHeaderMoney(frozenBalance) }}</span>
             </div>
-            <div class="mt-2 border-t border-gray-100 pt-2 dark:border-dark-700">
+            <div class="mt-2 border-t border-border pt-2">
               <div class="flex items-center justify-between">
-                <span class="text-gray-500 dark:text-dark-400">{{ balanceTotalText }}</span>
-                <span class="font-semibold text-gray-900 dark:text-white">{{ formatHeaderMoney(totalBalance) }}</span>
+                <span class="text-muted-foreground">{{ balanceTotalText }}</span>
+                <span class="font-semibold tabular-nums text-popover-foreground">{{ formatHeaderMoney(totalBalance) }}</span>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- Theme Settings Drawer -->
+        <ThemeConfigDrawer />
+
         <!-- User Dropdown -->
         <div v-if="user" class="relative" ref="dropdownRef">
           <button
+            type="button"
             @click="toggleDropdown"
-            class="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-dark-800"
+            class="inline-flex h-8 items-center gap-2 rounded-md px-1.5 transition-colors hover:bg-accent hover:text-accent-foreground"
             :aria-label="t('common.userMenu')"
           >
-            <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-gray-900 text-sm font-medium text-white dark:bg-gray-100 dark:text-gray-900">
+            <div class="flex size-7 items-center justify-center overflow-hidden rounded-md bg-primary text-xs font-medium text-primary-foreground">
               <img
                 v-if="avatarUrl"
                 :src="avatarUrl"
@@ -127,42 +166,47 @@
               >
               <span v-else>{{ userInitials }}</span>
             </div>
-            <div class="hidden text-left md:block">
-              <div class="text-sm font-medium text-gray-900 dark:text-white">
+            <div class="hidden max-w-[120px] text-left leading-tight md:block">
+              <div class="truncate text-xs font-medium text-foreground">
                 {{ displayName }}
               </div>
-              <div class="text-xs text-gray-500 dark:text-dark-400">
+              <div class="truncate text-[11px] text-muted-foreground">
                 {{ t('admin.users.roles.' + user.role) }}
               </div>
             </div>
-            <Icon name="chevronDown" size="sm" class="hidden text-gray-400 md:block" />
+            <Icon name="chevronDown" size="xs" class="hidden text-muted-foreground md:block" />
           </button>
 
           <!-- Dropdown Menu -->
           <transition name="dropdown">
-            <div v-if="dropdownOpen" class="dropdown right-0 mt-2 w-56">
+            <div v-if="dropdownOpen" class="dropdown right-0 mt-2 w-60">
               <!-- User Info -->
-              <div class="border-b border-gray-100 px-4 py-3 dark:border-dark-700">
-                <div class="text-sm font-medium text-gray-900 dark:text-white">
+              <div class="border-b border-border px-2.5 py-2">
+                <div class="truncate text-sm font-medium text-popover-foreground">
                   {{ displayName }}
                 </div>
-                <div class="text-xs text-gray-500 dark:text-dark-400">{{ user.email }}</div>
+                <div class="truncate text-xs text-muted-foreground">{{ user.email }}</div>
               </div>
 
               <!-- Balance (mobile only) -->
-              <div class="border-b border-gray-100 px-4 py-2 dark:border-dark-700 sm:hidden">
-                <div class="text-xs text-gray-500 dark:text-dark-400">
+              <div class="border-b border-border px-2.5 py-2 sm:hidden">
+                <div class="text-xs text-muted-foreground">
                   {{ t('common.balance') }}
                 </div>
-                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <div class="text-sm font-semibold tabular-nums text-popover-foreground">
                   {{ formatHeaderMoney(availableBalance) }}
                 </div>
-                <div v-if="frozenBalance > 0" class="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                <div v-if="frozenBalance > 0" class="mt-1 text-xs tabular-nums text-amber-600 dark:text-amber-300">
                   {{ balanceFrozenText }} {{ formatHeaderMoney(frozenBalance) }}
                 </div>
               </div>
 
-              <div class="py-1">
+              <!-- Theme Quick Switcher -->
+              <div class="border-b border-border" @click.stop>
+                <ThemeQuickSwitcher />
+              </div>
+
+              <div class="space-y-0.5 py-1">
                 <router-link to="/profile" @click="closeDropdown" class="dropdown-item">
                   <Icon name="user" size="sm" />
                   {{ t('nav.profile') }}
@@ -181,7 +225,7 @@
                   @click="closeDropdown"
                   class="dropdown-item"
                 >
-                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="size-4" fill="currentColor" viewBox="0 0 24 24">
                     <path
                       fill-rule="evenodd"
                       clip-rule="evenodd"
@@ -190,17 +234,16 @@
                   </svg>
                   {{ t('nav.github') }}
                 </a>
-
               </div>
 
               <!-- Contact Support (only show if configured) -->
               <div
                 v-if="contactInfo"
-                class="border-t border-gray-100 px-4 py-2.5 dark:border-dark-700"
+                class="border-t border-border px-2.5 py-2"
               >
-                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <div class="flex items-center gap-2 text-xs text-muted-foreground">
                   <svg
-                    class="h-3.5 w-3.5 flex-shrink-0"
+                    class="size-3.5 shrink-0"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -213,15 +256,15 @@
                     />
                   </svg>
                   <span>{{ t('common.contactSupport') }}:</span>
-                  <span class="font-medium text-gray-700 dark:text-gray-300">{{
+                  <span class="truncate font-medium text-popover-foreground">{{
                     contactInfo
                   }}</span>
                 </div>
               </div>
 
-              <div v-if="showOnboardingButton" class="border-t border-gray-100 py-1 dark:border-dark-700">
-                <button @click="handleReplayGuide" class="dropdown-item w-full">
-                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+              <div v-if="showOnboardingButton" class="border-t border-border py-1">
+                <button type="button" @click="handleReplayGuide" class="dropdown-item w-full">
+                  <svg class="size-4" fill="currentColor" viewBox="0 0 24 24">
                     <path
                       d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 14a1 1 0 110 2 1 1 0 010-2zm1.07-7.75c0-.6-.49-1.25-1.32-1.25-.7 0-1.22.4-1.43 1.02a1 1 0 11-1.9-.62A3.41 3.41 0 0111.8 5c2.02 0 3.25 1.4 3.25 2.9 0 2-1.83 2.55-2.43 3.12-.43.4-.47.75-.47 1.23a1 1 0 01-2 0c0-1 .16-1.82 1.1-2.7.69-.64 1.82-1.05 1.82-2.06z"
                     />
@@ -230,13 +273,14 @@
                 </button>
               </div>
 
-              <div class="border-t border-gray-100 py-1 dark:border-dark-700">
+              <div class="border-t border-border py-1">
                 <button
+                  type="button"
                   @click="handleLogout"
-                  class="dropdown-item w-full text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                  class="dropdown-item w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <svg
-                    class="h-4 w-4"
+                    class="size-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -261,16 +305,19 @@
 
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { PanelLeft, ChevronRight } from '@lucide/vue'
+import { PanelLeft, Search } from '@lucide/vue'
 
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAppStore, useAuthStore, useOnboardingStore } from '@/stores'
 import { useAdminSettingsStore } from '@/stores/adminSettings'
+import { useThemeStore } from '@/stores/theme'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import SubscriptionProgressMini from '@/components/common/SubscriptionProgressMini.vue'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
+import ThemeConfigDrawer from '@/components/common/ThemeConfigDrawer.vue'
+import ThemeQuickSwitcher from '@/components/common/ThemeQuickSwitcher.vue'
 import WebsiteStatusLink from '@/components/user/monitor/WebsiteStatusLink.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { sanitizeUrl } from '@/utils/url'
@@ -285,6 +332,11 @@ const appStore = useAppStore()
 const authStore = useAuthStore()
 const adminSettingsStore = useAdminSettingsStore()
 const onboardingStore = useOnboardingStore()
+const themeStore = useThemeStore()
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+const commandShortcut = isMac ? '⌘K' : 'Ctrl K'
+const sidebarShortcut = isMac ? '⌘B' : 'Ctrl+B'
+const sidebarShortcutTitle = computed(() => `${t('common.toggleMenu')} (${sidebarShortcut})`)
 
 const user = computed(() => authStore.user)
 const dropdownOpen = ref(false)

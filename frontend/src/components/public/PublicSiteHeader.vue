@@ -52,6 +52,7 @@
           <button v-else type="button" class="public-icon-button" :aria-label="isDark ? t('publicSite.nav.lightMode') : t('publicSite.nav.darkMode')" @click="applyTheme(isDark ? 'light' : 'dark')">
             <Icon :name="isDark ? 'moon' : 'sun'" size="sm" />
           </button>
+          <ThemeConfigDrawer v-if="themeStore" :show-layout-options="false" />
           <Button v-if="authStore.isAuthenticated" as-child variant="default" size="sm" class="public-header-primary"><RouterLink :to="dashboardTarget">{{ t('publicSite.nav.enterConsole') }}</RouterLink></Button>
           <template v-else>
             <Button as-child variant="ghost" size="sm" class="public-header-login"><RouterLink :to="loginTarget">{{ t('publicSite.nav.login') }}</RouterLink></Button>
@@ -71,6 +72,7 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { getActivePinia } from 'pinia'
 import { Monitor, Moon, Sun } from '@lucide/vue'
 import { DropdownMenuContent, DropdownMenuItem, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
@@ -79,9 +81,11 @@ import { localizedPublicPath } from '@/i18n/localeConfig'
 import Icon from '@/components/icons/Icon.vue'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import AnnouncementBell from '@/components/common/AnnouncementBell.vue'
+import ThemeConfigDrawer from '@/components/common/ThemeConfigDrawer.vue'
 import WebsiteStatusLink from '@/components/user/monitor/WebsiteStatusLink.vue'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore, type ThemeMode } from '@/stores/theme'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { sanitizeUrl } from '@/utils/url'
 import { landingCopy } from './home/landingCopy'
@@ -99,11 +103,15 @@ const landingSearch = ref<HTMLInputElement | null>(null)
 const isLanding = computed(() => props.variant === 'landing')
 const copy = computed(() => landingCopy(locale.value))
 const shortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘K' : 'Ctrl K'
-const isDark = ref(document.documentElement.classList.contains('dark'))
-type ThemeMode = 'light' | 'dark' | 'system'
+const themeStore = getActivePinia() ? useThemeStore() : null
 const savedTheme = localStorage.getItem('theme')
-const themeMode = ref<ThemeMode>(savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : 'system')
-const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+const fallbackThemeMode = ref<ThemeMode>(savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : 'system')
+const fallbackIsDark = ref(document.documentElement.classList.contains('dark'))
+const systemTheme = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(prefers-color-scheme: dark)')
+  : null
+const themeMode = computed<ThemeMode>(() => (themeStore ? themeStore.mode : fallbackThemeMode.value))
+const isDark = computed<boolean>(() => (themeStore ? themeStore.isDark : fallbackIsDark.value))
 const settings = computed(() => appStore.cachedPublicSettings)
 const siteName = computed(() => settings.value?.site_name || appStore.siteName || 'Sub2API')
 const siteLogo = computed(() => sanitizeUrl(settings.value?.site_logo || appStore.siteLogo || '', { allowRelative: true, allowDataUrl: true }))
@@ -139,12 +147,19 @@ function searchModels() {
 }
 
 function synchronizeTheme() {
-  isDark.value = themeMode.value === 'dark' || (themeMode.value === 'system' && systemTheme.matches)
-  document.documentElement.classList.toggle('dark', isDark.value)
+  if (themeStore) return
+  fallbackIsDark.value =
+    fallbackThemeMode.value === 'dark' ||
+    (fallbackThemeMode.value === 'system' && Boolean(systemTheme?.matches))
+  document.documentElement.classList.toggle('dark', fallbackIsDark.value)
 }
 
 function applyTheme(mode: ThemeMode) {
-  themeMode.value = mode
+  if (themeStore) {
+    themeStore.setMode(mode)
+    return
+  }
+  fallbackThemeMode.value = mode
   if (mode === 'system') localStorage.removeItem('theme')
   else localStorage.setItem('theme', mode)
   synchronizeTheme()
@@ -167,11 +182,11 @@ function closeMobileNavigation() {
 watch(() => route.fullPath, () => { mobileOpen.value = false })
 onMounted(() => {
   if (!appStore.publicSettingsLoaded) void appStore.fetchPublicSettings()
-  systemTheme.addEventListener?.('change', synchronizeTheme)
+  if (!themeStore) systemTheme?.addEventListener?.('change', synchronizeTheme)
   if (isLanding.value) document.addEventListener('keydown', focusLandingSearch)
 })
 onBeforeUnmount(() => {
-  systemTheme.removeEventListener?.('change', synchronizeTheme)
+  if (!themeStore) systemTheme?.removeEventListener?.('change', synchronizeTheme)
   document.removeEventListener('keydown', focusLandingSearch)
 })
 </script>

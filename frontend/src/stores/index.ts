@@ -11,7 +11,15 @@ export { useOnboardingStore } from './onboarding'
 export { useAnnouncementStore } from './announcements'
 export { usePaymentStore } from './payment'
 export { useAdminComplianceStore } from './adminCompliance'
+export { useThemeStore } from './theme'
 
 // Re-export types for convenience
 export type { User, LoginRequest, RegisterRequest, AuthResponse } from '@/types'
 export type { Toast, ToastType, AppState } from '@/types'
+export type {
+  ThemeMode,
+  ThemePreset,
+  ThemeRadius,
+  ThemeFont,
+  SidebarVariant
+} from './theme'

@@ -1,101 +1,146 @@
 <template>
   <AppLayout>
     <div class="space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <RouterLink class="btn btn-secondary" to="/admin/orders/plans">
-          {{ t('nav.paymentPlans') }}
-        </RouterLink>
-        <label class="flex items-center gap-2">
-          <span class="text-sm">{{ t('planOps.filterPlan') }}</span>
-          <select v-model="planId" class="input min-w-32" @change="changePlanFilter">
-            <option :value="0">{{ t('planOps.allPlans') }}</option>
-            <option v-if="planId && !plan" :value="planId">#{{ planId }}</option>
-            <option v-for="item in plans" :key="item.id" :value="item.id">{{ item.name }}</option>
-          </select>
-        </label>
-      </div>
+      <PageHeader :title="t('planOps.title')">
+        <template #actions>
+          <label class="flex items-center gap-2">
+            <span class="text-xs font-medium text-muted-foreground">{{ t('planOps.filterPlan') }}</span>
+            <select v-model="planId" class="input h-9 w-auto min-w-40" @change="changePlanFilter">
+              <option :value="0">{{ t('planOps.allPlans') }}</option>
+              <option v-if="planId && !plan" :value="planId">#{{ planId }}</option>
+              <option v-for="item in plans" :key="item.id" :value="item.id">{{ item.name }}</option>
+            </select>
+          </label>
+          <RouterLink class="btn btn-secondary h-9" to="/admin/orders/plans">
+            {{ t('nav.paymentPlans') }}
+          </RouterLink>
+          <button
+            v-if="plan && !(adjusting || reviewing)"
+            class="btn btn-primary h-9"
+            type="button"
+            @click="openEditor"
+          >
+            {{ t('planOps.adjust') }}
+          </button>
+        </template>
+      </PageHeader>
 
-      <section v-if="plan && (adjusting || reviewing)" class="card space-y-4 p-4 sm:p-6">
+      <section
+        v-if="plan && (adjusting || reviewing)"
+        class="space-y-5 rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6"
+      >
         <div>
-          <h2 class="text-lg font-semibold">{{ t(reviewing ? 'planOps.review' : 'planOps.adjust') }} · {{ plan.name }}</h2>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ t('planOps.orderHint') }}</p>
+          <h2 class="text-base font-semibold tracking-tight text-foreground">
+            {{ t(reviewing ? 'planOps.review' : 'planOps.adjust') }} · {{ plan.name }}
+          </h2>
+          <p class="mt-1 text-sm text-muted-foreground">{{ t('planOps.orderHint') }}</p>
         </div>
         <dl class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <div v-for="metric in metrics" :key="metric.label" class="rounded-lg border border-gray-200 p-3 dark:border-dark-600">
-            <dt class="text-sm text-gray-500">{{ metric.label }}</dt>
-            <dd class="mt-1 text-lg font-semibold tabular-nums">{{ metric.value }}</dd>
+          <div
+            v-for="metric in metrics"
+            :key="metric.label"
+            class="rounded-xl border border-border/80 bg-muted/30 p-3.5"
+          >
+            <dt class="text-xs font-medium text-muted-foreground">{{ metric.label }}</dt>
+            <dd class="mt-1.5 text-lg font-bold tracking-tight tabular-nums text-foreground">{{ metric.value }}</dd>
           </div>
         </dl>
-        <form v-if="!reviewing" class="space-y-3" @submit.prevent="review">
-          <div class="grid gap-3 md:grid-cols-3">
-            <label>
+        <form v-if="!reviewing" class="space-y-4 border-t border-border pt-4" @submit.prevent="review">
+          <div class="grid gap-4 md:grid-cols-3">
+            <label class="block">
               <span class="input-label">{{ t('planOps.newPrice') }}</span>
-              <input v-model.number="newPrice" type="number" step="0.01" min="0.01" required class="input" />
+              <input v-model.number="newPrice" type="number" step="0.01" min="0.01" required class="input h-9 tabular-nums" />
             </label>
-            <label>
+            <label class="block">
               <span class="input-label">{{ t('planOps.effectiveAt') }}</span>
-              <select v-model="scheduled" class="input">
+              <select v-model="scheduled" class="input h-9">
                 <option :value="false">{{ t('planOps.immediate') }}</option>
                 <option :value="true">{{ t('planOps.schedule') }}</option>
               </select>
             </label>
-            <label v-if="scheduled">
+            <label v-if="scheduled" class="block">
               <span class="input-label">{{ t('planOps.effectiveAt') }}</span>
-              <input v-model="localTime" type="datetime-local" required class="input" />
+              <input v-model="localTime" type="datetime-local" required class="input h-9 tabular-nums" />
             </label>
           </div>
           <label class="block">
             <span class="input-label">{{ t('planOps.reason') }}</span>
-            <textarea v-model="reason" maxlength="1000" rows="2" class="input" />
+            <textarea v-model="reason" maxlength="1000" rows="2" class="input h-auto min-h-[4.5rem] py-2" />
           </label>
-          <button class="btn btn-primary" type="submit">{{ t('planOps.review') }}</button>
+          <div class="flex justify-end">
+            <button class="btn btn-primary h-9" type="submit">{{ t('planOps.review') }}</button>
+          </div>
         </form>
-        <div v-else class="space-y-3">
-          <p class="text-sm">{{ t('planOps.effectiveAt') }} · {{ effectiveAt ? formatDateTime(effectiveAt) : t('planOps.immediate') }}</p>
-          <p v-if="reason.trim()" class="whitespace-pre-wrap break-words text-sm">{{ reason.trim() }}</p>
-          <label class="flex items-center gap-2 text-sm">
-            <input v-model="notify" type="checkbox" />
+        <div v-else class="space-y-4 border-t border-border pt-4">
+          <div class="space-y-2 rounded-xl border border-border/80 bg-muted/30 p-4">
+            <p class="text-sm font-medium tabular-nums text-foreground">
+              <span class="text-muted-foreground">{{ t('planOps.effectiveAt') }} · </span>
+              {{ effectiveAt ? formatDateTime(effectiveAt) : t('planOps.immediate') }}
+            </p>
+            <p v-if="reason.trim()" class="whitespace-pre-wrap break-words text-sm text-foreground/90">{{ reason.trim() }}</p>
+          </div>
+          <label class="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+            <input v-model="notify" type="checkbox" class="h-4 w-4 rounded border-input" />
             {{ t('planOps.notifyDraft') }}
           </label>
           <div class="flex flex-wrap gap-2">
-            <button type="button" class="btn btn-secondary" :disabled="saving" @click="reviewing = false">{{ t('common.back') }}</button>
-            <button type="button" class="btn btn-primary" :disabled="saving" @click="submit">{{ t('common.confirm') }}</button>
+            <button type="button" class="btn btn-secondary h-9" :disabled="saving" @click="reviewing = false">{{ t('common.back') }}</button>
+            <button type="button" class="btn btn-primary h-9" :disabled="saving" @click="submit">{{ t('common.confirm') }}</button>
           </div>
         </div>
       </section>
-      <button v-else-if="plan" class="btn btn-primary" type="button" @click="openEditor">{{ t('planOps.adjust') }}</button>
 
-      <DataTable :columns="columns" :data="history" :loading="loading">
-        <template #cell-plan_name="{ row }">
-          <RouterLink class="font-medium hover:underline" :to="{ query: { plan_id: row.plan_id } }">{{ row.plan_name }}</RouterLink>
-          <span class="ml-1 text-xs text-gray-500">#{{ row.plan_id }}</span>
-        </template>
-        <template #cell-price="{ row }">
-          <span class="tabular-nums">{{ money(row.old_price, row.currency) }} → {{ money(row.new_price, row.currency) }}</span>
-        </template>
-        <template #cell-delta="{ row }">
-          <span class="tabular-nums" :class="row.delta > 0 ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'">
-            {{ row.delta > 0 ? '+' : '' }}{{ row.delta.toFixed(2) }}
-            <template v-if="row.percent != null">({{ row.percent > 0 ? '+' : '' }}{{ row.percent.toFixed(2) }}%)</template>
-          </span>
-        </template>
-        <template #cell-status="{ row }">
-          <span class="badge" :class="row.status === 'applied' ? 'badge-success' : row.status === 'conflict' ? 'badge-danger' : 'badge-info'">{{ t('planOps.states.' + row.status) }}</span>
-        </template>
-        <template #cell-time="{ row }">
-          <div class="text-sm">{{ formatDateTime(row.effective_at) }}</div>
-          <div v-if="row.resolved_at" class="text-xs text-gray-500">{{ t('planOps.resolvedAt') }} · {{ formatDateTime(row.resolved_at) }}</div>
-        </template>
-        <template #cell-reason="{ row }">
-          <p class="max-w-64 whitespace-pre-wrap break-words text-sm">{{ row.reason || '—' }}</p>
-        </template>
-        <template #cell-actor_id="{ row }">#{{ row.actor_id }}</template>
-        <template #cell-actions="{ row }">
-          <button v-if="row.status === 'pending'" type="button" class="btn btn-secondary btn-sm" @click="cancelTarget = row.id">{{ t('planOps.cancel') }}</button>
-          <button v-if="(row.status === 'pending' || row.status === 'applied') && plans.some(item => item.id === row.plan_id)" type="button" class="btn btn-secondary btn-sm" @click="openNotice(row)">{{ t('planOps.notify') }}</button>
-        </template>
-      </DataTable>
-      <button v-if="hasMore" type="button" class="btn btn-secondary" :disabled="loading" @click="loadHistory(true)">{{ t('planOps.loadMore') }}</button>
+      <div class="lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border/80 lg:bg-card lg:shadow-sm">
+        <DataTable :columns="columns" :data="history" :loading="loading">
+          <template #cell-plan_name="{ row }">
+            <RouterLink class="font-medium text-foreground hover:underline" :to="{ query: { plan_id: row.plan_id } }">{{ row.plan_name }}</RouterLink>
+            <span class="ml-1.5 font-mono text-xs tabular-nums text-muted-foreground">#{{ row.plan_id }}</span>
+          </template>
+          <template #cell-price="{ row }">
+            <span class="font-medium tabular-nums text-foreground">{{ money(row.old_price, row.currency) }} → {{ money(row.new_price, row.currency) }}</span>
+          </template>
+          <template #cell-delta="{ row }">
+            <span class="font-medium tabular-nums" :class="row.delta > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'">
+              {{ row.delta > 0 ? '+' : '' }}{{ row.delta.toFixed(2) }}
+              <template v-if="row.percent != null">({{ row.percent > 0 ? '+' : '' }}{{ row.percent.toFixed(2) }}%)</template>
+            </span>
+          </template>
+          <template #cell-status="{ row }">
+            <span
+              class="badge"
+              :class="row.status === 'applied'
+                ? 'badge-success'
+                : row.status === 'conflict'
+                  ? 'badge-danger'
+                  : row.status === 'cancelled'
+                    ? 'badge-gray'
+                    : 'border border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-400'"
+            >
+              {{ t('planOps.states.' + row.status) }}
+            </span>
+          </template>
+          <template #cell-time="{ row }">
+            <div class="text-sm tabular-nums text-foreground">{{ formatDateTime(row.effective_at) }}</div>
+            <div v-if="row.resolved_at" class="text-xs tabular-nums text-muted-foreground">{{ t('planOps.resolvedAt') }} · {{ formatDateTime(row.resolved_at) }}</div>
+          </template>
+          <template #cell-reason="{ row }">
+            <p class="max-w-64 whitespace-pre-wrap break-words text-sm" :class="row.reason ? 'text-foreground' : 'text-muted-foreground/60'">{{ row.reason || '—' }}</p>
+          </template>
+          <template #cell-actor_id="{ row }">
+            <span class="font-mono text-xs tabular-nums text-muted-foreground">#{{ row.actor_id }}</span>
+          </template>
+          <template #cell-actions="{ row }">
+            <div class="flex items-center gap-1.5">
+              <button v-if="row.status === 'pending'" type="button" class="btn btn-secondary btn-sm" @click="cancelTarget = row.id">{{ t('planOps.cancel') }}</button>
+              <button v-if="(row.status === 'pending' || row.status === 'applied') && plans.some(item => item.id === row.plan_id)" type="button" class="btn btn-secondary btn-sm" @click="openNotice(row)">{{ t('planOps.notify') }}</button>
+            </div>
+          </template>
+        </DataTable>
+      </div>
+
+      <div v-if="hasMore" class="flex justify-center pt-1">
+        <button type="button" class="btn btn-secondary h-9" :disabled="loading" @click="loadHistory(true)">{{ t('planOps.loadMore') }}</button>
+      </div>
     </div>
     <ConfirmDialog :show="cancelTarget != null" :title="t('planOps.cancel')" :message="t('planOps.cancelPrompt')" @confirm="cancelChange" @cancel="cancelTarget = null" />
   </AppLayout>
@@ -113,6 +158,7 @@ import type { SubscriptionPlan, PlanPriceChange } from '@/types/payment'
 import type { Column } from '@/components/common/types'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
 const { t, locale } = useI18n()

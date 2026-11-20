@@ -2,20 +2,48 @@
   <AppLayout>
     <TablePageLayout>
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
           <div class="relative w-full md:w-80">
-            <Icon name="search" size="md" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input v-model="filters.search" type="text" class="input pl-10" :placeholder="t('admin.affiliates.records.searchPlaceholder')" @input="debounceLoad" />
+            <Icon
+              name="search"
+              size="sm"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              v-model="filters.search"
+              type="text"
+              class="input h-9 pl-9"
+              :placeholder="t('admin.affiliates.records.searchPlaceholder')"
+              @input="debounceLoad"
+            />
           </div>
-          <input v-model="filters.start_at" type="date" class="input w-full sm:w-44" :title="t('admin.affiliates.records.startAt')" @change="reloadFromFirstPage" />
-          <input v-model="filters.end_at" type="date" class="input w-full sm:w-44" :title="t('admin.affiliates.records.endAt')" @change="reloadFromFirstPage" />
-          <button class="btn btn-secondary px-2 md:px-3" :disabled="loading" :title="t('common.refresh')" @click="loadRecords">
-            <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+          <input
+            v-model="filters.start_at"
+            type="date"
+            class="input h-9 w-full tabular-nums sm:w-44"
+            :title="t('admin.affiliates.records.startAt')"
+            @change="reloadFromFirstPage"
+          />
+          <input
+            v-model="filters.end_at"
+            type="date"
+            class="input h-9 w-full tabular-nums sm:w-44"
+            :title="t('admin.affiliates.records.endAt')"
+            @change="reloadFromFirstPage"
+          />
+          <button
+            type="button"
+            class="btn btn-secondary btn-icon h-9 w-9"
+            :disabled="loading"
+            :title="t('common.refresh')"
+            @click="loadRecords"
+          >
+            <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
           </button>
           <button
             v-if="props.type === 'transfers'"
             type="button"
-            class="btn btn-primary ml-auto"
+            class="btn btn-primary ml-auto h-9"
             data-test="affiliate-withdraw-open"
             @click="withdrawDialog = true"
           >
@@ -45,7 +73,7 @@
             />
           </template>
           <template #cell-invitee="{ row }">
-            <span v-if="row.invitee_id == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.invitee_id == null" class="text-sm text-muted-foreground/60">-</span>
             <UserCell
               v-else
               :id="row.invitee_id"
@@ -65,22 +93,28 @@
             />
           </template>
           <template #cell-aff_code="{ row }">
-            <span class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ row.aff_code || '-' }}</span>
+            <span
+              v-if="row.aff_code"
+              class="rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-foreground"
+            >
+              {{ row.aff_code }}
+            </span>
+            <span v-else class="text-sm text-muted-foreground/60">-</span>
           </template>
           <template #cell-order="{ row }">
-            <span v-if="row.order_id == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.order_id == null" class="text-sm text-muted-foreground/60">-</span>
             <div v-else class="space-y-0.5">
-              <div class="font-mono text-sm text-gray-900 dark:text-white">#{{ row.order_id }}</div>
-              <div class="max-w-56 truncate text-sm text-gray-500 dark:text-dark-400">{{ row.out_trade_no }}</div>
+              <div class="font-mono text-xs font-medium tabular-nums text-foreground">#{{ row.order_id }}</div>
+              <div class="max-w-56 truncate font-mono text-xs text-muted-foreground">{{ row.out_trade_no }}</div>
             </div>
           </template>
           <template #cell-payment_type="{ row }">
-            <template v-if="row.payment_type">{{ t('payment.methods.' + row.payment_type, row.payment_type) }}</template>
-            <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-if="row.payment_type" class="text-sm text-foreground">{{ t('payment.methods.' + row.payment_type, row.payment_type) }}</span>
+            <span v-else class="text-sm text-muted-foreground/60">-</span>
           </template>
           <template #cell-order_status="{ row }">
             <OrderStatusBadge v-if="row.order_status" :status="row.order_status" />
-            <span v-else class="text-sm text-gray-400 dark:text-dark-500">-</span>
+            <span v-else class="text-sm text-muted-foreground/60">-</span>
           </template>
           <template #cell-total_rebate="{ row }">
             <AmountText :value="row.total_rebate" />
@@ -89,8 +123,8 @@
             <NullableAmountText :value="row.order_amount" />
           </template>
           <template #cell-pay_amount="{ row }">
-            <span v-if="row.pay_amount == null" class="text-sm text-gray-400 dark:text-dark-500">-</span>
-            <span v-else class="text-sm text-gray-900 dark:text-white">¥{{ formatAmount(row.pay_amount) }}</span>
+            <span v-if="row.pay_amount == null" class="text-sm text-muted-foreground/60">-</span>
+            <span v-else class="text-sm font-medium tabular-nums text-foreground">¥{{ formatAmount(row.pay_amount) }}</span>
           </template>
           <template #cell-rebate_amount="{ row }">
             <AmountText :value="row.rebate_amount" strong />
@@ -116,7 +150,7 @@
             <NullableAmountText :value="row.history_quota_after" />
           </template>
           <template #cell-created_at="{ row }">
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(row.created_at) }}</span>
+            <span class="text-sm tabular-nums text-muted-foreground">{{ formatDateTime(row.created_at) }}</span>
           </template>
         </DataTable>
       </template>
@@ -146,14 +180,28 @@
       width="normal"
       @close="overviewDialog = false"
     >
-      <div v-if="overviewLoading" class="flex justify-center py-8">
-        <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary-500 border-t-transparent"></div>
+      <div v-if="overviewLoading" class="space-y-4">
+        <div class="space-y-2 rounded-xl border border-border/80 bg-muted/30 p-4">
+          <Skeleton class="h-3.5 w-16" />
+          <Skeleton class="h-4 w-48" />
+          <Skeleton class="h-3.5 w-32" />
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div
+            v-for="i in 6"
+            :key="`overview-sk-${i}`"
+            class="space-y-2 rounded-xl border border-border/80 bg-card p-3.5"
+          >
+            <Skeleton class="h-3 w-24" />
+            <Skeleton class="h-5 w-20" />
+          </div>
+        </div>
       </div>
       <div v-else-if="selectedOverview" class="space-y-4">
-        <div class="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-dark-700 dark:bg-dark-800">
-          <div class="font-mono text-sm text-gray-900 dark:text-white">#{{ selectedOverview.user_id }}</div>
-          <div class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ selectedOverview.email || '-' }}</div>
-          <div class="mt-0.5 text-sm text-gray-500 dark:text-dark-400">{{ selectedOverview.username || '-' }}</div>
+        <div class="rounded-xl border border-border/80 bg-muted/30 p-4">
+          <div class="font-mono text-xs tabular-nums text-muted-foreground">#{{ selectedOverview.user_id }}</div>
+          <div class="mt-1 text-sm font-semibold text-foreground">{{ selectedOverview.email || '-' }}</div>
+          <div class="mt-0.5 text-xs text-muted-foreground">{{ selectedOverview.username || '-' }}</div>
         </div>
         <div class="grid gap-3 sm:grid-cols-2">
           <OverviewStat :label="t('admin.affiliates.overview.affCode')" :value="selectedOverview.aff_code || '-'" mono />
@@ -176,6 +224,7 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
+import { Skeleton } from '@/components/ui/skeleton'
 import Icon from '@/components/icons/Icon.vue'
 import OrderStatusBadge from '@/components/payment/OrderStatusBadge.vue'
 import AffiliateOfflineWithdrawDialog from './AffiliateOfflineWithdrawDialog.vue'
@@ -382,15 +431,15 @@ const UserCell = defineComponent({
   emits: ['open'],
   setup(cellProps, { emit }) {
     return () => h('div', { class: 'space-y-0.5' }, [
-      h('div', { class: 'font-mono text-sm text-gray-900 dark:text-white' }, `#${cellProps.id}`),
+      h('div', { class: 'font-mono text-xs tabular-nums text-muted-foreground' }, `#${cellProps.id}`),
       h(cellProps.clickable ? 'button' : 'div', {
         class: cellProps.clickable
-          ? 'max-w-56 truncate text-left text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400 dark:hover:text-primary-300'
-          : 'max-w-56 truncate text-sm text-gray-700 dark:text-gray-300',
+          ? 'max-w-56 truncate text-left text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300'
+          : 'max-w-56 truncate text-sm text-foreground',
         type: cellProps.clickable ? 'button' : undefined,
         onClick: cellProps.clickable ? () => emit('open', cellProps.id) : undefined,
       }, cellProps.email || '-'),
-      h('div', { class: 'max-w-56 truncate text-sm text-gray-500 dark:text-dark-400' }, cellProps.username || '-'),
+      h('div', { class: 'max-w-56 truncate text-xs text-muted-foreground' }, cellProps.username || '-'),
     ])
   },
 })
@@ -403,8 +452,8 @@ const AmountText = defineComponent({
   setup(amountProps) {
     return () => h('span', {
       class: amountProps.strong
-        ? 'text-sm font-semibold text-emerald-600 dark:text-emerald-400'
-        : 'text-sm text-gray-900 dark:text-white',
+        ? 'text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400'
+        : 'text-sm tabular-nums text-foreground',
     }, `$${formatAmount(amountProps.value)}`)
   },
 })
@@ -417,7 +466,7 @@ const NullableAmountText = defineComponent({
     return () => {
       const value = amountProps.value
       if (value === null || value === undefined) {
-        return h('span', { class: 'text-sm text-gray-400 dark:text-dark-500' }, '-')
+        return h('span', { class: 'text-sm text-muted-foreground/60' }, '-')
       }
       return h(AmountText, { value })
     }
@@ -431,12 +480,12 @@ const OverviewStat = defineComponent({
     mono: { type: Boolean, default: false },
   },
   setup(statProps) {
-    return () => h('div', { class: 'rounded-lg border border-gray-100 bg-white p-3 dark:border-dark-700 dark:bg-dark-900' }, [
-      h('div', { class: 'text-sm text-gray-500 dark:text-dark-400' }, statProps.label),
+    return () => h('div', { class: 'rounded-xl border border-border/80 bg-card p-3.5' }, [
+      h('div', { class: 'text-xs font-medium text-muted-foreground' }, statProps.label),
       h('div', {
         class: statProps.mono
-          ? 'mt-1 font-mono text-base font-semibold text-gray-900 dark:text-white'
-          : 'mt-1 text-base font-semibold text-gray-900 dark:text-white',
+          ? 'mt-1 font-mono text-base font-semibold tracking-tight tabular-nums text-foreground'
+          : 'mt-1 text-base font-semibold tracking-tight tabular-nums text-foreground',
       }, statProps.value),
     ])
   },

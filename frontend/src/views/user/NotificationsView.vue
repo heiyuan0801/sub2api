@@ -1,50 +1,103 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-5xl space-y-4">
-      <header class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 class="text-2xl font-semibold">{{ t('operations.notifications') }}</h1>
-          <p class="mt-1 text-sm text-muted-foreground">{{ t('operations.unreadCount') }} · {{ store.unreadCount }}</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-secondary" @click="showPreferences = true">{{ t('operations.notificationPreferences') }}</button>
-          <button type="button" class="btn btn-secondary" :disabled="!store.unreadCount || markingAll" @click="markAll">
-            {{ t('announcements.markAllRead') }}
+    <div class="mx-auto max-w-5xl space-y-6">
+      <PageHeader :title="t('operations.notifications')">
+        <template #badge>
+          <span class="inline-flex items-center rounded-full border border-border bg-muted/50 px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+            {{ t('operations.unreadCount') }} · {{ store.unreadCount }}
+          </span>
+        </template>
+        <template #actions>
+          <button
+            type="button"
+            class="btn btn-secondary h-9 px-3.5 text-xs"
+            @click="showPreferences = true"
+          >
+            <Icon name="cog" size="xs" />
+            <span>{{ t('operations.notificationPreferences') }}</span>
           </button>
-        </div>
-      </header>
-      <div class="card overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-          <h2 class="font-medium">{{ t('operations.notificationHistory') }}</h2>
-          <label class="flex items-center gap-2 text-sm">
-            <input v-model="unreadOnly" type="checkbox" class="h-4 w-4" @change="resetPage" />
-            {{ t('operations.unreadOnly') }}
+          <button
+            type="button"
+            class="btn btn-secondary h-9 px-3.5 text-xs"
+            :disabled="!store.unreadCount || markingAll"
+            @click="markAll"
+          >
+            <Icon name="check" size="xs" />
+            <span>{{ t('announcements.markAllRead') }}</span>
+          </button>
+        </template>
+      </PageHeader>
+
+      <div class="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/80 bg-muted/30 px-5 py-3.5">
+          <h2 class="text-sm font-semibold text-foreground">{{ t('operations.notificationHistory') }}</h2>
+          <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+            <input
+              v-model="unreadOnly"
+              type="checkbox"
+              class="size-4 rounded border-border accent-foreground"
+              @change="resetPage"
+            />
+            <span>{{ t('operations.unreadOnly') }}</span>
           </label>
         </div>
-        <div v-if="loading" class="grid min-h-40 place-items-center"><LoadingSpinner /></div>
-        <p v-else-if="!items.length" class="p-12 text-center text-sm text-muted-foreground">{{ t('operations.noNotifications') }}</p>
-        <ul v-else class="divide-y divide-border">
+
+        <!-- Loading Skeleton -->
+        <div v-if="loading" class="divide-y divide-border/70">
+          <div v-for="i in 4" :key="`notif-sk-${i}`" class="flex items-center gap-3.5 p-4 sm:p-5">
+            <Skeleton class="size-2 shrink-0 rounded-full" />
+            <div class="min-w-0 flex-1 space-y-2">
+              <div class="flex items-center gap-2">
+                <Skeleton class="h-5 w-16 rounded-full" />
+                <Skeleton class="h-4 w-56" />
+              </div>
+              <Skeleton class="h-3 w-32" />
+            </div>
+            <Skeleton class="size-4 shrink-0 rounded" />
+          </div>
+        </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!items.length" class="flex flex-col items-center justify-center px-6 py-14 text-center">
+          <div class="mb-3 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <Icon name="bell" size="lg" />
+          </div>
+          <p class="text-sm text-muted-foreground">{{ t('operations.noNotifications') }}</p>
+        </div>
+
+        <!-- Notification List -->
+        <ul v-else class="divide-y divide-border/70">
           <li v-for="item in items" :key="item.id">
             <button
               type="button"
-              class="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-muted/50 sm:items-center sm:p-5"
-              :class="{ 'bg-muted/30': !item.read_at }"
+              class="flex w-full items-start gap-3.5 p-4 text-left transition-colors hover:bg-muted/40 sm:items-center sm:px-5 sm:py-4"
+              :class="{ 'bg-muted/25': !item.read_at }"
               @click="openDetail(item.id)"
             >
-              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full sm:mt-0" :class="item.read_at ? 'bg-transparent' : 'bg-primary-500'" aria-hidden="true" />
+              <span
+                class="mt-1.5 size-2 shrink-0 rounded-full sm:mt-0"
+                :class="item.read_at ? 'bg-transparent' : 'bg-sky-500'"
+                aria-hidden="true"
+              />
               <div class="min-w-0 flex-1 space-y-1.5">
                 <div class="flex flex-wrap items-center gap-2">
                   <NotificationKindBadge :kind="item.kind" />
                   <span v-if="!item.read_at" class="sr-only">{{ t('announcements.unread') }}</span>
-                  <h3 class="break-words font-medium">{{ item.title }}</h3>
+                  <h3 class="break-words text-sm font-medium text-foreground">{{ item.title }}</h3>
                 </div>
-                <time class="text-xs text-muted-foreground" :datetime="item.starts_at || item.created_at">{{ formatDateTime(item.starts_at || item.created_at) }}</time>
+                <time
+                  class="block text-xs tabular-nums text-muted-foreground"
+                  :datetime="item.starts_at || item.created_at"
+                >
+                  {{ formatDateTime(item.starts_at || item.created_at) }}
+                </time>
               </div>
               <Icon name="chevronRight" size="sm" class="shrink-0 text-muted-foreground" />
             </button>
           </li>
         </ul>
       </div>
+
       <Pagination
         v-if="total"
         :page="page"
@@ -54,7 +107,9 @@
         @update:page-size="setPageSize"
       />
     </div>
+
     <NotificationPreferencesDialog :show="showPreferences" @close="showPreferences = false" />
+
     <BaseDialog :show="Boolean(detail)" :title="detail?.title || ''" width="wide" @close="closeDetail">
       <template v-if="detail">
         <div class="mb-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
@@ -63,14 +118,14 @@
             <Icon name="creditCard" size="xs" aria-hidden="true" />
             {{ detail.group_name }}
           </span>
-          <time>{{ formatDateTime(detail.starts_at || detail.created_at) }}</time>
+          <time class="tabular-nums">{{ formatDateTime(detail.starts_at || detail.created_at) }}</time>
         </div>
         <div class="markdown-body prose prose-sm max-w-none break-words dark:prose-invert" v-html="html" />
       </template>
       <template #footer>
-        <div class="flex flex-wrap justify-end gap-2">
-          <button type="button" class="btn btn-secondary" @click="closeDetail">{{ t('common.close') }}</button>
-          <button v-if="canOpenTarget" type="button" class="btn btn-primary" :disabled="openingTarget" @click="openTarget">
+        <div class="flex flex-wrap justify-end gap-2.5">
+          <button type="button" class="btn btn-secondary h-9 px-3.5 text-sm" @click="closeDetail">{{ t('common.close') }}</button>
+          <button v-if="canOpenTarget" type="button" class="btn btn-primary h-9 px-3.5 text-sm" :disabled="openingTarget" @click="openTarget">
             {{ t(groupTarget ? 'operations.openGroup' : 'operations.openPlan') }}
           </button>
         </div>
@@ -86,12 +141,13 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
-import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import NotificationKindBadge from '@/components/common/NotificationKindBadge.vue'
 import NotificationPreferencesDialog from '@/components/user/NotificationPreferencesDialog.vue'
 import Pagination from '@/components/common/Pagination.vue'
 import Icon from '@/components/icons/Icon.vue'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAppStore } from '@/stores/app'
 import { useAnnouncementStore } from '@/stores/announcements'
 import announcementsAPI from '@/api/announcements'

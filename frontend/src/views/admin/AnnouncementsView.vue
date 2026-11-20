@@ -2,14 +2,19 @@
   <AppLayout>
     <TablePageLayout>
       <template #filters>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
           <!-- Left: Search + Filters -->
-          <div class="flex-1 sm:max-w-64">
+          <div class="relative flex-1 sm:max-w-64">
+            <Icon
+              name="search"
+              size="sm"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               v-model="searchQuery"
               type="text"
               :placeholder="t('admin.announcements.searchAnnouncements')"
-              class="input"
+              class="input pl-9"
               @input="handleSearch"
             />
           </div>
@@ -25,13 +30,13 @@
             <button
               @click="loadAnnouncements"
               :disabled="loading"
-              class="btn btn-secondary"
+              class="btn btn-secondary px-2.5"
               :title="t('common.refresh')"
             >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+              <Icon name="refresh" size="sm" :class="loading ? 'animate-spin' : ''" />
             </button>
             <button @click="openCreateDialog" class="btn btn-primary">
-              <Icon name="plus" size="md" class="mr-1" />
+              <Icon name="plus" size="sm" />
               {{ t('admin.announcements.createAnnouncement') }}
             </button>
           </div>
@@ -51,11 +56,11 @@
           <template #cell-title="{ value, row }">
             <div class="min-w-0">
               <div class="flex items-center gap-2">
-                <span class="truncate font-medium text-gray-900 dark:text-white">{{ value }}</span>
+                <span class="truncate font-medium text-foreground">{{ value }}</span>
               </div>
-              <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-dark-400">
-                <span>#{{ row.id }}</span>
-                <span class="text-gray-300 dark:text-dark-700">·</span>
+              <div class="mt-1 flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+                <span class="font-mono">#{{ row.id }}</span>
+                <span class="text-border">·</span>
                 <span>{{ formatDateTime(row.created_at) }}</span>
               </div>
               <div v-if="row.group_id && !row.plan_id" class="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
@@ -98,40 +103,40 @@
           </template>
 
           <template #cell-targeting="{ row }">
-            <span class="text-sm text-gray-600 dark:text-gray-300">
+            <span class="text-sm text-muted-foreground">
               {{ row.audience ? t(`operations.audienceModes.${row.audience.mode}`) : targetingSummary(row.targeting) }}
             </span>
           </template>
 
           <template #cell-timeRange="{ row }">
-            <div class="text-sm text-gray-600 dark:text-gray-300">
+            <div class="space-y-0.5 text-xs tabular-nums text-muted-foreground">
               <div>
-                <span class="font-medium">{{ t('admin.announcements.form.startsAt') }}:</span>
+                <span class="font-medium text-foreground">{{ t('admin.announcements.form.startsAt') }}:</span>
                 <span class="ml-1">{{ row.starts_at ? formatDateTime(row.starts_at) : t('admin.announcements.timeImmediate') }}</span>
               </div>
-              <div class="mt-0.5">
-                <span class="font-medium">{{ t('admin.announcements.form.endsAt') }}:</span>
+              <div>
+                <span class="font-medium text-foreground">{{ t('admin.announcements.form.endsAt') }}:</span>
                 <span class="ml-1">{{ row.ends_at ? formatDateTime(row.ends_at) : t('admin.announcements.timeNever') }}</span>
               </div>
             </div>
           </template>
 
           <template #cell-created_at="{ value }">
-            <span class="text-sm text-gray-500 dark:text-dark-400">{{ formatDateTime(value) }}</span>
+            <span class="text-sm tabular-nums text-muted-foreground">{{ formatDateTime(value) }}</span>
           </template>
 
           <template #cell-actions="{ row }">
-            <div class="flex items-center space-x-1">
+            <div class="flex items-center gap-1">
               <button
                 @click="openPreview(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 :title="t('admin.announcements.preview')"
               >
                 <Icon name="eye" size="sm" />
               </button>
               <button
                 @click="openReadStatus(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 :title="t('admin.announcements.readStatus')"
               >
                 <Icon name="chartBar" size="sm" />
@@ -160,14 +165,14 @@
               <button
                 v-if="row.delivery_status !== 'withdrawn'"
                 @click="openEditDialog(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-dark-600 dark:hover:text-gray-300"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 :title="t('common.edit')"
               >
                 <Icon name="edit" size="sm" />
               </button>
               <button
                 @click="handleDelete(row)"
-                class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                class="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 :title="t('common.delete')"
               >
                 <Icon name="trash" size="sm" />
@@ -213,7 +218,7 @@
 
         <div>
           <label class="input-label">{{ t('admin.announcements.form.content') }}</label>
-          <textarea v-model="form.content" rows="6" class="input" required></textarea>
+          <textarea v-model="form.content" rows="6" class="input h-auto py-2" required></textarea>
         </div>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -271,11 +276,11 @@
               </select>
             </div>
           </div>
-          <fieldset v-if="form.audience_mode === 'groups'" :disabled="publishedFieldsLocked" class="rounded-lg border border-border p-3">
-            <legend class="px-1 text-sm font-medium">{{ t('operations.selectGroups') }}</legend>
+          <fieldset v-if="form.audience_mode === 'groups'" :disabled="publishedFieldsLocked" class="rounded-xl border border-border/80 bg-muted/30 p-3.5">
+            <legend class="px-1.5 text-xs font-medium text-muted-foreground">{{ t('operations.selectGroups') }}</legend>
             <div class="grid max-h-36 gap-2 overflow-y-auto sm:grid-cols-2">
-              <label v-for="group in audienceGroups" :key="group.id" class="flex items-start gap-2 text-sm">
-                <input v-model="form.group_ids" type="checkbox" :value="group.id" class="mt-0.5 shrink-0" />
+              <label v-for="group in audienceGroups" :key="group.id" class="flex cursor-pointer items-start gap-2 rounded-md px-1.5 py-1 text-sm text-foreground transition-colors hover:bg-muted/60">
+                <input v-model="form.group_ids" type="checkbox" :value="group.id" class="mt-0.5 shrink-0 rounded border-border accent-primary" />
                 <span class="min-w-0 break-words">
                   {{ group.name }}
                   <span class="ml-1 text-xs text-muted-foreground">{{ t(group.subscription_type === 'standard' ? 'operations.standardBalanceGroup' : 'operations.subscriptionGroup') }}</span>
@@ -285,7 +290,7 @@
           </fieldset>
           <div v-else-if="form.audience_mode === 'users'">
             <label for="notice-user-ids" class="input-label">{{ t('operations.userIDs') }}</label>
-            <textarea id="notice-user-ids" v-model="form.user_ids" rows="2" class="input" :disabled="publishedFieldsLocked" aria-describedby="notice-user-ids-hint" required />
+            <textarea id="notice-user-ids" v-model="form.user_ids" rows="2" class="input h-auto py-2 font-mono text-xs" :disabled="publishedFieldsLocked" aria-describedby="notice-user-ids-hint" required />
             <p id="notice-user-ids-hint" class="input-hint">{{ t('operations.userIDsHint') }}</p>
           </div>
         </template>
@@ -293,7 +298,7 @@
       </form>
 
       <template #footer>
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-2.5">
           <button type="button" @click="closeEdit" class="btn btn-secondary">
             {{ t('common.cancel') }}
           </button>
@@ -306,10 +311,30 @@
 
     <BaseDialog :show="Boolean(publishingNotice)" :title="t('operations.publishNotice')" @close="publishingNotice = null">
       <form id="publish-notice" class="space-y-4" @submit.prevent="publishNotice">
-        <p v-if="publishingNotice" class="break-words font-medium">{{ publishingNotice.title }}</p>
-        <fieldset class="flex flex-wrap gap-4">
-          <label class="flex items-center gap-2 text-sm"><input v-model="publishTiming" type="radio" value="now" />{{ t('operations.publishNow') }}</label>
-          <label class="flex items-center gap-2 text-sm"><input v-model="publishTiming" type="radio" value="later" />{{ t('operations.publishLater') }}</label>
+        <p v-if="publishingNotice" class="break-words text-sm font-medium text-foreground">{{ publishingNotice.title }}</p>
+        <fieldset class="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <label
+            :class="[
+              'flex cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors',
+              publishTiming === 'now'
+                ? 'border-foreground bg-muted/60 text-foreground'
+                : 'border-border/80 bg-card text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+            ]"
+          >
+            <input v-model="publishTiming" type="radio" value="now" class="accent-primary" />
+            {{ t('operations.publishNow') }}
+          </label>
+          <label
+            :class="[
+              'flex cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors',
+              publishTiming === 'later'
+                ? 'border-foreground bg-muted/60 text-foreground'
+                : 'border-border/80 bg-card text-muted-foreground hover:bg-muted/40 hover:text-foreground'
+            ]"
+          >
+            <input v-model="publishTiming" type="radio" value="later" class="accent-primary" />
+            {{ t('operations.publishLater') }}
+          </label>
         </fieldset>
         <div v-if="publishTiming === 'later'">
           <label for="notice-publish-at" class="input-label">{{ t('operations.publishAt') }}</label>
@@ -317,7 +342,7 @@
         </div>
       </form>
       <template #footer>
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-2.5">
           <button type="button" class="btn btn-secondary" :disabled="actionBusy" @click="publishingNotice = null">{{ t('common.cancel') }}</button>
           <button type="submit" form="publish-notice" class="btn btn-primary" :disabled="actionBusy">{{ t('operations.publish') }}</button>
         </div>

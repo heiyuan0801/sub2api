@@ -2,10 +2,26 @@
   <AppLayout>
     <div class="mx-auto max-w-6xl space-y-6">
       <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
+      <div v-if="loading" class="space-y-4 py-2">
+        <div class="rounded-xl border border-border bg-card p-1.5 shadow-sm">
+          <div class="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+            <Skeleton v-for="i in 6" :key="`settings-tab-sk-${i}`" class="h-9 rounded-lg" />
+          </div>
+        </div>
         <div
-          class="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600"
-        ></div>
+          v-for="i in 2"
+          :key="`settings-card-sk-${i}`"
+          class="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm"
+        >
+          <div class="space-y-2">
+            <Skeleton class="h-5 w-44" />
+            <Skeleton class="h-4 w-72" />
+          </div>
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Skeleton class="h-10 rounded-md" />
+            <Skeleton class="h-10 rounded-md" />
+          </div>
+        </div>
       </div>
 
       <!-- Settings Form -->
@@ -8979,6 +8995,7 @@ import type { ProviderInstance } from "@/types/payment";
 import AppLayout from "@/components/layout/AppLayout.vue";
 import Icon from "@/components/icons/Icon.vue";
 import Select, { type SelectOption } from "@/components/common/Select.vue";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   SITE_BILLING_MODES,
   SITE_BILLING_MODE_I18N_KEYS,
@@ -13284,11 +13301,7 @@ watch(
 
 /* ============ 系统设置 Tab 导航 ============ */
 .settings-tabs-shell {
-  @apply sticky z-20 -mx-1 rounded-2xl border border-white/80 bg-white/90 p-1.5 backdrop-blur-xl;
-  top: 4.75rem;
-  box-shadow:
-    0 12px 28px rgb(15 23 42 / 0.07),
-    0 1px 0 rgb(255 255 255 / 0.9) inset;
+  @apply sticky top-[3.5rem] z-20 rounded-xl border border-border bg-background/95 p-1 shadow-sm backdrop-blur-md;
 }
 
 .settings-tabs-scroll {
@@ -13306,7 +13319,8 @@ watch(
 }
 
 .settings-tab {
-  @apply relative isolate flex h-10 min-w-[6.75rem] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-transparent px-3 text-sm font-medium text-gray-600 outline-none transition-colors duration-200 ease-out dark:text-gray-300;
+  @apply relative isolate flex h-9 min-w-[6.75rem] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-transparent px-3 text-sm font-medium text-muted-foreground outline-none transition-colors duration-150 ease-out;
+  @apply hover:bg-muted/60 hover:text-foreground;
 }
 
 @media (min-width: 768px) {
@@ -13319,58 +13333,30 @@ watch(
   }
 
   .settings-tab-icon {
-    @apply h-6 w-6;
+    @apply h-5 w-5;
   }
 }
 
-.settings-tab::before {
-  @apply absolute inset-0 -z-10 rounded-xl opacity-0 transition-opacity duration-200;
-  content: "";
-  background: linear-gradient(135deg, rgb(248 250 252 / 0.95), rgb(241 245 249 / 0.8));
-}
-
-.settings-tab:hover::before,
-.settings-tab:focus-visible::before {
-  opacity: 1;
-}
-
 .settings-tab:focus-visible {
-  @apply ring-2 ring-primary-500/40 ring-offset-2 ring-offset-white dark:ring-offset-dark-900;
+  @apply ring-2 ring-ring/50 ring-offset-2 ring-offset-background;
 }
 
 .settings-tab-active {
-  @apply border-primary-200/80 bg-white text-primary-700 shadow-sm dark:border-primary-400/30 dark:bg-dark-700/95 dark:text-primary-200;
-  box-shadow:
-    0 8px 18px rgb(15 23 42 / 0.08),
-    0 1px 0 rgb(255 255 255 / 0.92) inset;
-}
-
-.settings-tab-active::before {
-  opacity: 0;
-}
-
-.settings-tab-active::after {
-  position: absolute;
-  right: 0.75rem;
-  bottom: 0.25rem;
-  left: 0.75rem;
-  height: 2px;
-  border-radius: 9999px;
-  content: "";
-  background: linear-gradient(90deg, #14b8a6, #0ea5e9);
+  @apply bg-muted font-medium text-foreground shadow-sm ring-1 ring-border/70;
+  @apply hover:bg-muted hover:text-foreground;
 }
 
 .settings-tab-icon {
-  @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors duration-200 dark:text-gray-400;
+  @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150;
 }
 
 .settings-tab:hover .settings-tab-icon,
 .settings-tab:focus-visible .settings-tab-icon {
-  @apply text-gray-700 dark:text-gray-200;
+  @apply text-foreground;
 }
 
 .settings-tab-active .settings-tab-icon {
-  @apply bg-primary-50 text-primary-600 dark:bg-primary-400/10 dark:text-primary-300;
+  @apply text-foreground;
 }
 
 .settings-tab-label {
@@ -13379,40 +13365,42 @@ watch(
 
 /* ============ 系统设置 保存浮标 ============ */
 .settings-save-dock {
-  @apply sticky bottom-3 z-20 ml-auto flex w-fit items-center rounded-full border border-white/80 bg-white/90 p-1.5 backdrop-blur-xl;
-  box-shadow:
-    0 10px 26px rgb(15 23 42 / 0.12),
-    0 1px 0 rgb(255 255 255 / 0.9) inset;
+  @apply sticky bottom-3 z-20 ml-auto flex w-fit items-center rounded-full border border-border bg-background/95 p-1.5 shadow-lg backdrop-blur-md;
 }
 </style>
 
 <style>
-/* Dark-mode overrides for the settings tabs shell. Kept in an UNSCOPED block
-   because Vue's scoped-CSS compiler was dropping the `:global(.dark) ...`
-   rules in the production build, leaving inactive tabs unreadable on dark. */
+/* Dark-mode overrides for the settings tabs shell and save dock. Kept in an
+   UNSCOPED block because Vue's scoped-CSS compiler can drop `:global(.dark)`
+   rules in production builds, leaving inactive tabs unreadable on dark. */
 .dark .settings-tabs-shell {
-  border-color: rgb(51 65 85 / 0.65);
-  background: rgb(15 23 42 / 0.86);
-  box-shadow:
-    0 16px 36px rgb(0 0 0 / 0.28),
-    0 1px 0 rgb(255 255 255 / 0.06) inset;
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background) / 0.95);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
 }
 
-.dark .settings-tab::before {
-  background: linear-gradient(135deg, rgb(30 41 59 / 0.9), rgb(51 65 85 / 0.62));
+.dark .settings-tab {
+  color: hsl(var(--muted-foreground));
 }
 
-.dark .settings-tab-active {
+.dark .settings-tab:hover,
+.dark .settings-tab:focus-visible {
+  background-color: hsl(var(--muted) / 0.6);
+  color: hsl(var(--foreground));
+}
+
+.dark .settings-tab-active,
+.dark .settings-tab-active:hover {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
   box-shadow:
-    0 12px 26px rgb(0 0 0 / 0.22),
-    0 1px 0 rgb(255 255 255 / 0.08) inset;
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 0 0 1px hsl(var(--border) / 0.7);
 }
 
 .dark .settings-save-dock {
-  border-color: rgb(51 65 85 / 0.65);
-  background: rgb(15 23 42 / 0.86);
-  box-shadow:
-    0 14px 32px rgb(0 0 0 / 0.34),
-    0 1px 0 rgb(255 255 255 / 0.06) inset;
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background) / 0.95);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
 }
 </style>

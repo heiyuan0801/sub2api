@@ -641,7 +641,17 @@ export default {
     "docs": "文件",
     "channelStatus": "渠道狀態",
     "recharge": "儲值",
-    "mySubscriptions": "我的訂閱"
+    "mySubscriptions": "我的訂閱",
+    "sections": {
+      "overview": "概覽與監控",
+      "resources": "用戶與資源",
+      "operations": "營運與財務",
+      "system": "安全與系統",
+      "workspace": "工作台",
+      "services": "服務與渠道",
+      "billing": "帳單與福利",
+      "account": "帳號設定"
+    }
   },
   "seo": {
     "home": {
@@ -655,6 +665,70 @@ export default {
     "docs": {
       "title": "API 文件",
       "description": "查看 AI API 串接、用戶端設定與 API 金鑰管理指南。"
+    }
+  },
+  "themeConfig": {
+    "title": "外觀設定",
+    "description": "自訂主題模式、配色方案、圓角、字體與側邊欄版面。",
+    "openSettings": "主題設定",
+    "theme": "主題",
+    "appearance": "外觀模式",
+    "modes": {
+      "system": "跟隨系統",
+      "light": "淺色",
+      "dark": "深色"
+    },
+    "colorPreset": "配色方案",
+    "presets": {
+      "default": "預設藍",
+      "anthropic": "Anthropic",
+      "roseGarden": "玫瑰園",
+      "lakeView": "湖畔青",
+      "sunsetGlow": "晚霞橙",
+      "forestWhisper": "林間綠",
+      "oceanBreeze": "海風藍",
+      "lavenderDream": "薰衣草",
+      "neutral": "極簡黑白"
+    },
+    "radius": "圓角大小",
+    "radiusOptions": {
+      "none": "0",
+      "sm": "小",
+      "md": "中",
+      "lg": "大"
+    },
+    "font": "字體",
+    "fontOptions": {
+      "system": "系統預設",
+      "sans": "無襯線",
+      "serif": "襯線"
+    },
+    "sidebarStyle": "側邊欄樣式",
+    "sidebarVariants": {
+      "inset": "內嵌式",
+      "floating": "懸浮式",
+      "sidebar": "經典式"
+    },
+    "reset": "恢復預設"
+  },
+  "commandMenu": {
+    "title": "快捷命令",
+    "placeholder": "搜尋頁面或快捷命令...",
+    "empty": "找不到相符結果。",
+    "groups": {
+      "navigation": "頁面導覽",
+      "theme": "外觀與主題"
+    },
+    "actions": {
+      "switchToLight": "切換為淺色模式",
+      "switchToDark": "切換為深色模式",
+      "switchToSystem": "跟隨系統主題",
+      "openThemeSettings": "開啟外觀設定"
+    },
+    "hints": {
+      "navigate": "切換",
+      "select": "確認",
+      "close": "關閉"
     }
   }
 }

@@ -1,22 +1,36 @@
 <template>
-  <Card class="stat-card">
-    <div :class="['stat-icon', iconClass]">
-      <component v-if="icon" :is="icon" class="h-6 w-6" aria-hidden="true" />
-    </div>
-    <div class="min-w-0 flex-1">
-      <p class="stat-label truncate">{{ title }}</p>
-      <div class="mt-1 flex items-baseline gap-2">
-        <p class="stat-value" :title="String(formattedValue)">{{ formattedValue }}</p>
-        <span v-if="change !== undefined" :class="['stat-trend', trendClass]">
-          <Icon
-            v-if="changeType !== 'neutral'"
-            name="arrowUp"
-            size="xs"
-            :class="changeType === 'down' && 'rotate-180'"
-          />
-          {{ formattedChange }}
-        </span>
+  <Card class="p-5">
+    <div class="flex items-center justify-between gap-3">
+      <p class="truncate text-xs font-medium text-muted-foreground">{{ title }}</p>
+      <div
+        v-if="icon"
+        :class="['flex size-7 shrink-0 items-center justify-center rounded-md', iconClass]"
+      >
+        <component :is="icon" class="size-4" aria-hidden="true" />
       </div>
+    </div>
+    <div class="mt-2.5 flex items-baseline justify-between gap-2">
+      <p
+        class="truncate text-2xl font-semibold tracking-tight text-foreground tabular-nums"
+        :title="String(formattedValue)"
+      >
+        {{ formattedValue }}
+      </p>
+      <span
+        v-if="change !== undefined"
+        :class="[
+          'inline-flex shrink-0 items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums',
+          trendClass
+        ]"
+      >
+        <Icon
+          v-if="changeType !== 'neutral'"
+          name="arrowUp"
+          size="xs"
+          :class="changeType === 'down' && 'rotate-180'"
+        />
+        {{ formattedChange }}
+      </span>
     </div>
   </Card>
 </template>
@@ -63,19 +77,19 @@ const formattedChange = computed(() => {
 
 const iconClass = computed(() => {
   const classes: Record<IconVariant, string> = {
-    primary: 'stat-icon-primary',
-    success: 'stat-icon-success',
-    warning: 'stat-icon-warning',
-    danger: 'stat-icon-danger'
+    primary: 'bg-muted/70 text-muted-foreground',
+    success: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    warning: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    danger: 'bg-red-500/10 text-red-600 dark:text-red-400'
   }
   return classes[props.iconVariant]
 })
 
 const trendClass = computed(() => {
   const classes: Record<ChangeType, string> = {
-    up: 'stat-trend-up',
-    down: 'stat-trend-down',
-    neutral: 'text-gray-500 dark:text-dark-400'
+    up: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    down: 'bg-red-500/10 text-red-700 dark:text-red-400',
+    neutral: 'bg-muted text-muted-foreground'
   }
   return classes[props.changeType]
 })

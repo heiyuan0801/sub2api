@@ -1,14 +1,30 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <header class="flex flex-wrap items-start justify-between gap-4"><div><p class="mb-2 text-xs font-medium text-muted-foreground">{{ t('design.overview') }}</p><h1 class="text-3xl font-semibold tracking-tight">{{ t('design.usageTitle') }}</h1><p class="mt-2 text-sm text-muted-foreground">{{ t('design.usageDescription') }}</p></div><Button variant="outline" :aria-expanded="showCharts" aria-controls="usage-analytics" @click="showCharts = !showCharts"><ChartNoAxesCombined :size="16" />{{ t(showCharts ? 'design.hideCharts' : 'design.showCharts') }}</Button></header>
+      <PageHeader
+        :title="t('design.usageTitle')"
+        :description="t('design.usageDescription')"
+      >
+        <template #actions>
+          <Button
+            variant="outline"
+            class="h-9 gap-1.5"
+            :aria-expanded="showCharts"
+            aria-controls="usage-analytics"
+            @click="showCharts = !showCharts"
+          >
+            <ChartNoAxesCombined :size="16" />
+            <span>{{ t(showCharts ? 'design.hideCharts' : 'design.showCharts') }}</span>
+          </Button>
+        </template>
+      </PageHeader>
       <UsageStatsCards :stats="usageStats" />
       <!-- Charts Section -->
       <div class="space-y-4">
-        <Card class="card p-4">
+        <Card class="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
           <div class="flex flex-wrap items-center gap-4">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.timeRange') }}:</span>
+              <span class="text-xs font-medium text-muted-foreground">{{ t('admin.dashboard.timeRange') }}:</span>
               <DateRangePicker
                 v-model:start-date="startDate"
                 v-model:end-date="endDate"
@@ -16,7 +32,7 @@
               />
             </div>
             <div class="ml-auto flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.granularity') }}:</span>
+              <span class="text-xs font-medium text-muted-foreground">{{ t('admin.dashboard.granularity') }}:</span>
               <div class="w-28">
                 <Select v-model="granularity" :options="granularityOptions" @change="loadChartData" />
               </div>
@@ -66,31 +82,33 @@
         </div>
       </div>
       <!-- 明细区：tab 栏 + 筛选 + 内容收进同一张卡片，消除割裂感 -->
-      <Card class="card">
-        <div class="flex flex-wrap items-center border-b border-gray-200 px-2 dark:border-dark-700 sm:px-4">
-          <button
-            v-for="tab in detailTabs"
-            :key="tab.key"
-            type="button"
-            data-testid="usage-detail-tab"
-            class="-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-3 text-sm font-medium transition-colors sm:px-4"
-            :class="activeTab === tab.key
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-dark-500 dark:hover:text-gray-200'"
-            @click="switchTab(tab.key)"
-          >
-            <Icon :name="tab.icon" size="sm" />
-            {{ tab.label }}
-          </button>
+      <Card class="rounded-2xl border border-border/80 bg-card shadow-sm">
+        <div class="flex flex-wrap items-center border-b border-border bg-muted/30 px-4 py-2.5">
+          <div class="inline-flex flex-wrap items-center rounded-full border border-border bg-background p-0.5">
+            <button
+              v-for="tab in detailTabs"
+              :key="tab.key"
+              type="button"
+              data-testid="usage-detail-tab"
+              class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors"
+              :class="activeTab === tab.key
+                ? 'bg-foreground text-background shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'"
+              @click="switchTab(tab.key)"
+            >
+              <Icon :name="tab.icon" size="xs" />
+              {{ tab.label }}
+            </button>
+          </div>
         </div>
 
-        <UsageFilters v-model="filters" ref="usageFiltersRef" flat :mode="activeTab" class="border-b border-gray-100 dark:border-dark-700/50" :start-date="startDate" :end-date="endDate" :exporting="exporting" :model-options="modelNameOptions" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
+        <UsageFilters v-model="filters" ref="usageFiltersRef" flat :mode="activeTab" class="border-b border-border/70" :start-date="startDate" :end-date="endDate" :exporting="exporting" :model-options="modelNameOptions" @change="applyFilters" @refresh="refreshData" @reset="resetFilters" @cleanup="openCleanupDialog" @export="exportToExcel">
           <template #after-reset>
             <div v-if="activeTab !== 'ranking'" class="relative" ref="columnDropdownRef">
               <Button variant="outline"
                 data-testid="usage-column-settings"
                 @click="showColumnDropdown = !showColumnDropdown"
-                class="px-2 md:px-3"
+                class="h-9 px-2.5 md:px-3"
                 :title="t('admin.users.columnSettings')"
               >
                 <svg class="h-4 w-4 md:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
@@ -100,21 +118,21 @@
               </Button>
               <div
                 v-if="showColumnDropdown"
-                class="absolute right-0 top-full z-50 mt-1 max-h-80 w-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-dark-600 dark:bg-dark-800"
+                class="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-48 overflow-y-auto rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
               >
                 <button
                   v-for="col in currentToggleableColumns"
                   :key="col.key"
                   :data-testid="`usage-column-toggle-${col.key}`"
                   @click="toggleCurrentColumn(col.key)"
-                  class="flex w-full items-center justify-between px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+                  class="flex w-full items-center justify-between rounded-sm px-2.5 py-1.5 text-left text-sm text-popover-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
-                  <span>{{ col.label }}</span>
+                  <span class="truncate">{{ col.label }}</span>
                   <Icon
                     v-if="isCurrentColumnVisible(col.key)"
                     name="check"
                     size="sm"
-                    class="text-primary-500"
+                    class="shrink-0 text-primary"
                     :stroke-width="2"
                   />
                 </button>
@@ -197,7 +215,7 @@ import { useAppStore } from '@/stores/app'; import { adminAPI } from '@/api/admi
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { formatReasoningEffort } from '@/utils/format'
 import { resolveUsageRequestType, requestTypeToLegacyStream } from '@/utils/usageRequestType'
-import AppLayout from '@/components/layout/AppLayout.vue'; import Pagination from '@/components/common/Pagination.vue'; import Select from '@/components/common/Select.vue'; import DateRangePicker from '@/components/common/DateRangePicker.vue'
+import AppLayout from '@/components/layout/AppLayout.vue'; import PageHeader from '@/components/common/PageHeader.vue'; import Pagination from '@/components/common/Pagination.vue'; import Select from '@/components/common/Select.vue'; import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import UsageStatsCards from '@/components/admin/usage/UsageStatsCards.vue'; import UsageFilters from '@/components/admin/usage/UsageFilters.vue'
 import UsageTable from '@/components/admin/usage/UsageTable.vue'; import UsageExportProgress from '@/components/admin/usage/UsageExportProgress.vue'
 import UserTokenRanking from '@/components/admin/usage/UserTokenRanking.vue'

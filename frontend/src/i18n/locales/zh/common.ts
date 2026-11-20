@@ -214,6 +214,16 @@ export default {
     contentModeration: '内容审计',
     promptAudit: '提示词审计',
     auditLogs: '操作日志',
+    sections: {
+      overview: '概览与监控',
+      resources: '用户与资源',
+      operations: '运营与财务',
+      system: '安全与系统',
+      workspace: '工作台',
+      services: '服务与渠道',
+      billing: '账单与福利',
+      account: '账号设置',
+    },
   },
 
   // Auth
@@ -456,5 +466,69 @@ export default {
     adminApiKeyForbidden: '管理 API Key 无法执行此操作，请使用已通过二次验证的管理员会话。'
   },
 
-  // Dashboard
+  themeConfig: {
+    title: '外观设置',
+    description: '自定义主题模式、配色方案、圆角、字体和侧边栏布局。',
+    openSettings: '主题设置',
+    theme: '主题',
+    appearance: '外观模式',
+    modes: {
+      system: '跟随系统',
+      light: '浅色',
+      dark: '深色'
+    },
+    colorPreset: '配色方案',
+    presets: {
+      default: '默认蓝',
+      anthropic: 'Anthropic',
+      roseGarden: '玫瑰园',
+      lakeView: '湖畔青',
+      sunsetGlow: '晚霞橙',
+      forestWhisper: '林间绿',
+      oceanBreeze: '海风蓝',
+      lavenderDream: '薰衣草',
+      neutral: '极简黑白'
+    },
+    radius: '圆角大小',
+    radiusOptions: {
+      none: '0',
+      sm: '小',
+      md: '中',
+      lg: '大'
+    },
+    font: '字体',
+    fontOptions: {
+      system: '系统默认',
+      sans: '无衬线',
+      serif: '衬线'
+    },
+    sidebarStyle: '侧边栏样式',
+    sidebarVariants: {
+      inset: '内嵌式',
+      floating: '悬浮式',
+      sidebar: '经典式'
+    },
+    reset: '恢复默认'
+  },
+
+  commandMenu: {
+    title: '快捷命令',
+    placeholder: '搜索页面或快捷命令...',
+    empty: '未找到匹配结果。',
+    groups: {
+      navigation: '页面导航',
+      theme: '外观与主题'
+    },
+    actions: {
+      switchToLight: '切换到浅色模式',
+      switchToDark: '切换到深色模式',
+      switchToSystem: '跟随系统主题',
+      openThemeSettings: '打开外观设置'
+    },
+    hints: {
+      navigate: '切换',
+      select: '确认',
+      close: '关闭'
+    }
+  }
 }

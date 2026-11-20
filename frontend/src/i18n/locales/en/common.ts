@@ -214,6 +214,16 @@ export default {
     contentModeration: 'Content Moderation',
     promptAudit: 'Prompt Audit',
     auditLogs: 'Audit Logs',
+    sections: {
+      overview: 'Overview',
+      resources: 'Resources',
+      operations: 'Operations',
+      system: 'System',
+      workspace: 'Workspace',
+      services: 'Services',
+      billing: 'Billing & Rewards',
+      account: 'Account',
+    },
   },
 
   // Auth
@@ -457,5 +467,69 @@ export default {
     adminApiKeyForbidden: 'Admin API keys cannot perform this operation. Use a two-factor verified admin session.'
   },
 
-  // Dashboard
+  themeConfig: {
+    title: 'Theme Settings',
+    description: 'Customize appearance, color preset, radius, font, and layout.',
+    openSettings: 'Theme Settings',
+    theme: 'Theme',
+    appearance: 'Appearance',
+    modes: {
+      system: 'System',
+      light: 'Light',
+      dark: 'Dark'
+    },
+    colorPreset: 'Color Preset',
+    presets: {
+      default: 'Default',
+      anthropic: 'Anthropic',
+      roseGarden: 'Rose Garden',
+      lakeView: 'Lake View',
+      sunsetGlow: 'Sunset Glow',
+      forestWhisper: 'Forest Whisper',
+      oceanBreeze: 'Ocean Breeze',
+      lavenderDream: 'Lavender Dream',
+      neutral: 'Neutral'
+    },
+    radius: 'Border Radius',
+    radiusOptions: {
+      none: '0',
+      sm: 'SM',
+      md: 'MD',
+      lg: 'LG'
+    },
+    font: 'Font',
+    fontOptions: {
+      system: 'System',
+      sans: 'Sans',
+      serif: 'Serif'
+    },
+    sidebarStyle: 'Sidebar Style',
+    sidebarVariants: {
+      inset: 'Inset',
+      floating: 'Floating',
+      sidebar: 'Classic'
+    },
+    reset: 'Reset to defaults'
+  },
+
+  commandMenu: {
+    title: 'Command Menu',
+    placeholder: 'Search pages or commands...',
+    empty: 'No matching results found.',
+    groups: {
+      navigation: 'Navigation',
+      theme: 'Theme'
+    },
+    actions: {
+      switchToLight: 'Switch to Light Mode',
+      switchToDark: 'Switch to Dark Mode',
+      switchToSystem: 'Follow System Theme',
+      openThemeSettings: 'Open Theme Settings'
+    },
+    hints: {
+      navigate: 'Navigate',
+      select: 'Select',
+      close: 'Close'
+    }
+  }
 }

@@ -1,39 +1,51 @@
 <template>
   <AppLayout>
     <TablePageLayout>
-      <template #filters>
-        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-          <div class="flex flex-1 flex-wrap items-center gap-3">
-            <div class="relative w-full sm:w-80">
-              <Icon
-                name="search"
-                size="md"
-                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
-              />
-              <input
-                v-model="searchQuery"
-                type="text"
-                :placeholder="t('availableChannels.searchPlaceholder')"
-                class="input pl-10"
-              />
-            </div>
-            <button v-if="linkedGroupID" type="button" class="btn btn-secondary gap-2" @click="clearLinkedGroup">
-              <span>{{ linkedGroupName || `${t('operations.notificationGroup')} #${linkedGroupID}` }}</span>
-              <Icon name="x" size="xs" aria-hidden="true" />
-              <span class="sr-only">{{ t('operations.clearGroupFilter') }}</span>
-            </button>
-          </div>
-
-          <div class="flex w-full flex-shrink-0 flex-wrap items-center justify-end gap-3 lg:w-auto">
+      <template #actions>
+        <PageHeader
+          :title="t('availableChannels.title')"
+          :description="t('availableChannels.description')"
+        >
+          <template #actions>
             <button
+              type="button"
               @click="loadChannels"
               :disabled="loading"
-              class="btn btn-secondary"
+              class="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50"
               :title="t('common.refresh', 'Refresh')"
             >
-              <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
+              <Icon name="refresh" size="xs" :stroke-width="1.75" :class="loading ? 'animate-spin' : ''" />
+              <span>{{ t('common.refresh', 'Refresh') }}</span>
             </button>
+          </template>
+        </PageHeader>
+      </template>
+
+      <template #filters>
+        <div class="flex flex-wrap items-center gap-2.5 rounded-2xl border border-border/80 bg-card p-3.5 shadow-sm">
+          <div class="relative w-full sm:w-80">
+            <Icon
+              name="search"
+              size="sm"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('availableChannels.searchPlaceholder')"
+              class="h-9 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            />
           </div>
+          <button
+            v-if="linkedGroupID"
+            type="button"
+            class="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+            @click="clearLinkedGroup"
+          >
+            <span>{{ linkedGroupName || `${t('operations.notificationGroup')} #${linkedGroupID}` }}</span>
+            <Icon name="x" size="xs" aria-hidden="true" />
+            <span class="sr-only">{{ t('operations.clearGroupFilter') }}</span>
+          </button>
         </div>
       </template>
 
@@ -59,6 +71,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import TablePageLayout from '@/components/layout/TablePageLayout.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import Icon from '@/components/icons/Icon.vue'
 import AvailableChannelsTable from '@/components/channels/AvailableChannelsTable.vue'
 import userChannelsAPI, { type UserAvailableChannel } from '@/api/channels'

@@ -2,24 +2,26 @@
   <AppLayout>
     <div class="w-full min-w-0 space-y-6 pb-8">
       <header
-        class="page-header mb-0 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5 dark:bg-dark-800 dark:ring-dark-700 sm:p-6"
+        class="page-header mb-0 rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6"
       >
-        <h1 class="page-title flex items-center gap-2 text-xl font-black text-gray-900 dark:text-white">
-          <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
-            <Icon name="chart" size="sm" />
-          </span>
-          {{ t('admin.channelMonitor.title') }}
-        </h1>
-        <p class="page-description mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-          {{
-            isV1Mode
-              ? t('channelMonitorV2.admin.descriptionV1')
-              : t('channelMonitorV2.admin.descriptionV2')
-          }}
-        </p>
-        <div class="mt-4 border-t border-gray-100 pt-4 dark:border-dark-700">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 space-y-1.5">
+            <h1 class="page-title flex items-center gap-2.5 text-xl font-semibold tracking-tight text-foreground">
+              <span class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted text-foreground">
+                <Icon name="chart" size="sm" />
+              </span>
+              {{ t('admin.channelMonitor.title') }}
+            </h1>
+            <p class="page-description text-sm text-muted-foreground">
+              {{
+                isV1Mode
+                  ? t('channelMonitorV2.admin.descriptionV1')
+                  : t('channelMonitorV2.admin.descriptionV2')
+              }}
+            </p>
+          </div>
           <div
-            class="tabs inline-flex w-full max-w-xl flex-wrap sm:w-auto"
+            class="tabs w-full shrink-0 sm:w-auto"
             role="tablist"
             :aria-label="t('channelMonitorV2.admin.tabAria')"
           >
@@ -67,9 +69,9 @@
         <DataTable :columns="columns" :data="monitors" :loading="loading">
           <template #cell-name="{ row, value }">
             <div class="flex items-center gap-1.5">
-              <span class="font-medium text-gray-900 dark:text-white">{{ value }}</span>
+              <span class="font-medium text-foreground">{{ value }}</span>
               <HelpTooltip v-if="row.api_key_decrypt_failed" :content="t('admin.channelMonitor.apiKeyDecryptFailed')">
-                <Icon name="exclamationTriangle" size="sm" class="text-red-500" />
+                <Icon name="exclamationTriangle" size="sm" class="text-destructive" />
               </HelpTooltip>
             </div>
           </template>
@@ -89,11 +91,11 @@
           </template>
 
           <template #cell-availability_7d="{ row }">
-            <span class="text-sm text-gray-900 dark:text-gray-100">{{ formatAvailability(row) }}</span>
+            <span class="text-sm tabular-nums text-foreground">{{ formatAvailability(row) }}</span>
           </template>
 
           <template #cell-latency="{ row }">
-            <span class="text-sm text-gray-900 dark:text-gray-100">{{ formatLatency(row.primary_latency_ms) }}</span>
+            <span class="text-sm tabular-nums text-foreground">{{ formatLatency(row.primary_latency_ms) }}</span>
           </template>
 
           <template #cell-enabled="{ row }">

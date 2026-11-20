@@ -2,109 +2,207 @@
   <AppLayout>
     <div class="space-y-4">
       <!-- Filters -->
-      <div class="card p-4">
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="flex-1 sm:max-w-64">
-            <input v-model="orderSearch" type="text" :placeholder="t('payment.admin.searchOrders')" class="input" @input="debounceLoadOrders" />
+      <div class="rounded-2xl border border-border/80 bg-card p-3.5 shadow-sm">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="relative flex-1 sm:max-w-72">
+            <Icon
+              name="search"
+              size="sm"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+            <input
+              v-model="orderSearch"
+              type="text"
+              :placeholder="t('payment.admin.searchOrders')"
+              class="input h-9 pl-9"
+              @input="debounceLoadOrders"
+            />
           </div>
-          <Select v-model="orderFilters.status" :options="statusFilterOptions" class="w-36" @change="loadOrders" />
-          <Select v-model="orderFilters.payment_type" :options="paymentTypeFilterOptions" class="w-40" @change="loadOrders" />
-          <Select v-model="orderFilters.order_type" :options="orderTypeFilterOptions" class="w-36" @change="loadOrders" />
+          <Select v-model="orderFilters.status" :options="statusFilterOptions" class="w-full sm:w-36" @change="loadOrders" />
+          <Select v-model="orderFilters.payment_type" :options="paymentTypeFilterOptions" class="w-full sm:w-40" @change="loadOrders" />
+          <Select v-model="orderFilters.order_type" :options="orderTypeFilterOptions" class="w-full sm:w-36" @change="loadOrders" />
           <div class="flex flex-1 flex-wrap items-center justify-end gap-2">
-            <button @click="loadOrders" :disabled="ordersLoading" class="btn btn-secondary" :title="t('common.refresh')">
-              <Icon name="refresh" size="md" :class="ordersLoading ? 'animate-spin' : ''" />
+            <button
+              type="button"
+              :disabled="ordersLoading"
+              class="btn btn-secondary btn-icon h-9 w-9"
+              :title="t('common.refresh')"
+              @click="loadOrders"
+            >
+              <Icon name="refresh" size="sm" :class="ordersLoading ? 'animate-spin' : ''" />
             </button>
           </div>
         </div>
       </div>
 
       <!-- Table -->
-      <OrderTable :orders="orders" :loading="ordersLoading" show-user>
-        <template #actions="{ row }">
-          <div class="flex items-center gap-1">
-            <button @click="showOrderDetail(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-600">
-              <Icon name="eye" size="sm" />
-              {{ t('common.view') }}
-            </button>
-            <button v-if="row.status === 'PENDING'" @click="handleCancelOrder(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/20">
-              <Icon name="x" size="sm" />
-              {{ t('payment.orders.cancel') }}
-            </button>
-            <button v-if="row.status === 'FAILED'" @click="handleRetryOrder(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20">
-              <Icon name="refresh" size="sm" />
-              {{ t('payment.admin.retry') }}
-            </button>
-            <template v-if="row.status === 'REFUND_REQUESTED'">
-              <span v-if="row.refund_amount" class="rounded-full bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">{{ creditedAmountSymbol }}{{ row.refund_amount.toFixed(2) }}</span>
-              <button @click="openRefundDialog(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
-                <Icon name="check" size="sm" />
-                {{ t('payment.admin.approveRefund') }}
+      <div class="lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border/80 lg:bg-card lg:shadow-sm">
+        <OrderTable :orders="orders" :loading="ordersLoading" show-user>
+          <template #actions="{ row }">
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                @click="showOrderDetail(row)"
+              >
+                <Icon name="eye" size="sm" />
+                {{ t('common.view') }}
               </button>
-            </template>
-            <button v-else-if="row.status === 'REFUND_FAILED'" @click="openRefundDialog(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-purple-600 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20">
-              <Icon name="refresh" size="sm" />
-              {{ t('payment.admin.retryRefund') }}
-            </button>
-            <button v-else-if="row.status === 'REFUND_PENDING'" :disabled="refundQueryingIds.has(row.id)" @click="handleQueryRefund(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 disabled:opacity-60 dark:text-orange-400 dark:hover:bg-orange-900/20">
-              <Icon name="refresh" size="sm" :class="refundQueryingIds.has(row.id) ? 'animate-spin' : ''" />
-              {{ t('payment.admin.queryRefundStatus') }}
-            </button>
-            <button v-else-if="row.status === 'COMPLETED' || row.status === 'PARTIALLY_REFUNDED'" @click="openRefundDialog(row)" class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
-              <Icon name="dollar" size="sm" />
-              {{ t('payment.admin.refund') }}
-            </button>
-          </div>
-        </template>
-      </OrderTable>
+              <button
+                v-if="row.status === 'PENDING'"
+                type="button"
+                class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+                @click="handleCancelOrder(row)"
+              >
+                <Icon name="x" size="sm" />
+                {{ t('payment.orders.cancel') }}
+              </button>
+              <button
+                v-if="row.status === 'FAILED'"
+                type="button"
+                class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-500/10 dark:text-blue-400"
+                @click="handleRetryOrder(row)"
+              >
+                <Icon name="refresh" size="sm" />
+                {{ t('payment.admin.retry') }}
+              </button>
+              <template v-if="row.status === 'REFUND_REQUESTED'">
+                <span
+                  v-if="row.refund_amount"
+                  class="rounded-md border border-purple-500/20 bg-purple-500/10 px-1.5 py-0.5 text-xs font-medium tabular-nums text-purple-700 dark:text-purple-300"
+                >
+                  {{ creditedAmountSymbol }}{{ row.refund_amount.toFixed(2) }}
+                </span>
+                <button
+                  type="button"
+                  class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-500/10 dark:text-purple-400"
+                  @click="openRefundDialog(row)"
+                >
+                  <Icon name="check" size="sm" />
+                  {{ t('payment.admin.approveRefund') }}
+                </button>
+              </template>
+              <button
+                v-else-if="row.status === 'REFUND_FAILED'"
+                type="button"
+                class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-500/10 dark:text-purple-400"
+                @click="openRefundDialog(row)"
+              >
+                <Icon name="refresh" size="sm" />
+                {{ t('payment.admin.retryRefund') }}
+              </button>
+              <button
+                v-else-if="row.status === 'REFUND_PENDING'"
+                type="button"
+                :disabled="refundQueryingIds.has(row.id)"
+                class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-500/10 disabled:opacity-60 dark:text-orange-400"
+                @click="handleQueryRefund(row)"
+              >
+                <Icon name="refresh" size="sm" :class="refundQueryingIds.has(row.id) ? 'animate-spin' : ''" />
+                {{ t('payment.admin.queryRefundStatus') }}
+              </button>
+              <button
+                v-else-if="row.status === 'COMPLETED' || row.status === 'PARTIALLY_REFUNDED'"
+                type="button"
+                class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+                @click="openRefundDialog(row)"
+              >
+                <Icon name="dollar" size="sm" />
+                {{ t('payment.admin.refund') }}
+              </button>
+            </div>
+          </template>
+        </OrderTable>
+      </div>
       <Pagination v-if="orderPagination.total > 0" :page="orderPagination.page" :total="orderPagination.total" :page-size="orderPagination.page_size" @update:page="handleOrderPageChange" @update:pageSize="handleOrderPageSizeChange" />
     </div>
 
     <!-- Order Detail Dialog -->
     <BaseDialog :show="showDetailDialog" :title="t('payment.admin.orderDetail')" width="wide" @close="showDetailDialog = false">
-      <div v-if="selectedOrder" class="space-y-4">
+      <div v-if="selectedOrder" class="space-y-5">
         <div class="grid grid-cols-2 gap-4">
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.orderId') }}</p><p class="font-mono text-sm font-medium text-gray-900 dark:text-white">#{{ selectedOrder.id }}</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.orderNo') }}</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ selectedOrder.out_trade_no }}</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.status') }}</p><OrderStatusBadge :status="selectedOrder.status" /></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.amount') }}</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ creditedAmountSymbol }}{{ selectedOrder.amount.toFixed(2) }}</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.payAmount') }}</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ paymentAmountSymbol(selectedOrder) }}{{ selectedOrder.pay_amount.toFixed(2) }}</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.paymentMethod') }}</p><p class="text-sm text-gray-700 dark:text-gray-300">{{ t('payment.methods.' + selectedOrder.payment_type, selectedOrder.payment_type) }}</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.feeRate') }}</p><p class="text-sm text-gray-700 dark:text-gray-300">{{ selectedOrder.fee_rate }}%</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.orders.createdAt') }}</p><p class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(selectedOrder.created_at) }}</p></div>
-          <div><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.expiresAt') }}</p><p class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(selectedOrder.expires_at) }}</p></div>
-          <div v-if="selectedOrder.paid_at"><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.paidAt') }}</p><p class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(selectedOrder.paid_at) }}</p></div>
-          <div v-if="selectedOrder.refund_amount"><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.refundAmount') }}</p><p class="text-sm font-medium text-red-600 dark:text-red-400">{{ creditedAmountSymbol }}{{ selectedOrder.refund_amount.toFixed(2) }}</p></div>
-          <div v-if="selectedOrder.refund_reason" class="col-span-2"><p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.refundReason') }}</p><p class="text-sm text-gray-700 dark:text-gray-300">{{ selectedOrder.refund_reason }}</p></div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.orderId') }}</p>
+            <p class="font-mono text-sm font-medium tabular-nums text-foreground">#{{ selectedOrder.id }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.orderNo') }}</p>
+            <p class="break-all font-mono text-sm font-medium text-foreground">{{ selectedOrder.out_trade_no }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.status') }}</p>
+            <div><OrderStatusBadge :status="selectedOrder.status" /></div>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.amount') }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ creditedAmountSymbol }}{{ selectedOrder.amount.toFixed(2) }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.payAmount') }}</p>
+            <p class="text-sm font-semibold tabular-nums text-foreground">{{ paymentAmountSymbol(selectedOrder) }}{{ selectedOrder.pay_amount.toFixed(2) }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.paymentMethod') }}</p>
+            <p class="text-sm text-foreground">{{ t('payment.methods.' + selectedOrder.payment_type, selectedOrder.payment_type) }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.admin.feeRate') }}</p>
+            <p class="text-sm tabular-nums text-foreground">{{ selectedOrder.fee_rate }}%</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.orders.createdAt') }}</p>
+            <p class="text-sm tabular-nums text-foreground">{{ formatDateTime(selectedOrder.created_at) }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.admin.expiresAt') }}</p>
+            <p class="text-sm tabular-nums text-foreground">{{ formatDateTime(selectedOrder.expires_at) }}</p>
+          </div>
+          <div v-if="selectedOrder.paid_at" class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.admin.paidAt') }}</p>
+            <p class="text-sm tabular-nums text-foreground">{{ formatDateTime(selectedOrder.paid_at) }}</p>
+          </div>
+          <div v-if="selectedOrder.refund_amount" class="space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.admin.refundAmount') }}</p>
+            <p class="text-sm font-semibold tabular-nums text-destructive">{{ creditedAmountSymbol }}{{ selectedOrder.refund_amount.toFixed(2) }}</p>
+          </div>
+          <div v-if="selectedOrder.refund_reason" class="col-span-2 space-y-1">
+            <p class="text-xs font-medium text-muted-foreground">{{ t('payment.admin.refundReason') }}</p>
+            <p class="text-sm text-foreground">{{ selectedOrder.refund_reason }}</p>
+          </div>
           <!-- Refund request info -->
-          <div v-if="selectedOrder.refund_requested_at" class="col-span-2 border-t border-gray-200 pt-3 dark:border-dark-600">
-            <p class="mb-2 text-xs font-medium text-purple-600 dark:text-purple-400">{{ t('payment.admin.refundRequestInfo') }}</p>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.refundRequestedAt') }}</p>
-                <p class="text-sm text-gray-700 dark:text-gray-300">{{ formatDateTime(selectedOrder.refund_requested_at) }}</p>
+          <div v-if="selectedOrder.refund_requested_at" class="col-span-2 rounded-xl border border-border/80 bg-muted/30 p-3.5">
+            <p class="mb-2.5 text-xs font-semibold text-purple-600 dark:text-purple-400">{{ t('payment.admin.refundRequestInfo') }}</p>
+            <div class="grid grid-cols-2 gap-3.5">
+              <div class="space-y-0.5">
+                <p class="text-xs text-muted-foreground">{{ t('payment.admin.refundRequestedAt') }}</p>
+                <p class="text-sm tabular-nums text-foreground">{{ formatDateTime(selectedOrder.refund_requested_at) }}</p>
               </div>
-              <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.refundRequestedBy') }}</p>
-                <p class="text-sm text-gray-700 dark:text-gray-300">#{{ selectedOrder.refund_requested_by }}</p>
+              <div class="space-y-0.5">
+                <p class="text-xs text-muted-foreground">{{ t('payment.admin.refundRequestedBy') }}</p>
+                <p class="font-mono text-sm tabular-nums text-foreground">#{{ selectedOrder.refund_requested_by }}</p>
               </div>
-              <div class="col-span-2">
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('payment.admin.refundRequestReason') }}</p>
-                <p class="text-sm text-gray-700 dark:text-gray-300">{{ selectedOrder.refund_request_reason }}</p>
+              <div class="col-span-2 space-y-0.5">
+                <p class="text-xs text-muted-foreground">{{ t('payment.admin.refundRequestReason') }}</p>
+                <p class="text-sm text-foreground">{{ selectedOrder.refund_request_reason }}</p>
               </div>
             </div>
           </div>
         </div>
         <!-- Audit Logs -->
-        <div v-if="orderAuditLogs.length > 0" class="border-t border-gray-200 pt-4 dark:border-dark-600">
-          <p class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('payment.admin.auditLogs') }}</p>
+        <div v-if="orderAuditLogs.length > 0" class="border-t border-border pt-4">
+          <p class="mb-2.5 text-xs font-medium text-muted-foreground">{{ t('payment.admin.auditLogs') }}</p>
           <div class="max-h-48 space-y-2 overflow-y-auto">
-            <div v-for="log in orderAuditLogs" :key="log.id" class="rounded-lg border border-gray-100 bg-gray-50 p-2.5 dark:border-dark-600 dark:bg-dark-800">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ log.action }}</span>
-                <span class="text-xs text-gray-400">{{ formatDateTime(log.created_at) }}</span>
+            <div
+              v-for="log in orderAuditLogs"
+              :key="log.id"
+              class="rounded-xl border border-border/80 bg-muted/30 p-3"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-semibold text-foreground">{{ log.action }}</span>
+                <span class="text-xs tabular-nums text-muted-foreground">{{ formatDateTime(log.created_at) }}</span>
               </div>
-              <div v-if="log.detail" class="mt-1 break-all text-xs text-gray-500 dark:text-gray-400">{{ log.detail }}</div>
-              <div v-if="log.operator" class="mt-1 text-xs text-gray-400">{{ t('payment.admin.operator') }}: {{ log.operator }}</div>
+              <div v-if="log.detail" class="mt-1 break-all text-xs text-muted-foreground">{{ log.detail }}</div>
+              <div v-if="log.operator" class="mt-1 text-xs text-muted-foreground/80">{{ t('payment.admin.operator') }}: {{ log.operator }}</div>
             </div>
           </div>
         </div>

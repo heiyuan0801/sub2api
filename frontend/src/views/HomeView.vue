@@ -183,9 +183,11 @@
 import { ArrowRight, Check } from '@lucide/vue'
 
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { getActivePinia } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { localizedPublicPath } from '@/i18n/localeConfig'
 import { useAuthStore, useAppStore } from '@/stores'
+import { useThemeStore } from '@/stores/theme'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
 import PublicSiteHeader from '@/components/public/PublicSiteHeader.vue'
@@ -360,17 +362,27 @@ const requestExamples = computed<Record<Protocol, string>>(() => ({
   gemini: `curl ${gatewayRoot.value}/v1beta/models/MODEL_ID:generateContent \\\n  -H "x-goog-api-key: YOUR_API_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "contents": [\n      { "parts": [{ "text": ${JSON.stringify(t('publicHome.examples.prompt'))} }] }\n    ]\n  }'`
 }))
 
-// The compact variant keeps its existing theme control.
-const isDark = ref(document.documentElement.classList.contains('dark'))
+// The compact variant keeps its existing theme control, synced with themeStore when Pinia is active.
+const themeStore = getActivePinia() ? useThemeStore() : null
+const fallbackIsDark = ref(document.documentElement.classList.contains('dark'))
+const isDark = computed(() => (themeStore ? themeStore.isDark : fallbackIsDark.value))
 function toggleTheme() {
-  isDark.value = !isDark.value
-  document.documentElement.classList.toggle('dark', isDark.value)
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  if (themeStore) {
+    themeStore.toggleDark()
+    return
+  }
+  fallbackIsDark.value = !fallbackIsDark.value
+  document.documentElement.classList.toggle('dark', fallbackIsDark.value)
+  localStorage.setItem('theme', fallbackIsDark.value ? 'dark' : 'light')
 }
 function initTheme() {
+  if (themeStore) {
+    themeStore.init()
+    return
+  }
   const savedTheme = localStorage.getItem('theme')
   if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    isDark.value = true
+    fallbackIsDark.value = true
     document.documentElement.classList.add('dark')
   }
 }
@@ -398,26 +410,26 @@ onBeforeUnmount(() => {
   font-display: swap;
 }
 .public-home {
-  --gateway-ink: #0a0a0a;
-  --gateway-muted: #71717a;
-  --gateway-accent: #5756e8;
-  --gateway-line: #e4e4e7;
-  --gateway-surface: #fff;
-  --gateway-soft: #fafafa;
+  --gateway-ink: hsl(var(--foreground));
+  --gateway-muted: hsl(var(--muted-foreground));
+  --gateway-accent: hsl(var(--primary));
+  --gateway-line: hsl(var(--border));
+  --gateway-surface: hsl(var(--background));
+  --gateway-soft: hsl(var(--muted));
   --gateway-width: 1280px;
   --gateway-gutter: clamp(16px, 3vw, 40px);
   min-height: 100vh;
   background: var(--gateway-surface);
   color: var(--gateway-ink);
-  font-family: 'Gateway Inter', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-body, 'Gateway Inter', Inter, system-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif);
 }
 .dark .public-home {
-  --gateway-ink: #fafafa;
-  --gateway-muted: #a1a1aa;
-  --gateway-accent: #8685ff;
-  --gateway-line: #29292f;
-  --gateway-surface: #09090b;
-  --gateway-soft: #141417;
+  --gateway-ink: hsl(var(--foreground));
+  --gateway-muted: hsl(var(--muted-foreground));
+  --gateway-accent: hsl(var(--primary));
+  --gateway-line: hsl(var(--border));
+  --gateway-surface: hsl(var(--background));
+  --gateway-soft: hsl(var(--muted));
 }
 .public-home main { min-width: 0; }
 .gateway-shell { width: min(calc(100% - 2 * var(--gateway-gutter)), var(--gateway-width)); margin-inline: auto; }
@@ -483,15 +495,15 @@ onBeforeUnmount(() => {
   margin-top: 39px;
   padding: 12px 48px;
   border-radius: 999px;
-  background: #5554dc;
-  color: #fff;
-  box-shadow: 0 3px 8px #413ed72e, 0 10px 46px #5554dc58;
+  background: var(--gateway-accent);
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 3px 8px hsl(var(--primary) / 0.18), 0 10px 46px hsl(var(--primary) / 0.34);
   font-size: 23px;
   font-weight: 650;
   line-height: 1.25;
-  transition: background .18s ease, transform .18s ease;
+  transition: background .18s ease, transform .18s ease, opacity .18s ease;
 }
-.gateway-key-button:hover { transform: translateY(-1px); background: #4847ce; }
+.gateway-key-button:hover { transform: translateY(-1px); background: hsl(var(--primary) / 0.9); }
 .gateway-hero-benefits {
   display: flex;
   justify-content: center;
