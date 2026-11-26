@@ -68,7 +68,7 @@ func TestProbeAccountBalanceSkipsOfficialAndPreservesRate(t *testing.T) {
 	freshAccount, err := repo.GetByID(context.Background(), 1)
 	require.NoError(t, err)
 	rateSnapshot := &UpstreamBillingProbeSnapshot{Status: UpstreamBillingProbeStatusFailed}
-	require.NoError(t, svc.updateSnapshot(context.Background(), freshAccount, rateSnapshot, nil))
+	require.NoError(t, svc.updateSnapshot(context.Background(), freshAccount, rateSnapshot, nil, BillingGroupInfo{}))
 	require.NotNil(t, rateSnapshot.Balance)
 }
 

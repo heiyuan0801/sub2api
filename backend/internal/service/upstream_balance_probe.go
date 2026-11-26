@@ -111,7 +111,7 @@ func (s *UpstreamBillingProbeService) ProbeAccountBalance(ctx context.Context, i
 				if buildErr == nil {
 					req.Header.Set("Accept", "application/json")
 					req.Header.Set("Authorization", "Bearer "+account.GetCredential("api_key"))
-					account.ApplyHeaderOverrides(req.Header)
+					account.ApplyHeaderOverrides(withoutHeaderOverrideRequestScope(req.Context()), req.Header)
 					var tlsProfile *tlsfingerprint.Profile
 					if s.accountTestService.tlsFPProfileService != nil {
 						tlsProfile = s.accountTestService.tlsFPProfileService.ResolveTLSProfile(account)
@@ -138,7 +138,7 @@ func (s *UpstreamBillingProbeService) ProbeAccountBalance(ctx context.Context, i
 			}
 		}
 		snapshot.Balance = balance
-		if err := s.updateSnapshot(ctx, account, snapshot, nil); err != nil {
+		if err := s.updateSnapshot(ctx, account, snapshot, nil, BillingGroupInfo{}); err != nil {
 			return nil, err
 		}
 		return snapshot, nil
