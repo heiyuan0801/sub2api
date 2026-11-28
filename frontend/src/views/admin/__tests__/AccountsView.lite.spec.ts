@@ -52,7 +52,7 @@ vi.mock('@/api/admin', () => ({
       previewUpstreamGroup,
       update: updateAccount
     },
-    proxies: { getAll: getAllProxies },
+    proxies: { getAllWithCount: getAllProxies },
     groups: { getAll: getAllGroups }
   }
 }))
@@ -89,8 +89,14 @@ const AccountGroupsCellStub = defineComponent({
   template: '<span data-test="account-groups">{{ groups.map(group => group.name).join(",") }}</span>'
 })
 
+const CreateAccountModalStub = defineComponent({
+  props: { show: Boolean, proxies: Array },
+  emits: ['close', 'created'],
+  template: '<div v-if="show" />'
+})
+
 const EditAccountModalStub = defineComponent({
-  props: { show: Boolean, account: { type: Object, default: null } },
+  props: { show: Boolean, account: { type: Object, default: null }, proxies: Array },
   template: '<div data-test="edit-account">{{ show ? account?.name : "" }}</div>'
 })
 
@@ -112,7 +118,7 @@ function mountView(stubActionMenu = true, realUsageCell = false) {
         AppLayout: { template: '<div><slot /></div>' },
         TablePageLayout: { template: '<div><slot name="filters" /><slot name="table" /><slot name="pagination" /></div>' },
         DataTable: DataTableStub,
-        AccountTableActions: { template: `<div><button data-test="manual-refresh" @click="$emit('refresh')">refresh</button><slot name="after" /></div>` },
+        AccountTableActions: { template: `<div><button data-test="manual-refresh" @click="$emit('refresh')">refresh</button><button data-test="open-create" @click="$emit('create')">create</button><slot name="after" /></div>` },
         AccountTableFilters: true,
         AccountBulkActionsBar: true,
         Pagination: true,
@@ -127,7 +133,7 @@ function mountView(stubActionMenu = true, realUsageCell = false) {
         TempUnschedStatusModal: true,
         ErrorPassthroughRulesModal: true,
         TLSFingerprintProfilesModal: true,
-        CreateAccountModal: true,
+        CreateAccountModal: CreateAccountModalStub,
         EditAccountModal: EditAccountModalStub,
         BulkEditAccountModal: true,
         PlatformTypeBadge: true,
@@ -186,6 +192,117 @@ describe('admin AccountsView lite account list', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.restoreAllMocks()
+  })
+
+  it('loads proxies with account counts and passes them to create and edit modals', async () => {
+    const proxies = [
+      { id: 1, name: 'Unused proxy', account_count: 0 },
+      { id: 2, name: 'Shared proxy', account_count: 7 }
+    ]
+    getAllProxies.mockResolvedValue(proxies)
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(getAllProxies).toHaveBeenCalledTimes(1)
+    await wrapper.get('[data-test="open-create"]').trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    expect(wrapper.getComponent(CreateAccountModalStub).props('proxies')).toEqual(proxies)
+
+    const edit = wrapper.findAll('button').find(button => button.text() === 'common.edit')!
+    await edit.trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    expect(wrapper.getComponent(EditAccountModalStub).props('proxies')).toEqual(proxies)
+    wrapper.unmount()
+  })
+
+  it('reloads proxy account counts each time the create dialog opens and keeps them on failure', async () => {
+    const initial = [{ id: 2, name: 'Shared proxy', account_count: 7 }]
+    const refreshed = [{ id: 2, name: 'Shared proxy', account_count: 8 }]
+    getAllProxies.mockResolvedValueOnce(initial).mockResolvedValueOnce(refreshed).mockRejectedValueOnce(new Error('offline'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const wrapper = mountView()
+    await flushPromises()
+    const createModal = () => wrapper.getComponent(CreateAccountModalStub)
+    expect(wrapper.findComponent(CreateAccountModalStub).exists()).toBe(false)
+
+    await wrapper.get('[data-test="open-create"]').trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    expect(getAllProxies).toHaveBeenCalledTimes(2)
+    expect(createModal().props('proxies')).toEqual(refreshed)
+
+    createModal().vm.$emit('close')
+    await flushPromises()
+    expect(getAllProxies).toHaveBeenCalledTimes(2)
+
+    await wrapper.get('[data-test="open-create"]').trigger('click')
+    await flushPromises()
+    expect(getAllProxies).toHaveBeenCalledTimes(3)
+    expect(createModal().props('proxies')).toEqual(refreshed)
+    wrapper.unmount()
+  })
+
+  it('applies an older proxy response when a newer refresh fails, but never lets it overwrite a newer one', async () => {
+    type ProxyList = Array<{ id: number; name: string; account_count: number }>
+    const deferred = () => {
+      let resolve!: (value: ProxyList) => void
+      let reject!: (reason: Error) => void
+      const promise = new Promise<ProxyList>((res, rej) => { resolve = res; reject = rej })
+      return { promise, resolve, reject }
+    }
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const createModal = (wrapper: ReturnType<typeof mountView>) => wrapper.getComponent(CreateAccountModalStub)
+
+    // Mount request is slow; the dialog-open request fails first.
+    const mountLoad = deferred()
+    const openLoad = deferred()
+    getAllProxies.mockReturnValueOnce(mountLoad.promise).mockReturnValueOnce(openLoad.promise)
+    let wrapper = mountView()
+    await flushPromises()
+    await wrapper.get('[data-test="open-create"]').trigger('click')
+    openLoad.reject(new Error('offline'))
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    mountLoad.resolve([{ id: 1, name: 'Shared proxy', account_count: 3 }])
+    await flushPromises()
+    expect(createModal(wrapper).props('proxies')).toEqual([{ id: 1, name: 'Shared proxy', account_count: 3 }])
+    wrapper.unmount()
+
+    // Mount request is slow; the dialog-open request succeeds first with newer counts.
+    const slowMount = deferred()
+    const fastOpen = deferred()
+    getAllProxies.mockReset().mockReturnValueOnce(slowMount.promise).mockReturnValueOnce(fastOpen.promise)
+    wrapper = mountView()
+    await flushPromises()
+    await wrapper.get('[data-test="open-create"]').trigger('click')
+    fastOpen.resolve([{ id: 1, name: 'Shared proxy', account_count: 4 }])
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    slowMount.resolve([{ id: 1, name: 'Shared proxy', account_count: 3 }])
+    await flushPromises()
+    expect(createModal(wrapper).props('proxies')).toEqual([{ id: 1, name: 'Shared proxy', account_count: 4 }])
+    wrapper.unmount()
+  })
+
+  it('refreshes proxy account counts after accounts are created while the dialog stays open', async () => {
+    const before = [{ id: 2, name: 'Shared proxy', account_count: 7 }]
+    const after = [{ id: 2, name: 'Shared proxy', account_count: 9 }]
+    getAllProxies.mockResolvedValueOnce(before).mockResolvedValueOnce(before).mockResolvedValueOnce(after)
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.get('[data-test="open-create"]').trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+    const createModal = wrapper.getComponent(CreateAccountModalStub)
+    expect(createModal.props('proxies')).toEqual(before)
+
+    createModal.vm.$emit('created')
+    await flushPromises()
+    expect(getAllProxies).toHaveBeenCalledTimes(3)
+    expect(createModal.props('proxies')).toEqual(after)
+    wrapper.unmount()
   })
 
   it('syncs the selected row without clearing notes missing from the upstream', async () => {

@@ -1126,7 +1126,7 @@
               {{ engineLabel(inputDetailRow.engine_meta.engine) }} · {{ inputDetailRow.engine_meta.model || '-' }} · {{ inputDetailRow.engine_meta.rules_version || '-' }}
               <span v-if="inputDetailRow.engine_meta.skipped_images"> · {{ t('admin.riskControl.skippedImages', { count: inputDetailRow.engine_meta.skipped_images }) }}</span>
             </template>
-            <template v-else>{{ ['cyber_policy', 'keyword_block', 'hash_block'].includes(inputDetailRow.action) ? '-' : t('admin.riskControl.legacyAuditSource') }}</template>
+            <template v-else>{{ ['cyber_policy', 'image_safety', 'keyword_block', 'hash_block'].includes(inputDetailRow.action) ? '-' : t('admin.riskControl.legacyAuditSource') }}</template>
           </div>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div class="rounded-xl border border-border/70 bg-muted/40 p-4">
@@ -2268,6 +2268,7 @@ function modeDescription(mode: ModerationMode): string {
 
 function resultLabel(row: ContentModerationLog): string {
   if (row.action === 'cyber_policy') return t('admin.riskControl.action.cyberPolicy')
+  if (row.action === 'image_safety') return t('admin.riskControl.action.imageSafety')
   if (row.action === 'keyword_block') return t('admin.riskControl.action.keywordBlock')
   if (row.action === 'block') return t('admin.riskControl.action.block')
   if (row.action === 'error' || row.error) return t('admin.riskControl.action.error')
@@ -2277,6 +2278,8 @@ function resultLabel(row: ContentModerationLog): string {
 
 function resultBadgeClass(row: ContentModerationLog): string {
   if (row.action === 'block' || row.action === 'keyword_block' || row.action === 'cyber_policy') return 'bg-destructive/15 text-destructive'
+  // Image safety rejections are recorded with the upstream error message.
+  if (row.action === 'image_safety') return 'bg-pink-500/15 text-pink-700 dark:text-pink-300'
   if (row.action === 'error' || row.error) return 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
   if (row.flagged) return 'bg-pink-500/15 text-pink-700 dark:text-pink-300'
   return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
